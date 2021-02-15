@@ -12,6 +12,7 @@ requests
 opencv
 pyproj
 cf_xarray
+python-dateutil
 
 # Plotting and vis
 matplotlib
