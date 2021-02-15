@@ -1,0 +1,28 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+
+# Python dependencies
+python>=3
+numpy
+scipy
+pandas
+xarray
+dask
+requests
+opencv
+pyproj
+cf_xarray
+
+# Plotting and vis
+matplotlib
+cartopy
+jupyter
+notebook
+ffmpeg
+imagemagick
+
+# IO dependencies
+google-cloud-storage
+netcdf4
+cfgrib
+arm_pyart
