@@ -70,9 +70,9 @@ def detect_growth_markers(flow, wvd):
     # marker_labels = flow.label(ndi.binary_opening(marker_regions, structure=s_struct))
     marker_labels = filter_labels_by_length_and_mask(marker_labels, watershed_markers!=0, 3)
     if isinstance(wvd, xr.DataArray):
-        marker_labels = filter_labels_by_length_and_mask(marker_labels, wvd.data>=-2.5, 3)
+        marker_labels = filter_labels_by_length_and_mask(marker_labels, wvd.data>=-5, 3)
     else:
-        marker_labels = filter_labels_by_length_and_mask(marker_labels, wvd>=-2.5, 3)
+        marker_labels = filter_labels_by_length_and_mask(marker_labels, wvd>=-5, 3)
 
     if isinstance(wvd, xr.DataArray):
         wvd_diff_raw = xr.DataArray(wvd_diff_raw, wvd.coords, wvd.dims)
