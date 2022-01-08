@@ -76,7 +76,7 @@ dates = pd.date_range(start_date, end_date, freq='H', closed='left').to_pydateti
 abi_files = io.find_abi_files(dates, satellite=16, product='MCMIP',
                               view='C', mode=[3,4,6], save_dir=goes_data_path,
                               replicate_path=True, check_download=True,
-                              n_attempts=1, download_missing=False, verbose=True,
+                              n_attempts=1, download_missing=True, verbose=True,
                               min_storage=2**30)
 
 # Test with some multichannel data

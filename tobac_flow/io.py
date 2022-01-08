@@ -152,8 +152,7 @@ def _check_if_file_exists_and_is_valid(filename, blob,
     -- boolean: True if file can be opened. False if otherwise
     """
     if os.path.exists(filename):
-        if _check_file_size_against_blob(filename, blob) \
-            and _check_netcdf_file_is_valid(filename):
+        if _check_file_size_against_blob(filename, blob):
             return True
         else:
             if remove_corrupt:
@@ -387,7 +386,7 @@ def find_abi_files(date, satellite=16, product='Rad', view='C', mode=[3, 4, 6],
         else:
             local_file = _get_download_destination(blob, save_dir,
                                                    replicate_path=replicate_path)
-            if _check_file_size_against_blob(local_file, blob):
+            if _check_if_file_exists_and_is_valid(local_file, blob):
                 files += [local_file]
     return files
 
@@ -398,7 +397,7 @@ def _find_glm_blobs(date, satellite=16):
         goes_bucket = goes_17_bucket
     else:
         raise ValueError("Invalid input for satellite keyword")
-    
+
     doy = (date - datetime(date.year,1,1)).days+1
 
 
