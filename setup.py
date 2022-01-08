@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='tobac flow',
       version='0.1',
@@ -8,6 +8,6 @@ setup(name='tobac flow',
       author='William Jones',
       author_email='william.jones@physics.ox.ac.uk',
       license='BSD-3',
-      packages=['tobac_flow'],
+      packages=find_packages(),
       install_requires=[],
       zip_safe=False)

@@ -112,9 +112,9 @@ def _check_netcdf_file_is_valid(filename):
     else:
         return _check_xarray_is_valid(filename)
 
-def _check_free_space_for_blob(
-        blob, save_path, relative_min_storage=1.25, absolute_min_storage=2**30
-        ):
+def _check_free_space_for_blob(blob, save_path,
+                               relative_min_storage=1.25,
+                               absolute_min_storage=2**30):
     """
     Checks if the avaialbe space on a storage volume is large enough to download
     a blob. Min storage required is the largest out of the relative_min_storage
@@ -137,9 +137,8 @@ def _check_free_space_for_blob(
     else:
         return False
 
-def _check_if_file_exists_and_is_valid(
-        filename, blob, remove_corrupt=True
-        ):
+def _check_if_file_exists_and_is_valid(filename, blob,
+                                       remove_corrupt=True):
     """
     Checks if a netcdf file exists and can be opened.
 
@@ -164,9 +163,7 @@ def _check_if_file_exists_and_is_valid(
     else:
         return False
 
-def _find_abi_blobs(
-        date, satellite=16, product='Rad', view='C', mode=3, channel=1
-        ):
+def _find_abi_blobs(date, satellite=16, product='Rad', view='C', mode=3, channel=1):
     """
     Find ABI file blobs for a single set of input parameters
 
@@ -204,9 +201,7 @@ def _find_abi_blobs(
 
     return blobs
 
-def find_abi_blobs(
-        dates, satellite=16, product='Rad', view='C', mode=[3,4,6], channel=1
-        ):
+def find_abi_blobs(dates, satellite=16, product='Rad', view='C', mode=[3,4,6], channel=1):
     """
     Find ABI file blobs for a set of one or multiple input parameters
 
@@ -224,18 +219,15 @@ def find_abi_blobs(
         supplied inputs
     """
 
-    input_params = [m.ravel().tolist()
-                    for m in np.meshgrid(
-                        dates, satellite, product, view, mode, channel)]
+    input_params = [m.ravel().tolist() for m in np.meshgrid(dates, satellite, product, view, mode, channel)]
     n_params = len(input_params[0])
 
-    blobs = sum([_find_abi_blobs(
-                    input_params[0][i],
-                    satellite=input_params[1][i],
-                    product=input_params[2][i],
-                    view=input_params[3][i],
-                    mode=input_params[4][i],
-                    channel=input_params[5][i])
+    blobs = sum([_find_abi_blobs(input_params[0][i],
+                                        satellite=input_params[1][i],
+                                        product=input_params[2][i],
+                                        view=input_params[3][i],
+                                        mode=input_params[4][i],
+                                        channel=input_params[5][i])
                 for i in range(n_params)], [])
 
     return blobs
@@ -265,17 +257,9 @@ def _get_download_destination(blob, save_dir, replicate_path=True):
     save_file = os.path.join(save_path, blob_name)
     return save_file
 
-def download_blob(
-        blob,
-        save_dir,
-        replicate_path=True,
-        check_download=False,
-        n_attempts=1,
-        clobber=False,
-        min_storage=2**30,
-        verbose=False,
-        remove_corrupt=True
-        ):
+def download_blob(blob, save_dir, replicate_path=True,
+                  check_download=False, n_attempts=1, clobber=False,
+                  min_storage=2**30, verbose=False, remove_corrupt=True):
     """
     Download a single blob from GCS
 
@@ -287,54 +271,34 @@ def download_blob(
         directly within the root directory
     -- check_download (bool; default=True)
     """
-    save_path = _get_download_destination(
-        blob, save_dir, replicate_path=replicate_path
-        )
-
+    save_path = _get_download_destination(blob, save_dir,
+                                          replicate_path=replicate_path)
     if clobber or not os.path.exists(save_path):
-
         if clobber and os.path.exists(save_path):
             os.remove(save_path)
-
         if verbose:
             print(f"Downloading {save_path}", flush=True)
-
-        if _check_free_space_for_blob(
-                blob,
-                os.path.split(save_path)[0],
-                relative_min_storage=1.25,
-                absolute_min_storage=min_storage
-                ):
-
+        if _check_free_space_for_blob(blob, os.path.split(save_path)[0],
+                                      relative_min_storage=1.25,
+                                      absolute_min_storage=min_storage):
             try:
                 blob.download_to_filename(save_path)
-
             except OSError:
                 if n_attempts>1:
-                    _download_a_blob(
-                        blob,
-                        save_dir,
-                        replicate_path=replicate_path,
-                        check_download=check_download,
-                        n_attempts=n_attempts-1,
-                        clobber=clobber
-                        )
 
+                        _download_a_blob(blob, save_dir, replicate_path=replicate_path,
+                                         check_download=check_download,
+                                         n_attempts=n_attempts-1,
+                                         clobber=clobber)
                 else:
                     raise RuntimeError(f"{save_path}: download failed")
-
-            if check_download and not _check_if_file_exists_and_is_valid(
-                    save_path, blob, remove_corrupt=True
-                    ):
+            if check_download and not _check_if_file_exists_and_is_valid(save_path, blob,
+                                                                         remove_corrupt=True):
                 if n_attempts>1:
-                    _download_a_blob(
-                        blob,
-                        save_dir,
-                        replicate_path=replicate_path,
-                        check_download=check_download,
-                        n_attempts=n_attempts-1,
-                        clobber=clobber
-                        )
+                    _download_a_blob(blob, save_dir, replicate_path=replicate_path,
+                                    check_download=check_download,
+                                    n_attempts=n_attempts-1,
+                                    clobber=clobber)
                 else:
                     if remove_corrupt:
                         os.remove(save_path)
@@ -352,28 +316,44 @@ def download_blob(
     else:
         raise RuntimeError(f"{save_path}: downloaded file not found")
 
+# def download_goes_blobs(blob_list, save_dir='./', replicate_path=True,
+#                         check_download=False, n_attempts=1, clobber=False):
+#     for blob in blob_list:
+#         blob_path, blob_name = os.path.split(blob.name)
+#
+#         if replicate_path:
+#             save_path = os.path.join(save_dir, blob_path)
+#         else:
+#             save_path = save_dir
+#         if not os.path.isdir(save_path):
+#             os.makedirs(save_path)
+#
+#         save_file = os.path.join(save_path, blob_name)
+#         if clobber or not os.path.exists(save_file):
+#             blob.download_to_filename(save_file)
+#
+#         if check_download:
+#             try:
+#                 test_ds = xr.open_dataset(save_file)
+#                 test_ds.close()
+#             except (IOError, OSError):
+#                 warnings.warn('File download failed: '+save_file)
+#                 os.remove(save_file)
+#                 if n_attempts>0:
+#                     download_goes_blobs([blob], save_dir=save_dir, replicate_path=replicate_path,
+#                                         check_download=check_download, n_attempts=n_attempts-1,
+#                                         clobber=clobber)
+
 def get_goes_date(filename):
     base_string = os.path.split(filename)[-1].split('_s')[-1]
     date = parse_date(base_string[:4]+'0101'+base_string[7:13]) + timedelta(days=int(base_string[4:7])-1)
     return date
 
-def find_abi_files(
-        date,
-        satellite=16,
-        product='Rad',
-        view='C',
-        mode=[3, 4, 6],
-        channel=1,
-        save_dir='./',
-        replicate_path=True,
-        check_download=False,
-        n_attempts=1,
-        download_missing=False,
-        clobber=False,
-        min_storage=2**30,
-        remove_corrupt=True,
-        verbose=False
-        ):
+def find_abi_files(date, satellite=16, product='Rad', view='C', mode=[3, 4, 6],
+                   channel=1, save_dir='./', replicate_path=True,
+                   check_download=False, n_attempts=1, download_missing=False,
+                   clobber=False, min_storage=2**30, remove_corrupt=True,
+                   verbose=False):
     """
     Finds ABI files on the local system. Optionally downloads missing files from
     GCS
@@ -389,16 +369,13 @@ def find_abi_files(
     for blob in blobs:
         if download_missing:
             try:
-                save_file = download_blob(
-                    blob,
-                    save_dir,
-                    replicate_path=replicate_path,
-                    check_download=check_download,
-                    n_attempts=n_attempts,
-                    clobber=clobber,
-                    min_storage=min_storage,
-                    verbose=verbose
-                    )
+                save_file = download_blob(blob, save_dir,
+                                          replicate_path=replicate_path,
+                                          check_download=check_download,
+                                          n_attempts=n_attempts,
+                                          clobber=clobber,
+                                          min_storage=min_storage,
+                                          verbose=verbose)
             except OSError as e:
                 warnings.warn(e.args[0])
                 download_missing=False
@@ -408,9 +385,8 @@ def find_abi_files(
                 if os.path.exists(save_file):
                     files += [save_file]
         else:
-            local_file = _get_download_destination(
-                blob, save_dir, replicate_path=replicate_path
-                )
+            local_file = _get_download_destination(blob, save_dir,
+                                                   replicate_path=replicate_path)
             if _check_file_size_against_blob(local_file, blob):
                 files += [local_file]
     return files
@@ -422,16 +398,14 @@ def _find_glm_blobs(date, satellite=16):
         goes_bucket = goes_17_bucket
     else:
         raise ValueError("Invalid input for satellite keyword")
-
+    
     doy = (date - datetime(date.year,1,1)).days+1
 
 
     blob_path = 'GLM-L2-LCFA/%04d/%03d/%02d/' % (date.year, doy, date.hour)
     blob_prefix = 'OR_GLM-L2-LCFA_G%2d_s' % satellite
 
-    blobs = list(goes_bucket.list_blobs(
-        prefix=blob_path+blob_prefix, delimiter='/'
-        ))
+    blobs = list(goes_bucket.list_blobs(prefix=blob_path+blob_prefix, delimiter='/'))
 
     return blobs
 
@@ -451,26 +425,57 @@ def find_glm_blobs(dates, satellite=16):
     input_params = [m.ravel().tolist() for m in np.meshgrid(dates, satellite)]
     n_params = len(input_params[0])
 
-    blobs = sum([_find_glm_blobs(
-                        input_params[0][i], satellite=input_params[1][i]
-                        )
-                    for i in range(n_params)], [])
+    blobs = sum([_find_glm_blobs(input_params[0][i],
+                                 satellite=input_params[1][i])
+                for i in range(n_params)], [])
 
     return blobs
 
-def find_glm_files(
-        date,
-        satellite=16,
-        save_dir='./',
-        replicate_path=True,
-        check_download=False,
-        n_attempts=1,
-        download_missing=False,
-        clobber=False,
-        min_storage=2**30,
-        remove_corrupt=True,
-        verbose=False
-        ):
+# def find_glm_files(date, satellite=16, save_dir='./', replicate_path=True, check_download=False,
+#                    n_attempts=0, download_missing=False):
+#     blobs = find_glm_blobs(date, satellite=satellite)
+#     files = []
+#     for blob in blobs:
+#         print(blob.name, end='\r', flush=True)
+#         blob_path, blob_name = os.path.split(blob.name)
+#
+#         if replicate_path:
+#             save_path = os.path.join(save_dir, blob_path)
+#         else:
+#             save_path = save_dir
+#         if not os.path.isdir(save_path):
+#             os.makedirs(save_path)
+#
+#         save_file = os.path.join(save_path, blob_name)
+#         if os.path.exists(save_file):
+#             if check_download:
+#                 try:
+#                     test_ds = xr.open_dataset(save_file)
+#                     test_ds.close()
+#                 except (IOError, OSError):
+#                     warnings.warn('File download failed: '+save_file)
+#                     os.remove(save_file)
+#                     if download_missing:
+#                         download_goes_blobs([blob], save_dir=save_dir, replicate_path=replicate_path,
+#                                             check_download=check_download, n_attempts=n_attempts)
+#                         if os.path.exists(save_file):
+#                             files += [save_file]
+#                 else:
+#                     files += [save_file]
+#             else:
+#                 files += [save_file]
+#         elif download_missing:
+#             download_goes_blobs([blob], save_dir=save_dir, replicate_path=replicate_path,
+#                                         check_download=check_download, n_attempts=n_attempts)
+#             if os.path.exists(save_file):
+#                 files += [save_file]
+#
+#     return files
+
+def find_glm_files(date, satellite=16,save_dir='./', replicate_path=True,
+                   check_download=False, n_attempts=1, download_missing=False,
+                   clobber=False, min_storage=2**30, remove_corrupt=True,
+                   verbose=False):
     """
     Finds GLM files on the local system. Optionally downloads missing files from
     GCS
@@ -486,16 +491,13 @@ def find_glm_files(
     for blob in blobs:
         if download_missing:
             try:
-                save_file = download_blob(
-                    blob,
-                    save_dir,
-                    replicate_path=replicate_path,
-                    check_download=check_download,
-                    n_attempts=n_attempts,
-                    clobber=clobber,
-                    min_storage=min_storage,
-                    verbose=verbose
-                    )
+                save_file = download_blob(blob, save_dir,
+                                          replicate_path=replicate_path,
+                                          check_download=check_download,
+                                          n_attempts=n_attempts,
+                                          clobber=clobber,
+                                          min_storage=min_storage,
+                                          verbose=verbose)
             except OSError as e:
                 warnings.warn(e.args[0])
                 download_missing=False
@@ -505,9 +507,8 @@ def find_glm_files(
                 if os.path.exists(save_file):
                     files += [save_file]
         else:
-            local_file = _get_download_destination(
-                blob, save_dir, replicate_path=replicate_path
-                )
+            local_file = _get_download_destination(blob, save_dir,
+                                                   replicate_path=replicate_path)
             if _check_file_size_against_blob(local_file, blob):
                 files += [save_file]
     return files
@@ -516,22 +517,15 @@ def find_nexrad_blobs(date, site):
     storage_client = storage.Client()
     bucket = storage_client.get_bucket('gcp-public-data-nexrad-l2')
 
-    blob_path = '%04d/%02d/%02d/%s/' % \
-        (date.year, date.month, date.day, site)
-    blob_prefix = 'NWS_NEXRAD_NXL2DPBL_%s_%04d%02d%02d%02d' % \
-        (site, date.year, date.month, date.day, date.hour)
+    blob_path = '%04d/%02d/%02d/%s/' % (date.year, date.month, date.day, site)
+    blob_prefix = 'NWS_NEXRAD_NXL2DPBL_%s_%04d%02d%02d%02d' % (site, date.year, date.month, date.day, date.hour)
 
     blobs = list(bucket.list_blobs(prefix=blob_path+blob_prefix, delimiter='/'))
 
     return blobs
 
-def download_blobs(
-        blob_list,
-        save_dir='./',
-        replicate_path=True,
-        n_attempts=0,
-        clobber=False
-        ):
+def download_blobs(blob_list, save_dir='./', replicate_path=True,
+                        n_attempts=0, clobber=False):
     for blob in blob_list:
         blob_path, blob_name = os.path.split(blob.name)
 
@@ -546,13 +540,7 @@ def download_blobs(
         if clobber or not os.path.exists(save_file):
             blob.download_to_filename(save_file)
 
-def find_nexrad_files(
-        date,
-        site,
-        save_dir='./',
-        replicate_path=True,
-        download_missing=False
-        ):
+def find_nexrad_files(date, site, save_dir='./', replicate_path=True, download_missing=False):
     blobs = find_nexrad_blobs(date, site)
     files = []
     for blob in blobs:
@@ -569,9 +557,7 @@ def find_nexrad_files(
         if os.path.exists(save_file):
             files += [save_file]
         elif download_missing:
-            download_blobs(
-                [blob], save_dir=save_dir, replicate_path=replicate_path
-                )
+            download_blobs([blob], save_dir=save_dir, replicate_path=replicate_path)
             if os.path.exists(save_file):
                 files += [save_file]
 
@@ -580,62 +566,37 @@ def find_nexrad_files(
 def test_find_glm_files():
     blobs = find_glm_blobs(datetime(2018,6,19,19))
     download_goes_blobs(blobs[:1], save_dir='./', replicate_path=False)
-    files = find_glm_files(
-        datetime(2018,6,19,19),
-        save_dir='./',
-        replicate_path=False,
-        download_missing=False
-        )
-    assert len(files) == 1, \
-        "Error running test of find_glm_files(), wrong number of files detected"
+    files = find_glm_files(datetime(2018,6,19,19), save_dir='./', replicate_path=False,
+                              download_missing=False)
+    assert len(files) == 1, "Error running test of find_glm_files(), wrong number of files detected"
     for f in files:
         os.remove(f)
 
 def test_find_glm_blobs():
-    assert len(find_glm_blobs(datetime(2018,6,19,19))) == 180, \
-        "Error running test of find_glm_blobs(), wrong number of blobs detected"
+    assert len(find_glm_blobs(datetime(2018,6,19,19))) == 180, "Error running test of find_glm_blobs(), wrong number of blobs detected"
 
 def test_find_abi_files():
     test_date = datetime(2000,1,1,12)
-    files = find_abi_files(
-        test_date,
-        view='C',
-        channel=13,
-        save_dir='./',
-        replicate_path=False,
-        download_missing=True
-        )
-    assert len(files) == 1, \
-        "Error running test of find_abi_files(), wrong number of files detected"
+    files = find_abi_files(test_date, view='C', channel=13, save_dir='./', replicate_path=False,
+                              download_missing=True)
+    assert len(files) == 1, "Error running test of find_abi_files(), wrong number of files detected"
     for f in files:
         os.remove(f)
 
 def test_get_goes_date():
     test_date = datetime(2000,1,1,12)
-    assert [get_goes_date(f.name)
-                for f in find_abi_blobs(test_date, view='C', channel=1)
-                ][0] == test_date, \
-        "Error running test of get_goes_date(), file date does not match expected date"
+    assert [get_goes_date(f.name) for f in find_abi_blobs(test_date, view='C', channel=1)][0] == test_date, "Error running test of get_goes_date(), file date does not match expected date"
 
 def test_download_goes_blobs():
     test_date = datetime(2000,1,1,12)
     blobs = find_abi_blobs(test_date, view='C', channel=13)
-    download_goes_blobs(
-        blobs, save_dir='./', replicate_path=False, clobber=True
-        )
-    assert os.path.exists('./'+os.path.split(blobs[0].name)[-1]), \
-        "Error running test of download_goes_blobs(), file not located"
+    download_goes_blobs(blobs, save_dir='./', replicate_path=False, clobber=True)
+    assert os.path.exists('./'+os.path.split(blobs[0].name)[-1]), "Error running test of download_goes_blobs(), file not located"
     os.remove('./'+os.path.split(blobs[0].name)[-1])
 
 def test_find_abi_blobs():
-    assert len(sum([find_abi_blobs(datetime(2000,1,1,12), view='C', channel=i+1)
-                        for i in range(16)],
-                        [])) == 15, \
-        "Error running test of find_abi_blobs(), wrong number of blobs detected"
-    assert len(sum([find_abi_blobs(datetime(2000,1,1,12), view='F', channel=i+1)
-                        for i in range(16)],
-                        [])) == 1, \
-        "Error running test of find_abi_blobs(), wrong number of blobs detected"
+    assert len(sum([find_abi_blobs(datetime(2000,1,1,12), view='C', channel=i+1) for i in range(16)], [])) == 15, "Error running test of find_abi_blobs(), wrong number of blobs detected"
+    assert len(sum([find_abi_blobs(datetime(2000,1,1,12), view='F', channel=i+1) for i in range(16)], [])) == 1, "Error running test of find_abi_blobs(), wrong number of blobs detected"
 
 if __name__ == '__main__':
     test_find_glm_blobs()
