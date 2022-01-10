@@ -264,6 +264,7 @@ def flow_label(flow, mask, structure=ndi.generate_binary_structure(3,1), dtype=n
     for label in range(1, bins.size):
         if label not in processed_labels:
             label_map[label] = [label]
+            processed_labels.append(label)
             i = 0
             while i < len(label_map[label]):
                 find_neighbour_labels(label_map[label][i], label_map[label], bins, args,
@@ -286,16 +287,16 @@ def find_neighbour_labels(label, label_stack, bins, args, processed_labels,
     Find the neighbouring labels at the previous and next time steps to a given
     label
     """
-    if label not in processed_labels:
-        processed_labels.append(label)
-        if bins[label]>bins[label-1]:
-            for new_label in np.unique(forward_labels.ravel()[args[bins[label-1]:bins[label]]]):
-                if new_label>0 and new_label not in processed_labels:
-                    label_stack.append(new_label)
+    if bins[label]>bins[label-1]:
+        for new_label in np.unique(forward_labels.ravel()[args[bins[label-1]:bins[label]]]):
+            if new_label>0 and new_label not in processed_labels:
+                label_stack.append(new_label)
+                processed_labels.append(label)
 
-            for new_label in np.unique(back_labels.ravel()[args[bins[label-1]:bins[label]]]):
-                if new_label>0 and new_label not in processed_labels:
-                    label_stack.append(new_label)
+        for new_label in np.unique(back_labels.ravel()[args[bins[label-1]:bins[label]]]):
+            if new_label>0 and new_label not in processed_labels:
+                label_stack.append(new_label)
+                processed_labels.append(label)
 
 
 
