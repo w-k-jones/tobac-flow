@@ -161,25 +161,26 @@ def get_uncorrected_glm_hist(glm_files, goes_ds, start_time, end_time):
 
 def regrid_glm(glm_files, goes_ds, corrected=False):
     goes_dates = get_datetime_from_coord(goes_ds.t)
-    goes_shape = get_ds_shape(goes_ds)
     goes_coords = get_ds_core_coords(goes_ds)
-    goes_dims = tuple(goes_coords.keys())
+    goes_mapping = {k:goes_coords[k].size for k in goes_coords}
+    glm_grid_shape = (goes_mapping['t'], goes_mapping['y'], goes_mapping['x'])
 
-    glm_grid = np.zeros(goes_shape)
+    glm_grid = np.zeros(glm_grid_shape)
 
-    for i in range(goes_shape[0]):
+    for i in range(glm_grid_shape[0]):
+        print(i, end='\r')
         try:
             if corrected:
-                glm_grid[i] = get_glm_hist(glm_files, goes_ds,
-                                           goes_dates[i]-timedelta(minutes=2.5),
-                                           goes_dates[i]+timedelta(minutes=2.5))
+                glm_grid[i] = get_corrected_glm_hist(glm_files, goes_ds,
+                                           goes_dates[i],
+                                           goes_dates[i]+timedelta(minutes=5))
             else:
                 glm_grid[i] = get_uncorrected_glm_hist(glm_files, goes_ds,
-                                           goes_dates[i]-timedelta(minutes=2.5),
-                                           goes_dates[i]+timedelta(minutes=2.5))
+                                           goes_dates[i],
+                                           goes_dates[i]+timedelta(minutes=5))
         except (ValueError, IndexError) as e:
             print('Error processing glm data at step %d' % i)
             print(e)
 
-    glm_grid = xr.DataArray(glm_grid, goes_ds.CMI_C13.coords, goes_ds.CMI_C13.dims)
+    glm_grid = xr.DataArray(glm_grid, goes_coords, ('t','y','x'))
     return glm_grid

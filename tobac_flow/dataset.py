@@ -85,9 +85,9 @@ def add_dataarray_to_ds(da, ds):
 
 def create_new_goes_ds(goes_ds):
     goes_coords = {'t':goes_ds.t, 'y':goes_ds.y, 'x':goes_ds.x,
-          'y_image':goes_ds.y_image, 'x_image':goes_ds.x_image}
+                   'y_image':goes_ds.y_image, 'x_image':goes_ds.x_image}
 
-    new_ds = xr.Dataset(coords=goes_coords)
+    new_ds = xr.Dataset(coords=goes_coords).transpose('t','y','x')
     new_ds["goes_imager_projection"] = goes_ds.goes_imager_projection
     lat, lon = get_abi_lat_lon(new_ds)
     add_dataarray_to_ds(create_dataarray(lat, ('y', 'x'), 'lat', long_name="latitude", dtype=np.float32), new_ds)
