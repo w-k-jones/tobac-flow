@@ -113,11 +113,11 @@ if True:
     edge_filter_array[:,:,:10] = 0
     edge_filter_array[:,:,-10:] = 0
 
-    flash_distance_to_marker = np.repeat(marker_distance.ravel(), (glm_grid.data*edge_filter_array).ravel())
-    flash_distance_to_wvd = np.repeat(wvd_distance.ravel(), (glm_grid.data*edge_filter_array).ravel())
-    flash_distance_to_anvil = np.repeat(anvil_distance.ravel(), (glm_grid.data*edge_filter_array).ravel())
+    flash_distance_to_marker = np.repeat(marker_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())
+    flash_distance_to_wvd = np.repeat(wvd_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())
+    flash_distance_to_anvil = np.repeat(anvil_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())
 
-    n_glm_in_margin = np.sum(glm_grid.data*edge_filter_array)
+    n_glm_in_margin = np.sum(glm_grid.data*edge_filter_array.astype(int))
 
     print(datetime.now(), 'Validating detection accuracy', flush=True)
     # Calculate probability of detection for each case
