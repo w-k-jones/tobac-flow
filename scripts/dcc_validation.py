@@ -53,6 +53,7 @@ if True:
     from tobac_flow.analysis import filter_labels_by_length, filter_labels_by_length_and_mask, apply_func_to_labels
     from tobac_flow.validation import get_min_dist_for_objects, get_marker_distance
 
+    print(datetime.now(),'Loading detected DCCs', flush=True)
     detection_ds = xr.open_dataset(file)
     validation_ds = xr.Dataset()
 
