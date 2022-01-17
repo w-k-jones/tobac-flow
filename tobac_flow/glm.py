@@ -167,7 +167,8 @@ def regrid_glm(glm_files, goes_ds, corrected=False):
     goes_mapping = {k:goes_coords[k].size for k in goes_coords}
     glm_grid_shape = (goes_mapping['t'], goes_mapping['y'], goes_mapping['x'])
 
-    glm_grid = np.zeros(glm_grid_shape)
+    # Fill with -1 for missing value
+    glm_grid = np.full(glm_grid_shape, -1)
 
     for i in range(glm_grid_shape[0]):
         # print(i, end='\r')
