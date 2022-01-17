@@ -21,11 +21,13 @@ parser.add_argument('-gd', help='GOES directory',
                     default='../data/GOES16', type=str)
 parser.add_argument('-sd', help='Directory to save output files',
                     default='../data/dcc_detect', type=str)
+parser.add_argument('-cglm', help='clobber existing glm files', action="store_true")
 
 args = parser.parse_args()
 
 file = args.file
 margin = args.margin
+clobber_glm = args.clgm
 
 goes_data_path = args.gd
 if not os.path.isdir(goes_data_path):
@@ -54,6 +56,7 @@ if True:
     from tobac_flow.validation import get_min_dist_for_objects, get_marker_distance
 
     print(datetime.now(),'Loading detected DCCs', flush=True)
+    print(file, flush=True)
     detection_ds = xr.open_dataset(file)
     validation_ds = xr.Dataset()
 
@@ -67,7 +70,7 @@ if True:
     """
     Start validation
     """
-    if os.path.exists(glm_save_path):
+    if os.path.exists(glm_save_path) and not clobber_glm:
         print(datetime.now(), 'Loading from %s' % (glm_save_path), flush=True)
         gridded_flash_ds = xr.open_dataset(glm_save_path)
         glm_grid = gridded_flash_ds.glm_flashes
@@ -114,6 +117,10 @@ if True:
     edge_filter_array[:,-10:] = 0
     edge_filter_array[:,:,:10] = 0
     edge_filter_array[:,:,-10:] = 0
+
+    # Filter objects near to missing glm data
+    wh_missing_glm = ndi.binary_dilation(glm_grid==-1, iterations=10)
+    edge_filter_array[wh_missing_glm] = 0
 
     flash_distance_to_marker = np.repeat(marker_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())
     flash_distance_to_wvd = np.repeat(wvd_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())

@@ -118,6 +118,7 @@ def get_glm_parallax_offsets(lon, lat, goes_ds):
 
 def get_corrected_glm_x_y(glm_filename, goes_ds):
     try:
+        print(glm_filename, end='\r')
         with xr.open_dataset(glm_filename) as glm_ds:
             if glm_ds.flash_lat.data.size>0 and glm_ds.flash_lon.data.size>0:
                 lon_offset, lat_offset = get_glm_parallax_offsets(glm_ds.flash_lon.data, glm_ds.flash_lat.data, goes_ds)
@@ -134,6 +135,7 @@ def get_corrected_glm_x_y(glm_filename, goes_ds):
 
 def get_uncorrected_glm_x_y(glm_filename, goes_ds):
     try:
+        print(glm_filename, end='\r')
         with xr.open_dataset(glm_filename) as glm_ds:
             if glm_ds.flash_lat.data.size>0 and glm_ds.flash_lon.data.size>0:
                 glm_lon = glm_ds.flash_lon.data
@@ -165,10 +167,11 @@ def regrid_glm(glm_files, goes_ds, corrected=False):
     goes_mapping = {k:goes_coords[k].size for k in goes_coords}
     glm_grid_shape = (goes_mapping['t'], goes_mapping['y'], goes_mapping['x'])
 
-    glm_grid = np.zeros(glm_grid_shape)
+    # Fill with -1 for missing value
+    glm_grid = np.full(glm_grid_shape, -1)
 
     for i in range(glm_grid_shape[0]):
-        print(i, end='\r')
+        # print(i, end='\r')
         try:
             if corrected:
                 glm_grid[i] = get_corrected_glm_hist(glm_files, goes_ds,
