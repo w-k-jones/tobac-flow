@@ -20,11 +20,13 @@ parser.add_argument('-gd', help='GOES directory',
                     default='../data/GOES16', type=str)
 parser.add_argument('-sd', help='Directory to save output files',
                     default='../data/dcc_detect', type=str)
+parser.add_argument('-cglm', help='clobber existing glm files', action="store_true")
 
 args = parser.parse_args()
 
 file = args.file
 margin = args.margin
+clobber_glm = args.clgm
 
 goes_data_path = args.gd
 if not os.path.isdir(goes_data_path):
@@ -67,7 +69,7 @@ if True:
     """
     Start validation
     """
-    if os.path.exists(glm_save_path):
+    if os.path.exists(glm_save_path) and not clobber_glm:
         print(datetime.now(), 'Loading from %s' % (glm_save_path), flush=True)
         gridded_flash_ds = xr.open_dataset(glm_save_path)
         glm_grid = gridded_flash_ds.glm_flashes
