@@ -27,7 +27,7 @@ args = parser.parse_args()
 
 file = args.file
 margin = args.margin
-clobber_glm = args.clgm
+clobber_glm = args.cglm
 
 goes_data_path = args.gd
 if not os.path.isdir(goes_data_path):
