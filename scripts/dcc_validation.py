@@ -82,8 +82,7 @@ if True:
         glm_files = {io.get_goes_date(i):i for i in glm_files}
         print('%d files found'%len(glm_files), flush=True)
         if len(glm_files)==0:
-            warnings.warn("No GLM Files discovered, skipping validation")
-            glm_grid = xr.zeros_like(wvd)
+            raise ValueError("No GLM Files discovered, skipping validation")
         else:
             print(datetime.now(),'Regridding GLM data', flush=True)
             glm_grid = glm.regrid_glm(glm_files, gridded_flash_ds, corrected=False)
@@ -139,7 +138,7 @@ if True:
         wvd_pod_hist = np.zeros([40])
         anvil_pod = np.float64(np.nan)
         anvil_pod_hist = np.zeros([40])
-    
+
     # Calculate false alarm rate
     growth_margin_flag = apply_func_to_labels(detection_ds.core_label.data,
                                               edge_filter_array, np.nanmin).astype('bool')
