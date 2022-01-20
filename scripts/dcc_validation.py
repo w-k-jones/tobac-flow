@@ -118,7 +118,7 @@ if True:
     edge_filter_array[:,:,-10:] = 0
 
     # Filter objects near to missing glm data
-    wh_missing_glm = ndi.binary_dilation(glm_grid==-1, iterations=10)
+    wh_missing_glm = ndi.binary_dilation(glm_grid==-1, iterations=3)
     edge_filter_array[wh_missing_glm] = 0
 
     flash_distance_to_marker = np.repeat(marker_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())
