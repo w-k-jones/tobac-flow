@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='tobac flow',
-      version='0.1',
+      version='1.0',
       description="""Detection and tracking of deep convective clouds in high
         time resolution geostationary satellite imagery""",
       url='',
