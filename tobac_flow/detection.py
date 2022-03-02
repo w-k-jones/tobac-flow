@@ -94,7 +94,8 @@ def edge_watershed(flow, field, markers, upper_threshold, lower_threshold, erode
     s_struct = np.ones([1,3,3])
     mask = ndi.binary_erosion(field==lower_threshold, structure=s_struct, iterations=erode_distance, border_value=1)
 
-    edges = flow.sobel(field, direction='uphill')
+    # edges = flow.sobel(field, direction='uphill', method='nearest')
+    edges = flow.sobel(field, method='nearest')
 
     watershed = flow.watershed(edges, markers, mask=mask, structure=ndi.generate_binary_structure(3,1), debug_mode=verbose)
 
