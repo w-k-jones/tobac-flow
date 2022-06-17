@@ -51,10 +51,10 @@ class Flow:
                                            poly_n, poly_sigma, flags)
         return flow
 
-    def _warp_flow_step(self, img, step, method='linear', direction='forward', offset=[0,0]):
+    def _warp_flow_step(self, img, step, method='linear', direction='forward',
+                        stencil=ndi.generate_binary_structure(3,1)[0]):
         if img.shape != self.shape[1:]:
             raise ValueError("Image shape does not match flow shape")
-        out_img = np.full_like(img, np.nan)
         if method == 'linear':
             method = cv.INTER_LINEAR
         elif method =='nearest':
@@ -63,21 +63,19 @@ class Flow:
             raise ValueError("method must be either 'linear' or 'nearest'")
 
         h, w = self.shape[1:]
-
+        n = np.sum(stencil!=0)
+        offsets = np.stack(np.where(stencil!=0), -1)[:,np.newaxis,np.newaxis,:]-1
+        locations = np.tile(offsets, [1,h,w,1]).astype(np.float32)
+        locations += np.stack(np.meshgrid(np.arange(w), np.arange(h)), -1)
         if direction=='forward':
-            return cv.remap(img,
-                 (self.flow_for[step]
-                  + np.stack(np.meshgrid(np.arange(w), np.arange(h)), -1)
-                  + np.asarray(offset)).astype(np.float32),
-                 None, method, out_img, cv.BORDER_TRANSPARENT)
+            locations += self.flow_for[step]
         elif direction=='backward':
-            return cv.remap(img,
-                 (self.flow_back[step]
-                  + np.stack(np.meshgrid(np.arange(w), np.arange(h)), -1)
-                  + np.asarray(offset)).astype(np.float32),
-                 None, method, out_img, cv.BORDER_TRANSPARENT)
-        else:
-            raise ValueError("direction must be either 'forward' or 'backward'")
+            locations += self.flow_back[step]
+
+        out_img = np.full([n,h*w,2], np.nan)
+
+        return cv.remap(img, locations.reshape([n,-1,2]), None,
+                        method, out_img, cv.BORDER_CONSTANT, np.nan).reshape([n,h,w])
 
     def _smooth_flow_step(self, step):
         flow_for_warp = np.full_like(self.flow_for[step], np.nan)
@@ -112,64 +110,65 @@ class Flow:
 
     #       Now loop through elements of structure
 
-            for i in range(n_structure):
+
     #           For backward steps:
-                if wh_layer[0][i]==0:
-                    if step > 0:
-                        if img_step != step-1:
-                            if hasattr(data, 'compute'):
-                                img = data[step-1].compute().data
-                            else:
-                                img = data[step-1]
-                            img_step = step-1
-                        temp[i] = self._warp_flow_step(img, step,
-                                                        method=method,
-                                                        direction='backward',
-                                                        offset=[wh_layer[2][i]-1,wh_layer[1][i]-1]) \
-                                  * struct_factor[i]
-    #           For forward steps:
-                elif wh_layer[0][i]==2:
-                    if step < data.shape[0]-1:
-                        if img_step != step+1:
-                            if hasattr(data, 'compute'):
-                                img = data[step+1].compute().data
-                            else:
-                                img = data[step+1]
-                            img_step = step+1
-                        temp[i] = self._warp_flow_step(img, step,
-                                                        method=method,
-                                                        direction='forward',
-                                                        offset=[wh_layer[2][i]-1,wh_layer[1][i]-1]) \
-                                  * struct_factor[i]
-    #           For same time step:
-                else:
-                    if img_step != step:
-                        if hasattr(data, 'compute'):
-                            img = data[step].compute().data
-                        else:
-                            img = data[step]
-                        img_step = step
-                    if wh_layer[1][i]==1 and wh_layer[2][i]==1:
-                        temp[i] = img * struct_factor[i]
+            n_back = np.count_nonzero(structure[0])
+            if n_back > 0 and step > 0:
+                if img_step != step-1:
+                    if hasattr(data, 'compute'):
+                        img = data[step-1].compute().data
                     else:
-                        temp[i,
-                             (1 if wh_layer[2][i]==0 else 0):(-1 if wh_layer[2][i]==2 else None),
-                             (1 if wh_layer[1][i]==0 else 0):(-1 if wh_layer[1][i]==2 else None)] \
-                            = img[(1 if wh_layer[2][i]==2 else 0):(-1 if wh_layer[2][i]==0 else None),
-                                  (1 if wh_layer[1][i]==2 else 0):(-1 if wh_layer[1][i]==0 else None)] \
-                              * struct_factor[i]
+                        img = data[step-1]
+                    img_step = step-1
+                temp[:n_back] = self._warp_flow_step(img, step,
+                                                     method=method,
+                                                     direction='backward',
+                                                     stencil=structure[0]) \
+                                * struct_factor[:n_back,np.newaxis,np.newaxis]
+    #           For forward steps:
+            n_forward = np.count_nonzero(structure[2])
+            if n_forward > 0 and step < data.shape[0]-1:
+                if img_step != step+1:
+                    if hasattr(data, 'compute'):
+                        img = data[step+1].compute().data
+                    else:
+                        img = data[step+1]
+                    img_step = step+1
+                temp[-n_forward:] = self._warp_flow_step(img, step,
+                                                         method=method,
+                                                         direction='forward',
+                                                         stencil=structure[0]) \
+                                    * struct_factor[-n_forward:,np.newaxis,np.newaxis]
+    #           For same time step:
+            for i in range(n_back, n_structure-n_forward):
+                if img_step != step:
+                    if hasattr(data, 'compute'):
+                        img = data[step].compute().data
+                    else:
+                        img = data[step]
+                    img_step = step
+                if wh_layer[1][i]==1 and wh_layer[2][i]==1:
+                    temp[i] = img * struct_factor[i]
+                else:
+                    temp[i,
+                         (1 if wh_layer[2][i]==0 else 0):(-1 if wh_layer[2][i]==2 else None),
+                         (1 if wh_layer[1][i]==0 else 0):(-1 if wh_layer[1][i]==2 else None)] \
+                        = img[(1 if wh_layer[2][i]==2 else 0):(-1 if wh_layer[2][i]==0 else None),
+                              (1 if wh_layer[1][i]==2 else 0):(-1 if wh_layer[1][i]==0 else None)] \
+                          * struct_factor[i]
 
             if func is None:
                 out_array[:,step] = temp
             else:
                 out_array[step] = func(temp)
+        out_array[~np.isfinite(data)] = np.nan
         return out_array
 
     def diff(self, data, dtype=np.float32):
         diff_struct = np.zeros([3,3,3])
         diff_struct[:,1,1] = 1
         diff = self.convolve(data, structure=diff_struct,
-                             func=lambda x:np.nansum([x[2]-x[1],x[1]-x[0]], axis=0) \
+                             func=lambda x:np.nansum([x[2]-x[1], x[1]-x[0]], axis=0) \
                                            * 1/np.maximum(np.sum([np.isfinite(x[2]), np.isfinite(x[0])], 0), 1))
         return diff
 
@@ -231,26 +230,41 @@ class Flow:
                                          max_iter=max_iter,
                                          debug_mode=debug_mode)
 
-# Old labelling function - slow and buggy
-    # def label(self, data, structure=ndi.generate_binary_structure(3,1)):
-    #     from .legacy_flow import Flow_Func, flow_label
-    #
-    #     l_flow = Flow_Func(self.flow_for[...,0], self.flow_back[...,0],
-    #                           self.flow_for[...,1], self.flow_back[...,1])
-    #
-    #     return flow_label(data, l_flow, structure=structure)
+    def label(self, data, structure=ndi.generate_binary_structure(3,1),
+              dtype=np.int32, overlap=0, subsegment_shrink=0):
+        return flow_label(self, data, structure=structure, dtype=dtype,
+                          overlap=overlap, subsegment_shrink=subsegment_shrink)
 
-    def label(self, data, structure=ndi.generate_binary_structure(3,1), dtype=np.int32):
-        return flow_label(self, data, structure=structure, dtype=dtype)
+def subsegment_labels(input_mask, shrink_factor=0.1):
+    from tobac_flow.analysis import flat_label
+    from skimage.segmentation import watershed
+    labels = flat_label(input_mask!=0)
+    pixel_counts = np.bincount(labels.ravel())
+    dist_mask = ndi.morphology.distance_transform_edt(labels, [1e9,1,1])/((pixel_counts/np.pi)**0.5)[labels]
+    shrunk_labels = flat_label(dist_mask>shrink_factor)
+    shrunk_markers = shrunk_labels.copy()
+    shrunk_markers[flat_inner==0] = -1
+    struct = ndi.generate_binary_structure(3,1)
+    struct[0] = 0
+    struct[-1] = 0
+    subseg_labels = np.zeros_like(labels)
+    for i in range(subseg_labels.shape[0]):
+        subseg_labels[i] = watershed(-dist_mask[i], shrunk_markers[i], mask=flat_inner[i]!=0)
 
-def flow_label(flow, mask, structure=ndi.generate_binary_structure(3,1), dtype=np.int32):
+    return subseg_labels
+
+# implement minimum overlap for flow_label function
+def flow_label(flow, mask, structure=ndi.generate_binary_structure(3,1), dtype=np.int32, overlap=0, subsegment_shrink=0):
     """
     Label 3d connected objects in a semi-Lagrangian reference frame
     """
     from tobac_flow.analysis import flat_label
     from collections import deque
 #     Get flat (2d) labels
-    flat_labels = flat_label(mask.astype(bool), structure=structure).astype(dtype)
+    if subsegment_shrink == 0:
+        flat_labels = flat_label(mask.astype(bool), structure=structure).astype(dtype)
+    else:
+        flat_labels = subsegment_labels(mask.astype(bool), shrink_factor=subsegment_shrink)
 
     back_labels, forward_labels = flow.convolve(flat_labels, method='nearest', dtype=dtype,
                                               structure=structure*np.array([1,0,1])[:,np.newaxis, np.newaxis])
@@ -265,11 +279,12 @@ def flow_label(flow, mask, structure=ndi.generate_binary_structure(3,1), dtype=n
         if label not in processed_labels:
             label_map[label] = [label]
             processed_labels.append(label)
-            
+
             i = 0
             while i < len(label_map[label]):
                 find_neighbour_labels(label_map[label][i], label_map[label], bins, args,
-                                      processed_labels, forward_labels, back_labels)
+                                      processed_labels, forward_labels, back_labels,
+                                      overlap=overlap)
                 i+=1
 
     new_labels = np.zeros(mask.shape, dtype=dtype)
@@ -288,14 +303,24 @@ def find_neighbour_labels(label, label_stack, bins, args, processed_labels,
     Find the neighbouring labels at the previous and next time steps to a given
     label
     """
-    if bins[label]>bins[label-1]:
-        for new_label in np.unique(forward_labels.ravel()[args[bins[label-1]:bins[label]]]):
-            if new_label>0 and new_label not in processed_labels:
+    if bins[label]>bins[label-1]: #check that there are any pixels in this label
+        forward_lap = forward_labels.ravel()[args[bins[label-1]:bins[label]]]
+        forward_bins = np.bincount(np.maximum(forward_lap,0))
+        for new_label in np.unique(forward_lap):
+            if (new_label>0 and
+                new_label not in processed_labels and
+                forward_bins[new_label] >= overlap*np.minimum(bins[label]-bins[label-1], bins[new_label]-bins[new_label-1])):
+
                 label_stack.append(new_label)
                 processed_labels.append(new_label)
 
-        for new_label in np.unique(back_labels.ravel()[args[bins[label-1]:bins[label]]]):
-            if new_label>0 and new_label not in processed_labels:
+        backward_lap = back_labels.ravel()[args[bins[label-1]:bins[label]]]
+        backward_bins = np.bincount(np.maximum(backward_lap,0))
+        for new_label in np.unique(backward_lap):
+            if (new_label>0 and
+                new_label not in processed_labels and
+                backward_bins[new_label] >= overlap*np.minimum(bins[label]-bins[label-1], bins[new_label]-bins[new_label-1])):
+
                 label_stack.append(new_label)
                 processed_labels.append(new_label)
 
