@@ -72,9 +72,9 @@ class Flow:
         elif direction=='backward':
             locations += self.flow_back[step]
 
-        out_img = np.full([n,h*w,2], np.nan)
+        out_img = np.full([n*h,w,2], np.nan)
 
-        return cv.remap(img, locations.reshape([n,-1,2]), None,
+        return cv.remap(img, locations.reshape([n*h,w,2]), None,
                         method, out_img, cv.BORDER_CONSTANT, np.nan).reshape([n,h,w])
 
     def _smooth_flow_step(self, step):
@@ -161,7 +161,9 @@ class Flow:
                 out_array[:,step] = temp
             else:
                 out_array[step] = func(temp)
-        out_array[~np.isfinite(data)] = np.nan
+        # Propagate nan locations forward
+        if not func is None:
+            out_array[~np.isfinite(data)] = np.nan
         return out_array
 
     def diff(self, data, dtype=np.float32):
@@ -243,13 +245,13 @@ def subsegment_labels(input_mask, shrink_factor=0.1):
     dist_mask = ndi.morphology.distance_transform_edt(labels, [1e9,1,1])/((pixel_counts/np.pi)**0.5)[labels]
     shrunk_labels = flat_label(dist_mask>shrink_factor)
     shrunk_markers = shrunk_labels.copy()
-    shrunk_markers[flat_inner==0] = -1
+    shrunk_markers[labels==0] = -1
     struct = ndi.generate_binary_structure(3,1)
     struct[0] = 0
     struct[-1] = 0
     subseg_labels = np.zeros_like(labels)
     for i in range(subseg_labels.shape[0]):
-        subseg_labels[i] = watershed(-dist_mask[i], shrunk_markers[i], mask=flat_inner[i]!=0)
+        subseg_labels[i] = watershed(-dist_mask[i], shrunk_markers[i], mask=labels[i]!=0)
 
     return subseg_labels
 
