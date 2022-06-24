@@ -9,7 +9,8 @@ from tobac_flow.abi import get_abi_lat_lon, get_abi_pixel_area
 
 def goes_dataloader(start_date, end_date, n_pad_files=1,
                     x0=None, x1=None, y0=None, y1=None,
-                    time_gap=timedelta(minutes=15), return_new_ds=False,
+                    time_gap=timedelta(minutes=15),
+                    dtype=np.float32, return_new_ds=False,
                     **io_kwargs):
     # Find ABI files
     dates = pd.date_range(start_date, end_date, freq='H', closed='left').to_pydatetime()
@@ -37,7 +38,7 @@ def goes_dataloader(start_date, end_date, n_pad_files=1,
         all_abi_files = abi_files
 
     # Load ABI files
-    bt, wvd, swd = load_mcmip(all_abi_files, x0, x1, y0, y1)
+    bt, wvd, swd = load_mcmip(all_abi_files, x0, x1, y0, y1, dtype=dtype)
 
     # Fill any gaps:
     if io_kwargs["view"] == "M":
@@ -91,7 +92,7 @@ def get_stripe_deviation(da):
     y_std = da.std('y')
     return np.abs(((da-y_mean)/(y_std+1e-8)).mean('x'))
 
-def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
+def load_mcmip(files, x0=None, x1=None, y0=None, y1=None, dtype=np.float32):
     ds_slice = {'x':slice(x0,x1), 'y':slice(y0,y1)}
     # Load a stack of goes datasets using xarray
     if len(files)>1:
@@ -100,19 +101,19 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
         goes_ds = xr.open_dataset(files[0]).isel(ds_slice)
 
     # Extract fields and load into memory
-    wvd = goes_ds.CMI_C08 - goes_ds.CMI_C10
+    wvd = (goes_ds.CMI_C08 - goes_ds.CMI_C10).astype(dtype)
     try:
         wvd = wvd.compute()
     except AttributeError:
         pass
 
-    bt = goes_ds.CMI_C13
+    bt = (goes_ds.CMI_C13).astype(dtype)
     try:
         bt = bt.compute()
     except AttributeError:
         pass
 
-    swd = goes_ds.CMI_C13 - goes_ds.CMI_C15
+    swd = (goes_ds.CMI_C13 - goes_ds.CMI_C15).astype(dtype)
     try:
         swd = swd.compute()
     except AttributeError:
@@ -212,7 +213,7 @@ def fill_time_gap_full_disk(bt, wvd, swd, time_gap=timedelta(minutes=15),
             swd_concat_list.append(swd.isel(t=slice(last_t_ind, t_ind+1)))
 
             if len(full_disk_files) > 0:
-                full_bt, full_wvd, full_swd = load_mcmip(full_disk_files, x0, x1, y0, y1)
+                full_bt, full_wvd, full_swd = load_mcmip(full_disk_files, x0, x1, y0, y1, dtype=bt.dtype)
 
                 bt_concat_list.append(full_bt)
                 wvd_concat_list.append(full_wvd)
