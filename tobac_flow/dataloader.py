@@ -52,6 +52,11 @@ def goes_dataloader(start_date, end_date, n_pad_files=1,
 
     return bt, wvd, swd
 
+def get_stripe_deviation(da):
+    y_mean = da.mean('y')
+    y_std = da.std('y')
+    return np.abs(((da-y_mean)/(y_std+1e-8)).mean('x'))
+
 def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     ds_slice = {'x':slice(x0,x1), 'y':slice(y0,y1)}
     # Load a stack of goes datasets using xarray
@@ -82,15 +87,22 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     # Check for missing data and DQF flags in any channels, propagate to all data
     all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(swd)], 0)
     all_DQF = np.any([goes_ds.DQF_C08, goes_ds.DQF_C10, goes_ds.DQF_C13, goes_ds.DQF_C15], 0)
+    all_stripe = np.any([get_stripe_deviation(goes_ds.DQF_C08)>2,
+                         get_stripe_deviation(goes_ds.DQF_C10)>2,
+                         get_stripe_deviation(goes_ds.DQF_C13)>2,
+                         get_stripe_deviation(goes_ds.DQF_C15)>2], 0)
 
     bt.data[all_isnan] = np.nan
     bt.data[all_DQF] = np.nan
+    bt.data[all_stripe] = np.nan
 
     wvd.data[all_isnan] = np.nan
     wvd.data[all_DQF] = np.nan
+    wvd.data[all_stripe] = np.nan
 
     swd.data[all_isnan] = np.nan
     swd.data[all_DQF] = np.nan
+    swd.data[all_stripe] = np.nan
 
     return bt, wvd, swd
 
