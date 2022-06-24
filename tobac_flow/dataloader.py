@@ -4,11 +4,13 @@ import xarray as xr
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 from tobac_flow import io
-from tobac_flow.dataset import get_datetime_from_coord
+from tobac_flow.dataset import get_datetime_from_coord, create_dataarray, add_dataarray_to_ds
+from tobac_flow.abi import get_abi_lat_lon, get_abi_pixel_area
 
 def goes_dataloader(start_date, end_date, n_pad_files=1,
                     x0=None, x1=None, y0=None, y1=None,
-                    time_gap=timedelta(minutes=15), **io_kwargs):
+                    time_gap=timedelta(minutes=15), return_new_ds=False,
+                    **io_kwargs):
     # Find ABI files
     dates = pd.date_range(start_date, end_date, freq='H', closed='left').to_pydatetime()
 
@@ -50,7 +52,39 @@ def goes_dataloader(start_date, end_date, n_pad_files=1,
     wvd = fill_time_gap_nan(wvd, time_gap)
     swd = fill_time_gap_nan(swd, time_gap)
 
-    return bt, wvd, swd
+    wvd.name = "WVD"
+    wvd.attrs["standard_name"] = wvd.name
+    wvd.attrs["long_name"] = "water vapour difference"
+    wvd.attrs["units"] = "K"
+
+    bt.name = "BT"
+    bt.attrs["standard_name"] = bt.name
+    bt.attrs["long_name"] = "brightness temperature"
+    bt.attrs["units"] = "K"
+
+    swd.name = "SWD"
+    swd.attrs["standard_name"] = swd.name
+    swd.attrs["long_name"] = "split window difference"
+    swd.attrs["units"] = "K"
+
+    if return_new_ds:
+        goes_ds = xr.open_dataset(abi_files[0])
+
+        goes_coords = {'t':bt.t, 'y':bt.y, 'x':bt.x,
+                       'y_image':goes_ds.y_image, 'x_image':goes_ds.x_image}
+
+        new_ds = xr.Dataset(coords=goes_coords)
+        new_ds["goes_imager_projection"] = goes_ds.goes_imager_projection
+        lat, lon = get_abi_lat_lon(new_ds)
+        add_dataarray_to_ds(create_dataarray(lat, ('y', 'x'), 'lat', long_name="latitude", dtype=np.float32), new_ds)
+        add_dataarray_to_ds(create_dataarray(lon, ('y', 'x'), 'lon', long_name="longitude", dtype=np.float32), new_ds)
+        add_dataarray_to_ds(create_dataarray(get_abi_pixel_area(new_ds), ('y', 'x'), 'area',
+                                             long_name="pixel area", units='km^2', dtype=np.float32), new_ds)
+
+        return bt, wvd, swd, new_ds
+
+    else:
+        return bt, wvd, swd
 
 def get_stripe_deviation(da):
     y_mean = da.mean('y')
