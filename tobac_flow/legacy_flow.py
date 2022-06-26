@@ -302,7 +302,9 @@ def flow_sobel(flow_stack, axis=None, direction=None, magnitude=False):
         raise ValueError("""direction must be 'uphill', 'downhill' or None""")
     return output
 
-def flow_network_watershed(field, markers, flow_func, mask=None, structure=None, max_iter=100, debug_mode=False, low_memory=False):
+def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
+                           max_iter=100, debug_mode=False, low_memory=False,
+                           dtype=None):
     # Check structure input, set default and check dimensions and shape
     if structure is None:
         if debug_mode:
@@ -344,7 +346,7 @@ def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
     if np.any(wh):
         field[wh] = np.nanmax(field)
         mask[wh] = True
-        markers[wh] = False
+        markers[wh] = 0
 
     # Get ravelled indices for each pixel in the field, and find nearest neighbours using flow field
     # Set inds dtype to minimum possible to contain all values to save memory
@@ -354,6 +356,8 @@ def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
         inds_dtype = np.uint32
     else:
         inds_dtype = np.uint64
+    if debug_mode:
+        print("Inds dtype:", inds_dtype)
     inds = np.arange(field.size, dtype=inds_dtype).reshape(field.shape)
     if debug_mode:
         print("Calculating nearest neighbours")
@@ -384,9 +388,12 @@ def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
         mark_dtype = np.int32
     else:
         mark_dtype = np.int64
-    fill_markers = (markers.astype(mark_dtype)-mask.astype(mark_dtype))
-    wh_local_min = np.logical_and(inds_neighbour==inds, fill_markers==0)
-    wh_markers = np.logical_or(wh_local_min, fill_markers!=0)
+    if debug_mode:
+        print("Marker dtype:", mark_dtype)
+    fill = (markers.astype(mark_dtype)-mask.astype(mark_dtype))
+
+    wh_local_min = np.logical_and(inds_neighbour==inds, fill==0)
+    wh_markers = np.logical_or(wh_local_min, fill!=0)
     wh_to_fill = np.logical_not(wh_markers.copy())
     if debug_mode:
         print("Finding network convergence locations")
@@ -433,13 +440,13 @@ def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
         mark_dtype = np.int32
     else:
         mark_dtype = np.int64
-    fill_markers = fill_markers.astype(mark_dtype)
-    fill_markers[wh_local_min] = temp_markers
-    fill = fill_markers.copy()
+    fill = fill.astype(mark_dtype)
+
+    fill[wh_local_min] = temp_markers
     wh = fill==0
     fill[wh] = fill.ravel()[inds_neighbour[wh].ravel()]
-    # fill = fill_markers.ravel()[inds_neighbour.ravel()].reshape(fill_markers.shape)
-    del fill_markers, temp_markers, inds_neighbour
+    # fill = fill.ravel()[inds_neighbour.ravel()].reshape(fill.shape)
+    del temp_markers, inds_neighbour
     # fill[markers>0]=markers[markers>0]
     # fill[mask]=-1
     wh = fill==0
@@ -452,6 +459,7 @@ def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
         fill = np.maximum(fill.filled(fill_value=0),0)
     else:
         fill = np.maximum(fill, 0)
+
     # Now overflow watershed basins into neighbouring basins until only marker labels are left
     if debug_mode:
         print("Joining labels")
@@ -541,6 +549,11 @@ def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
             #     print("New:", new_label[np.maximum(0,np.unique(fill).astype(int)[:10])])
         if np.nanmax(fill)<=max_markers:
             break
+
+    if dtype==None:
+        fill = fill.astype(mark_dtype)
+    else:
+        fill = fill.astype(dtype)
     return fill
 
 def flow_label(data, flow, structure=ndi.generate_binary_structure(3,1)):

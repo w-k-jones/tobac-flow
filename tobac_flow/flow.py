@@ -14,8 +14,8 @@ class Flow:
 
     def get_flow(self, data, smoothing_passes, flow_kwargs):
         self.shape = data.shape
-        self.flow_for = np.full(self.shape+(2,), np.nan, dtype=np.float32)
-        self.flow_back = np.full(self.shape+(2,), np.nan, dtype=np.float32)
+        self.flow_for = np.full(self.shape+(2,), np.nan, dtype=np.float16)
+        self.flow_back = np.full(self.shape+(2,), np.nan, dtype=np.float16)
 
         for i in range(self.shape[0]-1):
             print(i, end='\r')
@@ -48,11 +48,12 @@ class Flow:
         """
         flow = cv.calcOpticalFlowFarneback(self.to_8bit(a), self.to_8bit(b), None,
                                            pyr_scale, levels, winsize, iterations,
-                                           poly_n, poly_sigma, flags)
+                                           poly_n, poly_sigma, flags).astype(np.float16)
         return flow
 
     def _warp_flow_step(self, img, step, method='linear', direction='forward',
-                        stencil=ndi.generate_binary_structure(3,1)[0]):
+                        stencil=ndi.generate_binary_structure(3,1)[0],
+                        dtype=np.float32):
         if img.shape != self.shape[1:]:
             raise ValueError("Image shape does not match flow shape")
         if method == 'linear':
@@ -64,18 +65,20 @@ class Flow:
 
         h, w = self.shape[1:]
         n = np.sum(stencil!=0)
-        offsets = np.stack(np.where(stencil!=0), -1)[:,np.newaxis,np.newaxis,:]-1
-        locations = np.tile(offsets, [1,h,w,1]).astype(np.float32)
+        offsets = (np.stack(np.where(stencil!=0), -1)[:,np.newaxis,np.newaxis,:]-1).astype(np.float32)
+        locations = np.tile(offsets, [1,h,w,1])
         locations += np.stack(np.meshgrid(np.arange(w), np.arange(h)), -1)
         if direction=='forward':
             locations += self.flow_for[step]
         elif direction=='backward':
             locations += self.flow_back[step]
 
-        out_img = np.full([n*h,w,2], np.nan)
+        out_img = np.full([n*h,w,2], np.nan, dtype=np.float32)
 
-        return cv.remap(img, locations.reshape([n*h,w,2]), None,
-                        method, out_img, cv.BORDER_CONSTANT, np.nan).reshape([n,h,w])
+        locations = locations.reshape([n*h,w,2]).astype(np.float32)
+
+        return cv.remap(img.astype(np.float32), locations.reshape([n*h,w,2]), None,
+                        method, out_img, cv.BORDER_CONSTANT, np.nan).reshape([n,h,w]).astype(dtype)
 
     def _smooth_flow_step(self, step):
         flow_for_warp = np.full_like(self.flow_for[step], np.nan)
@@ -163,7 +166,10 @@ class Flow:
                 out_array[step] = func(temp)
         # Propagate nan locations forward
         if not func is None:
-            out_array[~np.isfinite(data)] = np.nan
+            if isinstance(data, xr.DataArray):
+                out_array[~np.isfinite(data.data)] = np.nan
+            else:
+                out_array[~np.isfinite(data)] = np.nan
         return out_array
 
     def diff(self, data, dtype=np.float32):
@@ -171,7 +177,8 @@ class Flow:
         diff_struct[:,1,1] = 1
         diff = self.convolve(data, structure=diff_struct,
                              func=lambda x:np.nansum([x[2]-x[1], x[1]-x[0]], axis=0) \
-                                           * 1/np.maximum(np.sum([np.isfinite(x[2]), np.isfinite(x[0])], 0), 1))
+                                           * 1/np.maximum(np.sum([np.isfinite(x[2]), np.isfinite(x[0])], 0), 1),
+                             dtype=dtype)
         return diff
 
     def _sobel_matrix(self, ndims):
@@ -208,29 +215,33 @@ class Flow:
 
         return out_array ** 0.5
 
-    def sobel(self, data, method='linear', direction=None):
+    def sobel(self, data, method='linear', direction=None, dtype=np.float32):
         if direction == 'uphill':
             return self.convolve(data, structure=np.ones((3,3,3)),
-                                 func=self._sobel_func_uphill, method=method)
+                                 func=self._sobel_func_uphill, method=method,
+                                 dtype=dtype)
         if direction == 'downhill':
             return self.convolve(data, structure=np.ones((3,3,3)),
-                                 func=self._sobel_func_downhill, method=method)
+                                 func=self._sobel_func_downhill, method=method,
+                                 dtype=dtype)
         else:
             return self.convolve(data, structure=np.ones((3,3,3)),
-                                 func=self._sobel_func, method=method)
+                                 func=self._sobel_func, method=method,
+                                 dtype=dtype)
 
     def watershed(self, field, markers, mask=None,
                   structure=ndi.generate_binary_structure(3,1),
-                  max_iter=100, debug_mode=False):
+                  max_iter=100, debug_mode=False, dtype=None):
         from .legacy_flow import Flow_Func, flow_network_watershed
 
         l_flow = Flow_Func(self.flow_for[...,0], self.flow_back[...,0],
-                              self.flow_for[...,1], self.flow_back[...,1])
+                           self.flow_for[...,1], self.flow_back[...,1])
 
-        return flow_network_watershed(field, markers, l_flow,
-                                         mask=mask, structure=structure,
-                                         max_iter=max_iter,
-                                         debug_mode=debug_mode)
+        output = flow_network_watershed(field, markers, l_flow,
+                                        mask=mask, structure=structure,
+                                        max_iter=max_iter, debug_mode=debug_mode,
+                                        dtype=dtype)
+        return output
 
     def label(self, data, structure=ndi.generate_binary_structure(3,1),
               dtype=np.int32, overlap=0, subsegment_shrink=0):
@@ -264,7 +275,7 @@ def flow_label(flow, mask, structure=ndi.generate_binary_structure(3,1), dtype=n
     from collections import deque
 #     Get flat (2d) labels
     if subsegment_shrink == 0:
-        flat_labels = flat_label(mask.astype(bool), structure=structure).astype(dtype)
+        flat_labels = flat_label(mask.astype(bool), structure=structure, dtype=dtype)
     else:
         flat_labels = subsegment_labels(mask.astype(bool), shrink_factor=subsegment_shrink)
 

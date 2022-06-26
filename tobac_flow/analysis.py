@@ -2,27 +2,34 @@ import numpy as np
 from scipy import ndimage as ndi
 from .dataset import add_dataarray_to_ds
 
-def apply_func_to_labels(labels, field, func):
+def apply_func_to_labels(labels, field, func, dtype=None):
+    if dtype == None:
+        dtype = field.dtype
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
-    return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]])
+    return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]].astype(dtype))
                      if bins[i+1]>bins[i] else None for i in range(bins.size-1)])
 
-def apply_weighted_func_to_labels(labels, field, weights, func):
+def apply_weighted_func_to_labels(labels, field, weights, func, dtype=None):
+    if dtype == None:
+        dtype = field.dtype
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
-    return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]], weights.ravel()[args[bins[i]:bins[i+1]]])
+    return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]].astype(dtype),
+                          weights.ravel()[args[bins[i]:bins[i+1]]])
                      if bins[i+1]>bins[i] else None for i in range(bins.size-1)])
 
-def flat_label(mask, structure=ndi.generate_binary_structure(3,1)):
+def flat_label(mask, structure=ndi.generate_binary_structure(3,1),
+               dtype=np.int32):
     label_struct = structure.copy()
     label_struct[0] = 0
     label_struct[-1] = 0
 
-    return ndi.label(mask, structure=label_struct)[0]
+    return ndi.label(mask, structure=label_struct, output=dtype)[0]
 
-def get_step_labels_for_label(labels, structure=ndi.generate_binary_structure(3,1)):
-    step_labels = flat_label(labels!=0)
+def get_step_labels_for_label(labels, structure=ndi.generate_binary_structure(3,1),
+                              dtype=np.int32):
+    step_labels = flat_label(labels!=0, structure=structure, dtype=dtype)
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
     return [np.unique(step_labels.ravel()[args[bins[i]:bins[i+1]]])
@@ -82,26 +89,46 @@ def filter_labels_by_length_and_mask(labels, mask, min_length):
                 labels.ravel()[args[bins[i]:bins[i+1]]] = 0
     return labels
 
-def get_stats_for_labels(labels, da, dim=None):
+def filter_labels_by_length_and_multimask(labels, masks, min_length):
+    if type(masks) is not type(list()):
+        raise ValueError("masks input must be a list of masks to process")
+
+    bins = np.cumsum(np.bincount(labels.ravel()))
+    args = np.argsort(labels.ravel())
+    object_lengths = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)])
+    counter = 1
+    for i in range(bins.size-1):
+        if bins[i+1]>bins[i]:
+            if object_lengths[i]>=min_length and np.all([np.any(m.ravel()[args[bins[i]:bins[i+1]]]) for m in masks]):
+                labels.ravel()[args[bins[i]:bins[i+1]]] = counter
+                counter += 1
+            else:
+                labels.ravel()[args[bins[i]:bins[i+1]]] = 0
+    return labels
+
+def get_stats_for_labels(labels, da, dim=None, dtype=None):
     if not dim:
         dim = labels.name.split("_label")[0]
-    mean_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmean), (dim,),
-                               f"{dim}_{da.name}_mean", long_name=f"Mean of {da.long_name} for each {dim}",
-                               units=da.units, dtype=da.dtype)
-    std_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanstd), (dim,),
-                              f"{dim}_{da.name}_std", long_name=f"Standard deviation of {da.long_name} for each {dim}",
-                              units=da.units, dtype=da.dtype)
-    median_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.median), (dim,),
-                                 f"{dim}_{da.name}_median", long_name=f"Median of {da.long_name} for each {dim}",
-                                 units=da.units, dtype=da.dtype)
-    max_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmax), (dim,),
-                              f"{dim}_{da.name}_max", long_name=f"Maximum of {da.long_name} for each {dim}",
-                              units=da.units, dtype=da.dtype)
-    min_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmin), (dim,),
-                              f"{dim}_{da.name}_min", long_name=f"Minimum of {da.long_name} for each {dim}",
-                              units=da.units, dtype=da.dtype)
+    if dtype == None:
+        dtype = da.dtype
+    mean_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmean, dtype=dtype),
+                               (dim,), f"{dim}_{da.name}_mean",
+                               long_name=f"Mean of {da.long_name} for each {dim}",
+                               units=da.units, dtype=dtype)
+    std_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanstd, dtype=dtype),
+                              (dim,), f"{dim}_{da.name}_std",
+                              long_name=f"Standard deviation of {da.long_name} for each {dim}",
+                              units=da.units, dtype=dtype)
+    max_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmax, dtype=dtype),
+                              (dim,), f"{dim}_{da.name}_max",
+                              long_name=f"Maximum of {da.long_name} for each {dim}",
+                              units=da.units, dtype=dtype)
+    min_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmin, dtype=dtype),
+                              (dim,), f"{dim}_{da.name}_min",
+                              long_name=f"Minimum of {da.long_name} for each {dim}",
+                              units=da.units, dtype=dtype)
 
-    return mean_da, std_da, median_da, max_da, min_da
+    return mean_da, std_da, max_da, min_da
 
 from .dataset import create_dataarray, n_unique_along_axis
 def get_label_stats(da, ds):
