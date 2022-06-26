@@ -215,7 +215,9 @@ class Flow:
 
         return out_array ** 0.5
 
-    def sobel(self, data, method='linear', direction=None, dtype=np.float32):
+    def sobel(self, data, method='linear', direction=None, dtype=None):
+        if dtype == None:
+            dtype = data.dtype
         if direction == 'uphill':
             return self.convolve(data, structure=np.ones((3,3,3)),
                                  func=self._sobel_func_uphill, method=method,

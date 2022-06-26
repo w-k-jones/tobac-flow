@@ -100,7 +100,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     print(datetime.now(),'Detecting growth markers', flush=True)
     wvd_growth, bt_growth, growth_markers = detect_growth_markers_multichannel(flow, wvd, bt,
                                                                                overlap=0.5, subsegment_shrink=0,
-                                                                               growth_dtype=np.float16, marker_dtype=np.int16)
+                                                                               growth_dtype=np.float16, marker_dtype=np.int32)
     print('WVD growth above threshold: area =', np.sum(wvd_growth.data>=0.5))
     print('BT growth above threshold: area =', np.sum(bt_growth.data<=-0.5))
     print('Detected markers: area =', np.sum(growth_markers.data!=0))
@@ -115,10 +115,10 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     print("Watershed dtype:", inner_watershed.dtype)
     print(datetime.now(), 'Labelling thick anvil region', flush=True)
     inner_watershed = filter_labels_by_length_and_mask(flow.label(inner_watershed,
-                                                               overlap=0.75,
-                                                               subsegment_shrink=0.25,
-                                                               dtype=np.int32),
-                                                    growth_markers.data!=0, 3)
+                                                                  overlap=0.75,
+                                                                  subsegment_shrink=0.25,
+                                                                  dtype=np.int32),
+                                                       growth_markers.data!=0, 3)
     print('Detected thick anvils: area =', np.sum(inner_watershed!=0), flush=True)
     print('Detected thick anvils: n =', inner_watershed.max(), flush=True)
 
