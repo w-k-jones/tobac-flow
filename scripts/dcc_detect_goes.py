@@ -75,10 +75,19 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     print(datetime.now(),'Loading ABI data', flush=True)
     print('Loading goes data from:',goes_data_path, flush=True)
-    bt, wvd, swd, dataset = goes_dataloader(start_date, end_date, x0=x0, x1=x1, y0=y0, y1=y1,
-                               return_new_ds=True, satellite=16, product='MCMIP', view='C', mode=[3,4,6],
-                               save_dir=goes_data_path, replicate_path=True, check_download=True,
-                               n_attempts=1, download_missing=True)
+    bt, wvd, swd, dataset = goes_dataloader(start_date, end_date,
+                                            x0=x0, x1=x1, y0=y0, y1=y1,
+                                            return_new_ds=True, satellite=16,
+                                            product='MCMIP', view='C',
+                                            mode=[3,4,6],
+                                            save_dir=goes_data_path,
+                                            replicate_path=True,
+                                            check_download=True,
+                                            n_attempts=1,
+                                            download_missing=True,
+                                            dtype=np.float16)
+
+    print("Dataloader dtype:", bt.dtype, wvd.dtype, swd.dtype)
 
     print(datetime.now(),'Calculating flow field', flush=True)
     flow_kwargs = {'pyr_scale':0.5, 'levels':5, 'winsize':16, 'iterations':3,
@@ -86,34 +95,53 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     flow = Flow(bt, flow_kwargs=flow_kwargs, smoothing_passes=3)
 
+    print("Flow dtype:", flow.flow_for.dtype, flow.flow_back.dtype)
+
     print(datetime.now(),'Detecting growth markers', flush=True)
     wvd_growth, bt_growth, growth_markers = detect_growth_markers_multichannel(flow, wvd, bt,
-                                                                               overlap=0.5, subsegment_shrink=0.25)
+                                                                               overlap=0.5, subsegment_shrink=0,
+                                                                               growth_dtype=np.float16, marker_dtype=np.int16)
     print('WVD growth above threshold: area =', np.sum(wvd_growth.data>=0.5))
     print('BT growth above threshold: area =', np.sum(bt_growth.data<=-0.5))
     print('Detected markers: area =', np.sum(growth_markers.data!=0))
     print('Detected markers: n =', growth_markers.data.max())
 
+    print("Growth dtype:", wvd_growth.dtype, bt_growth.dtype)
+    print("Marker dtype:", growth_markers.dtype)
+
     print(datetime.now(), 'Detecting thick anvil region', flush=True)
-    inner_watershed = edge_watershed(flow, wvd-swd, growth_markers!=0, -5, -15, verbose=True)
-    inner_labels = filter_labels_by_length_and_mask(flow.label(inner_watershed, overlap=0.75, subsegment_shrink=0.25),
+    inner_watershed = edge_watershed(flow, wvd-swd, growth_markers!=0, -5, -15,
+                                     verbose=True)
+    print("Watershed dtype:", inner_watershed.dtype)
+    print(datetime.now(), 'Labelling thick anvil region', flush=True)
+    inner_watershed = filter_labels_by_length_and_mask(flow.label(inner_watershed,
+                                                               overlap=0.75,
+                                                               subsegment_shrink=0.25,
+                                                               dtype=np.int32),
                                                     growth_markers.data!=0, 3)
-    print('Detected thick anvils: area =', np.sum(inner_labels!=0), flush=True)
-    print('Detected thick anvils: n =', inner_labels.max(), flush=True)
+    print('Detected thick anvils: area =', np.sum(inner_watershed!=0), flush=True)
+    print('Detected thick anvils: n =', inner_watershed.max(), flush=True)
+
+    print("Label dtype:", inner_watershed.dtype)
 
     print(datetime.now(), 'Detecting thin anvil region', flush=True)
-    outer_watershed = edge_watershed(flow, wvd+swd, inner_labels, 0, -10, verbose=True)
+    outer_watershed = edge_watershed(flow, wvd+swd, inner_watershed, 0, -10,
+                                     verbose=True)
     print('Detected thin anvils: area =', np.sum(outer_watershed!=0), flush=True)
 
+    print("Outer label dtype:", outer_watershed.dtype)
     # Detect regions of warm WVD
-    s_struct = ndi.generate_binary_structure(2,1)[np.newaxis]
-    wvd_labels = flow.label(ndi.binary_opening(wvd>=-5, structure=s_struct))
-    wvd_labels = filter_labels_by_length_and_mask(wvd_labels, wvd.data>=-5, 3)
-    print("warm WVD regions: n =",wvd_labels.max(), flush=True)
+    # s_struct = ndi.generate_binary_structure(2,1)[np.newaxis]
+    # wvd_labels = flow.label(ndi.binary_opening(wvd>=-5, structure=s_struct))
+    # wvd_labels = filter_labels_by_length_and_mask(wvd_labels, wvd.data>=-5, 3)
+    # print("warm WVD regions: n =",wvd_labels.max(), flush=True)
 
     # Get statistics about various properties of each label
     print(datetime.now(), 'Preparing output', flush=True)
 
+    # import warnings
+    # warnings.filterwarnings("error")
+    #
     # Growth value
     add_dataarray_to_ds(create_dataarray(wvd_growth, ('t','y','x'), "wvd_growth_rate",
                                          long_name="detected wvd cooling rate", units="K/min",
@@ -136,16 +164,16 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     get_label_stats(dataset.core_label, dataset)
 
-    for field in (bt, wvd, swd, dataset.wvd_growth_rate, dataset.bt_growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.core_label, field, dim='core')]
+    for field in (bt, dataset.wvd_growth_rate, dataset.bt_growth_rate):
+        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.core_label, field, dim='core', dtype=np.float32)]
 
     core_step_label = slice_label_da(dataset.core_label)
     add_dataarray_to_ds(core_step_label, dataset)
     dataset.coords["core_step"] = np.arange(1, core_step_label.max()+1, dtype=np.int32)
 
     # Now get individual step
-    for field in (bt, wvd, swd, dataset.wvd_growth_rate, dataset.bt_growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.core_step_label, field, dim='core_step')]
+    for field in (bt, dataset.wvd_growth_rate, dataset.bt_growth_rate):
+        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.core_step_label, field, dim='core_step', dtype=np.float32)]
 
     # Now we have stats of each field for each core and each core time step
     # Next get other data: weighted x,y,lat,lon locations for each step, t per step
@@ -235,24 +263,24 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                          dtype=np.int32), dataset)
 
     # Now for thick anvils
-    add_dataarray_to_ds(create_dataarray(inner_labels, ('t','y','x'), "thick_anvil_label",
+    add_dataarray_to_ds(create_dataarray(inner_watershed, ('t','y','x'), "thick_anvil_label",
                                          long_name="labels for detected thick anvil regions", units="",
                                          dtype=np.int32), dataset)
 
-    dataset.coords["anvil"] = np.arange(1, inner_labels.max()+1, dtype=np.int32)
+    dataset.coords["anvil"] = np.arange(1, inner_watershed.max()+1, dtype=np.int32)
 
     get_label_stats(dataset.thick_anvil_label, dataset)
 
-    for field in (bt, wvd, swd, dataset.wvd_growth_rate, dataset.bt_growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thick_anvil_label, field, dim='anvil')]
+    for field in (bt, dataset.wvd_growth_rate, dataset.bt_growth_rate):
+        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thick_anvil_label, field, dim='anvil', dtype=np.float32)]
 
     thick_anvil_step_label = slice_label_da(dataset.thick_anvil_label)
     add_dataarray_to_ds(thick_anvil_step_label, dataset)
     dataset.coords["anvil_step"] = np.arange(1, thick_anvil_step_label.max()+1, dtype=np.int32)
 
     # Now get individual step
-    for field in (bt, wvd, swd, dataset.wvd_growth_rate, dataset.bt_growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thick_anvil_step_label, field, dim='anvil_step')]
+    for field in (bt, dataset.wvd_growth_rate, dataset.bt_growth_rate):
+        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thick_anvil_step_label, field, dim='anvil_step', dtype=np.float32)]
 
     # Now we have stats of each field for each core and each core time step
     # Next get other data: weighted x,y,lat,lon locations for each step, t per step
@@ -360,12 +388,12 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                          long_name="labels for detected thick anvil regions", units="",
                                          dtype=np.int32), dataset)
 
-    # dataset.coords["anvil"] = np.arange(1, inner_labels.max()+1, dtype=np.int32)
+    # dataset.coords["anvil"] = np.arange(1, inner_watershed.max()+1, dtype=np.int32)
 
     get_label_stats(dataset.thin_anvil_label, dataset)
 
     for field in (bt, wvd, swd, dataset.wvd_growth_rate, dataset.bt_growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thin_anvil_label, field, dim='anvil')]
+        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thin_anvil_label, field, dim='anvil', dtype=np.float32)]
 
     thin_anvil_step_label = slice_label_da(dataset.thin_anvil_label)
     add_dataarray_to_ds(thin_anvil_step_label, dataset)
@@ -373,7 +401,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     # Now get individual step
     for field in (bt, wvd, swd, dataset.wvd_growth_rate, dataset.bt_growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thin_anvil_step_label, field, dim='thin_anvil_step')]
+        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thin_anvil_step_label, field, dim='thin_anvil_step', dtype=np.float32)]
 
     # Now we have stats of each field for each core and each core time step
     # Next get other data: weighted x,y,lat,lon locations for each step, t per step
@@ -462,9 +490,9 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                          long_name="thin_anvil index for each thin_anvil time step",
                                          dtype=np.int32), dataset)
 
-    add_dataarray_to_ds(create_dataarray(wvd_labels, ('t','y','x'), "wvd_label",
-                                         long_name="labels for warm wvd regions", units="",
-                                         dtype=np.int32), dataset)
+    # add_dataarray_to_ds(create_dataarray(wvd_labels, ('t','y','x'), "wvd_label",
+    #                                      long_name="labels for warm wvd regions", units="",
+    #                                      dtype=np.int32), dataset)
 
     # add_dataarray_to_ds(create_dataarray(np.sum(glm_grid.data), tuple(), "glm_flash_count",
     #                                      long_name="total number of GLM flashes",
@@ -488,7 +516,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     # add_dataarray_to_ds(create_dataarray(1-np.sum(anvil_far_hist[:10]), tuple(), "anvil_far",
     #                                      long_name="FAR for anvils",
     #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(inner_labels.max(), tuple(), "anvil_count",
+    # add_dataarray_to_ds(create_dataarray(inner_watershed.max(), tuple(), "anvil_count",
     #                                      long_name="total number of anvils",
     #                                      dtype=np.int32), dataset)
     #
