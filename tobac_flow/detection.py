@@ -152,11 +152,10 @@ def edge_watershed(flow, field, markers, upper_threshold, lower_threshold,
     edges = flow.sobel(field, method='nearest')
 
     watershed = flow.watershed(edges, markers, mask=mask,
-                               structure=structure, debug_mode=verbose,
-                               dtype=dtype)
+                               structure=structure, debug_mode=verbose)
 
     s_struct = ndi.generate_binary_structure(2,1)[np.newaxis]
-    watershed = watershed*ndi.binary_opening(watershed!=0, structure=s_struct).astype(watershed.dtype)
+    watershed = watershed * ndi.binary_opening(watershed!=0, structure=s_struct).astype(watershed.dtype)
 
     if isinstance(field, xr.DataArray):
         watershed = xr.DataArray(watershed, field.coords, field.dims)

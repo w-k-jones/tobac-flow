@@ -62,49 +62,36 @@ def slice_label_da(label_da):
     return step_labels
 
 def filter_labels_by_length(labels, min_length):
-    bins = np.cumsum(np.bincount(labels.ravel()))
-    args = np.argsort(labels.ravel())
-    object_lengths = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)])
-    counter = 1
-    for i in range(bins.size-1):
-        if bins[i+1]>bins[i]:
-            if object_lengths[i]<min_length:
-                labels.ravel()[args[bins[i]:bins[i+1]]] = 0
-            else:
-                labels.ravel()[args[bins[i]:bins[i+1]]] = counter
-                counter += 1
-    return labels
+    wh = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)]) >= min_length
+
+    remap = np.zeros([np.nanmax(labels)+1], labels.dtype)
+    remap[1:] = np.cumsum(wh)*wh
+
+    return remap[labels]
 
 def filter_labels_by_length_and_mask(labels, mask, min_length):
-    bins = np.cumsum(np.bincount(labels.ravel()))
-    args = np.argsort(labels.ravel())
-    object_lengths = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)])
-    counter = 1
-    for i in range(bins.size-1):
-        if bins[i+1]>bins[i]:
-            if object_lengths[i]>=min_length and np.any(mask.ravel()[args[bins[i]:bins[i+1]]]):
-                labels.ravel()[args[bins[i]:bins[i+1]]] = counter
-                counter += 1
-            else:
-                labels.ravel()[args[bins[i]:bins[i+1]]] = 0
-    return labels
+    wh = np.logical_and(
+        np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)]) >= min_length,
+        ndi.labeled_comprehension(mask, labels, range(1, np.nanmax(labels)+1), np.any, None, None))
+
+    remap = np.zeros([np.nanmax(labels)+1], labels.dtype)
+    remap[1:] = np.cumsum(wh)*wh
+
+    return remap[labels]
 
 def filter_labels_by_length_and_multimask(labels, masks, min_length):
     if type(masks) is not type(list()):
         raise ValueError("masks input must be a list of masks to process")
 
-    bins = np.cumsum(np.bincount(labels.ravel()))
-    args = np.argsort(labels.ravel())
-    object_lengths = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)])
-    counter = 1
-    for i in range(bins.size-1):
-        if bins[i+1]>bins[i]:
-            if object_lengths[i]>=min_length and np.all([np.any(m.ravel()[args[bins[i]:bins[i+1]]]) for m in masks]):
-                labels.ravel()[args[bins[i]:bins[i+1]]] = counter
-                counter += 1
-            else:
-                labels.ravel()[args[bins[i]:bins[i+1]]] = 0
-    return labels
+    wh = np.logical_and(
+        np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)]) >= min_length,
+        np.logical_and.reduce([ndi.labeled_comprehension(m, labels, range(1, np.nanmax(labels)+1), np.any, np.bool8, 0) for m in masks])
+    )
+
+    remap = np.zeros([np.nanmax(labels)+1], labels.dtype)
+    remap[1:] = np.cumsum(wh)*wh
+
+    return remap[labels]
 
 def get_stats_for_labels(labels, da, dim=None, dtype=None):
     if not dim:

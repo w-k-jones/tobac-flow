@@ -73,12 +73,16 @@ class Flow:
         elif direction=='backward':
             locations += self.flow_back[step]
 
-        out_img = np.full([n*h,w,2], np.nan, dtype=np.float32)
+        # out_image = np.full([n*h,w,2], np.nan, dtype=np.float32)
 
-        locations = locations.reshape([n*h,w,2]).astype(np.float32)
+        locations = locations.reshape([n*h,w,2])
 
-        return cv.remap(img.astype(np.float32), locations.reshape([n*h,w,2]), None,
-                        method, out_img, cv.BORDER_CONSTANT, np.nan).reshape([n,h,w]).astype(dtype)
+        out_image = cv.remap(img.astype(np.float32), locations.reshape([n*h,w,2]), None,
+                           method, None, cv.BORDER_CONSTANT, np.nan).reshape([n,h,w])
+        if dtype != np.float32:
+            out_image = out_img.astype(dtype)
+
+        return out_image
 
     def _smooth_flow_step(self, step):
         flow_for_warp = np.full_like(self.flow_for[step], np.nan)
@@ -233,7 +237,7 @@ class Flow:
 
     def watershed(self, field, markers, mask=None,
                   structure=ndi.generate_binary_structure(3,1),
-                  max_iter=100, debug_mode=False, dtype=None):
+                  max_iter=100, debug_mode=False):
         from .legacy_flow import Flow_Func, flow_network_watershed
 
         l_flow = Flow_Func(self.flow_for[...,0], self.flow_back[...,0],
@@ -241,8 +245,7 @@ class Flow:
 
         output = flow_network_watershed(field, markers, l_flow,
                                         mask=mask, structure=structure,
-                                        max_iter=max_iter, debug_mode=debug_mode,
-                                        dtype=dtype)
+                                        max_iter=max_iter, debug_mode=debug_mode)
         return output
 
     def label(self, data, structure=ndi.generate_binary_structure(3,1),

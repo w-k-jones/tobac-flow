@@ -302,9 +302,7 @@ def flow_sobel(flow_stack, axis=None, direction=None, magnitude=False):
         raise ValueError("""direction must be 'uphill', 'downhill' or None""")
     return output
 
-def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
-                           max_iter=100, debug_mode=False, low_memory=False,
-                           dtype=None):
+def flow_network_watershed(field, markers, flow_func, mask=None, structure=None, max_iter=100, debug_mode=False, low_memory=False):
     # Check structure input, set default and check dimensions and shape
     if structure is None:
         if debug_mode:
@@ -543,9 +541,6 @@ def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
             #     print("New:", new_label[np.maximum(0,np.unique(fill).astype(int)[:10])])
         if np.nanmax(fill)<=max_markers:
             break
-
-    if dtype != None:
-        fill = fill.astype(dtype)
     return fill
 
 def flow_label(data, flow, structure=ndi.generate_binary_structure(3,1)):

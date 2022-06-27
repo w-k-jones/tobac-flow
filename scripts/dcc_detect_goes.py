@@ -99,8 +99,11 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     print(datetime.now(),'Detecting growth markers', flush=True)
     wvd_growth, bt_growth, growth_markers = detect_growth_markers_multichannel(flow, wvd, bt,
-                                                                               overlap=0.5, subsegment_shrink=0,
-                                                                               growth_dtype=np.float32, marker_dtype=np.int32)
+                                                                               overlap=0.5,
+                                                                               subsegment_shrink=0,
+                                                                               min_length=4,
+                                                                               growth_dtype=np.float32,
+                                                                               marker_dtype=np.int32)
     print('WVD growth above threshold: area =', np.sum(wvd_growth.data>=0.5))
     print('BT growth above threshold: area =', np.sum(bt_growth.data<=-0.5))
     print('Detected markers: area =', np.sum(growth_markers.data!=0))
@@ -118,7 +121,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                                                   overlap=0.75,
                                                                   subsegment_shrink=0.25,
                                                                   dtype=np.int32),
-                                                       growth_markers.data!=0, 3)
+                                                       growth_markers.data!=0, 4)
     print('Detected thick anvils: area =', np.sum(inner_watershed!=0), flush=True)
     print('Detected thick anvils: n =', inner_watershed.max(), flush=True)
 
@@ -130,13 +133,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     print('Detected thin anvils: area =', np.sum(outer_watershed!=0), flush=True)
 
     print("Outer label dtype:", outer_watershed.dtype)
-    # Detect regions of warm WVD
-    # s_struct = ndi.generate_binary_structure(2,1)[np.newaxis]
-    # wvd_labels = flow.label(ndi.binary_opening(wvd>=-5, structure=s_struct))
-    # wvd_labels = filter_labels_by_length_and_mask(wvd_labels, wvd.data>=-5, 3)
-    # print("warm WVD regions: n =",wvd_labels.max(), flush=True)
 
-    # Get statistics about various properties of each label
     print(datetime.now(), 'Preparing output', flush=True)
 
     # import warnings
@@ -149,11 +146,6 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     add_dataarray_to_ds(create_dataarray(bt_growth, ('t','y','x'), "bt_growth_rate",
                                          long_name="detected bt cooling rate", units="K/min",
                                          dtype=np.float32), dataset)
-
-    # GLM Flash counts
-    # add_dataarray_to_ds(create_dataarray(glm_grid.data, ('t','y','x'), "glm_flashes",
-    #                                      long_name="number of flashes detected by GLM", units="",
-    #                                      dtype=np.int32), dataset)
 
     # Detected growth_regions
     add_dataarray_to_ds(create_dataarray(growth_markers, ('t','y','x'), "core_label",
@@ -221,18 +213,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     add_dataarray_to_ds(create_dataarray(core_step_lats, ('core_step',), "core_step_lat",
                                          long_name="latitude of core at time step",
                                          dtype=np.float32), dataset)
-
-    # core_step_glm_count = apply_func_to_labels(core_step_label.data,
-    #                                            dataset.glm_flashes.data, np.nansum)
-    # add_dataarray_to_ds(create_dataarray(core_step_glm_count, ('core_step',), "core_step_glm_count",
-    #                                      long_name="number of GLM flashes for core at time step",
-    #                                      dtype=np.int32), dataset)
-
-    # core_glm_count = apply_func_to_labels(dataset.core_label.data,
-    #                                       dataset.glm_flashes.data, np.nansum)
-    # add_dataarray_to_ds(create_dataarray(core_glm_count, ('core',), "core_total_glm_count",
-    #                                      long_name="total number of GLM flashes for core",
-    #                                      dtype=np.int32), dataset)
+    
     # Get area in 3d
     aa = np.meshgrid(dataset.t, dataset.area, indexing='ij')[1].reshape(tt.shape)
 
