@@ -1,1 +1,8 @@
 ./data/*
+./examples/*.gif
+./examples/.ipynb_checkpoints/*
+./examples/.DS_Store
+./.DS_Store
+./development/.ipynb_checkpoints/*
+./scripts/DS_Store
+./scripts/*.dat

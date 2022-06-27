@@ -14,8 +14,8 @@ class Flow:
 
     def get_flow(self, data, smoothing_passes, flow_kwargs):
         self.shape = data.shape
-        self.flow_for = np.full(self.shape+(2,), np.nan, dtype=np.float16)
-        self.flow_back = np.full(self.shape+(2,), np.nan, dtype=np.float16)
+        self.flow_for = np.full(self.shape+(2,), np.nan, dtype=np.float32)
+        self.flow_back = np.full(self.shape+(2,), np.nan, dtype=np.float32)
 
         for i in range(self.shape[0]-1):
             print(i, end='\r')
