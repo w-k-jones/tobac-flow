@@ -48,7 +48,7 @@ class Flow:
         """
         flow = cv.calcOpticalFlowFarneback(self.to_8bit(a), self.to_8bit(b), None,
                                            pyr_scale, levels, winsize, iterations,
-                                           poly_n, poly_sigma, flags).astype(np.float16)
+                                           poly_n, poly_sigma, flags)
         return flow
 
     def _warp_flow_step(self, img, step, method='linear', direction='forward',
