@@ -4,6 +4,7 @@ import pandas as pd
 import xarray as xr
 import cv2 as cv
 from scipy import ndimage as ndi
+import warnings
 
 class Flow:
     """
@@ -284,8 +285,10 @@ def flow_label(flow, mask, structure=ndi.generate_binary_structure(3,1), dtype=n
     else:
         flat_labels = subsegment_labels(mask.astype(bool), shrink_factor=subsegment_shrink)
 
-    back_labels, forward_labels = flow.convolve(flat_labels, method='nearest', dtype=dtype,
-                                              structure=structure*np.array([1,0,1])[:,np.newaxis, np.newaxis])
+    back_labels, forward_labels = flow.convolve(flat_labels,
+                                                method='nearest',
+                                                dtype=dtype,
+                                                structure=structure*np.array([1,0,1])[:,np.newaxis, np.newaxis])
 
     processed_labels = []
     label_map = {}
@@ -312,7 +315,9 @@ def flow_label(flow, mask, structure=ndi.generate_binary_structure(3,1), dtype=n
             if bins[i]>bins[i-1]:
                 new_labels.ravel()[args[bins[i-1]:bins[i]]] = ik+1
 
-    assert np.all(new_labels.astype(bool)==mask.astype(bool))
+    if not np.all(new_labels.astype(bool)==mask.astype(bool)):
+        warnings.warn("Not all regions present in labeled array",
+                      warnings.RuntimeWarning)
     return new_labels
 
 def find_neighbour_labels(label, label_stack, bins, args, processed_labels,
