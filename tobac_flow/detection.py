@@ -121,7 +121,8 @@ def detect_growth_markers_multichannel(flow, wvd, bt, t_sigma=1, overlap=0.5,
 
     markers = filter_labels_by_length_and_multimask(markers,
                                                     [wvd_diff_smoothed>=upper_threshold,
-                                                     bt_diff_smoothed<=-upper_threshold],
+                                                     bt_diff_smoothed<=-upper_threshold,
+                                                     wvd.data>-5],
                                                     min_length)
 
     if isinstance(wvd, xr.DataArray):
