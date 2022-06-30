@@ -75,7 +75,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     print(datetime.now(),'Loading ABI data', flush=True)
     print('Loading goes data from:',goes_data_path, flush=True)
-    bt, wvd, swd, dataset = goes_dataloader(start_date, end_date,
+    bt, wvd, swd, dataset = goes_dataloader(start_date, end_date, n_pad_files=3, 
                                             x0=x0, x1=x1, y0=y0, y1=y1,
                                             return_new_ds=True, satellite=16,
                                             product='MCMIP', view='C',
@@ -471,78 +471,12 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                          long_name="thin_anvil index for each thin_anvil time step",
                                          dtype=np.int32), dataset)
 
-    # add_dataarray_to_ds(create_dataarray(wvd_labels, ('t','y','x'), "wvd_label",
-    #                                      long_name="labels for warm wvd regions", units="",
-    #                                      dtype=np.int32), dataset)
-
-    # add_dataarray_to_ds(create_dataarray(np.sum(glm_grid.data), tuple(), "glm_flash_count",
-    #                                      long_name="total number of GLM flashes",
-    #                                      dtype=np.int32), dataset)
-    # # anvil validation
-    # add_dataarray_to_ds(create_dataarray(anvil_min_distance, ('anvil',), "anvil_glm_distance",
-    #                                      long_name="closest distance from anvil to GLM flash",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(anvil_validation_flag, ('anvil',), "anvil_validation_flag",
-    #                                      long_name="validation flag for anvil",
-    #                                      dtype=bool), dataset)
-    # add_dataarray_to_ds(create_dataarray(anvil_far_hist, ('bins',), "anvil_far_histogram",
-    #                                      long_name="FAR histogram for anvils",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(anvil_pod_hist, ('bins',), "anvil_pod_histogram",
-    #                                      long_name="POD histogram for anvils",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(np.sum(anvil_pod_hist[:10]), tuple(), "anvil_pod",
-    #                                      long_name="POD for anvils",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(1-np.sum(anvil_far_hist[:10]), tuple(), "anvil_far",
-    #                                      long_name="FAR for anvils",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(inner_watershed.max(), tuple(), "anvil_count",
-    #                                      long_name="total number of anvils",
-    #                                      dtype=np.int32), dataset)
-    #
-    # # wvd validation
-    # add_dataarray_to_ds(create_dataarray(wvd_far_hist, ('bins',), "wvd_far_histogram",
-    #                                      long_name="FAR histogram for wvd regions",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(wvd_pod_hist, ('bins',), "wvd_pod_histogram",
-    #                                      long_name="POD histogram for cores",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(np.sum(wvd_pod_hist[:10]), tuple(), "wvd_pod",
-    #                                      long_name="POD for wvd regions",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(1-np.sum(wvd_far_hist[:10]), tuple(), "wvd_far",
-    #                                      long_name="FAR for wvd regions",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(wvd_labels.max(), tuple(), "wvd_count",
-    #                                      long_name="total number of wvd regions",
-    #                                      dtype=np.int32), dataset)
-    #
-    # # core validation
-    # add_dataarray_to_ds(create_dataarray(growth_min_distance, ('core',), "core_glm_distance",
-    #                                      long_name="closest distance from core to GLM flash",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(growth_validation_flag, ('core',), "core_validation_flag",
-    #                                      long_name="validation flag for core",
-    #                                      dtype=bool), dataset)
-    # add_dataarray_to_ds(create_dataarray(growth_far_hist, ('bins',), "core_far_histogram",
-    #                                      long_name="FAR histogram for cores",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(marker_pod_hist, ('bins',), "core_pod_histogram",
-    #                                      long_name="POD histogram for cores",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(np.sum(marker_pod_hist[:10]), tuple(), "core_pod",
-    #                                      long_name="POD for cores",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(1-np.sum(growth_far_hist[:10]), tuple(), "core_far",
-    #                                      long_name="FAR for cores",
-    #                                      dtype=np.float32), dataset)
-    # add_dataarray_to_ds(create_dataarray(growth_markers.data.max(), tuple(), "core_count",
-    #                                      long_name="total number of cores",
-    #                                      dtype=np.int32), dataset)
-
-
     print(datetime.now(), 'Saving to %s' % (save_path), flush=True)
+    # Add compression encoding
+    comp = dict(zlib=True, complevel=5, shuffle=True)
+    for var in dataset.data_vars:
+        dataset[var].encoding.update(comp)
+
     dataset.to_netcdf(save_path)
 
 if __name__=="__main__":
