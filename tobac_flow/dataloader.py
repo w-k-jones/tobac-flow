@@ -3,6 +3,7 @@ import pandas as pd
 import xarray as xr
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
+from glob import glob
 from tobac_flow import io
 from tobac_flow.dataset import get_datetime_from_coord, create_dataarray, add_dataarray_to_ds
 from tobac_flow.abi import get_abi_lat_lon, get_abi_pixel_area
@@ -235,3 +236,118 @@ def fill_time_gap_full_disk(bt, wvd, swd, time_gap=timedelta(minutes=15),
                 xr.concat(swd_concat_list, 't', join="left"))
     else:
         return bt, wvd, swd
+
+def glob_seviri_files(start_date, end_date,
+                      file_type="secondary",
+                      file_path="../data/SEVIRI_ORAC/"):
+    if file_type not in ["secondary", "cloud", "flux"]:
+        raise ValueError("file_type paramter must be one of 'secondary', 'cloud' or 'flux'")
+
+    dates = pd.date_range(start_date, end_date, freq='H', closed='left').to_pydatetime()
+
+    seviri_files = []
+
+    for date in dates:
+        datestr = date.strftime("%Y%m%d%H")
+        if file_type == "secondary":
+            glob_str = f"H-000-MSG3__-MSG3________-_________-EPI______-{datestr}*-__.secondary.nc"
+        if file_type == "cloud":
+            glob_str = f"{datestr}*00-ESACCI-L2_CLOUD-CLD_PRODUCTS-SEVIRI-MSG3-fv1.0.nc"
+        if file_type == "flux":
+            glob_str = f"{datestr}*00-ESACCI-TOA-SEVIRI-MSG3-fv1.0.nc"
+        seviri_files.extend(glob(os.path.join(file_path, glob_str)))
+
+    return sorted(seviri_files)
+
+def find_seviri_files(start_date, end_date, n_pad_files=1,
+                      file_type="secondary",
+                      file_path="../data/SEVIRI_ORAC/"):
+
+    seviri_files = glob_seviri_files(start_date, end_date,
+                                     file_type, file_path)
+
+    if n_pad_files > 0:
+        pad_hours = int(np.ceil(n_pad_files/4))
+
+        seviri_pre_file = glob_seviri_files(start_date-timedelta(hours=pad_hours),
+                                            start_date, file_type, file_path)
+        if len(seviri_pre_file):
+            seviri_pre_file = seviri_pre_file[-n_pad_files:]
+
+        seviri_post_file = glob_seviri_files(end_date,
+                                             end_date+timedelta(hours=pad_hours),
+                                             file_type, file_path)
+        if len(seviri_post_file):
+            seviri_post_file = seviri_post_file[:n_pad_files]
+
+        seviri_files = seviri_pre_file + seviri_files + seviri_post_file
+
+    return seviri_files
+
+def load_seviri_dataset(seviri_files, x0=None, x1=None, y0=None, y1=None):
+    seviri_ds = xr.open_mfdataset(seviri_files,
+                                  combine="nested",
+                                  concat_dim="t").isel(across_track=slice(x0,x1), along_track=slice(y0,y1))
+
+    seviri_ds = seviri_ds.assign_coords(t=[parse_date(f[-28:-16]) for f in seviri_files])
+
+    return seviri_ds
+
+
+def seviri_dataloader(start_date, end_date, n_pad_files=1,
+                      file_path="../data/SEVIRI_ORAC/",
+                      x0=None, x1=None, y0=None, y1=None,
+                      time_gap=timedelta(minutes=30),
+                      dtype=np.float32, return_new_ds=False):
+
+    seviri_files = find_seviri_files(start_date, end_date,
+                                     n_pad_files=n_pad_files,
+                                     file_path=file_path)
+
+    seviri_ds = load_seviri_dataset(seviri_files, x0, x1, y0, y1)
+
+    bt = seviri_ds.brightness_temperature_in_channel_no_9.astype(dtype)
+    try:
+        bt = bt.compute()
+    except AttributeError:
+        pass
+
+    wvd = (seviri_ds.brightness_temperature_in_channel_no_5 - seviri_ds.brightness_temperature_in_channel_no_6).astype(dtype)
+    try:
+        wvd = wvd.compute()
+    except AttributeError:
+        pass
+
+
+    swd = (seviri_ds.brightness_temperature_in_channel_no_9-seviri_ds.brightness_temperature_in_channel_no_10).astype(dtype)
+    try:
+        swd = swd.compute()
+    except AttributeError:
+        pass
+
+    all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(swd)], 0)
+
+    bt.data[all_isnan] = np.nan
+    wvd.data[all_isnan] = np.nan
+    swd.data[all_isnan] = np.nan
+
+    bt = fill_time_gap_nan(bt, time_gap)
+    wvd = fill_time_gap_nan(wvd, time_gap)
+    swd = fill_time_gap_nan(swd, time_gap)
+
+    wvd.name = "WVD"
+    wvd.attrs["standard_name"] = wvd.name
+    wvd.attrs["long_name"] = "water vapour difference"
+    wvd.attrs["units"] = "K"
+
+    bt.name = "BT"
+    bt.attrs["standard_name"] = bt.name
+    bt.attrs["long_name"] = "brightness temperature"
+    bt.attrs["units"] = "K"
+
+    swd.name = "SWD"
+    swd.attrs["standard_name"] = swd.name
+    swd.attrs["long_name"] = "split window difference"
+    swd.attrs["units"] = "K"
+
+    return bt, wvd, swd

@@ -105,8 +105,8 @@ def detect_growth_markers_multichannel(flow, wvd, bt, t_sigma=1, overlap=0.5,
                                        subsegment_shrink=0, min_length=4,
                                        lower_threshold=0.25,
                                        upper_threshold=0.5,
-                                       growth_dtype=None,
-                                       marker_dtype=None):
+                                       growth_dtype=np.float32,
+                                       marker_dtype=np.int32):
 
     wvd_diff_smoothed = filtered_tdiff(flow, flow.diff(wvd, dtype=growth_dtype) \
                         / get_time_diff_from_coord(wvd.t)[:,np.newaxis,np.newaxis])
