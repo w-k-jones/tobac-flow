@@ -85,7 +85,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                             check_download=True,
                                             n_attempts=1,
                                             download_missing=True,
-                                            dtype=np.float16)
+                                            dtype=np.float32)
 
     print("Dataloader dtype:", bt.dtype, wvd.dtype, swd.dtype)
 
@@ -213,7 +213,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     add_dataarray_to_ds(create_dataarray(core_step_lats, ('core_step',), "core_step_lat",
                                          long_name="latitude of core at time step",
                                          dtype=np.float32), dataset)
-    
+
     # Get area in 3d
     aa = np.meshgrid(dataset.t, dataset.area, indexing='ij')[1].reshape(tt.shape)
 
