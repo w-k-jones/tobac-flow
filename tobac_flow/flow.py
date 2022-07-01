@@ -316,8 +316,7 @@ def flow_label(flow, mask, structure=ndi.generate_binary_structure(3,1), dtype=n
                 new_labels.ravel()[args[bins[i-1]:bins[i]]] = ik+1
 
     if not np.all(new_labels.astype(bool)==mask.astype(bool)):
-        warnings.warn("Not all regions present in labeled array",
-                      warnings.RuntimeWarning)
+        warnings.warn("Not all regions present in labeled array", RuntimeWarning)
     return new_labels
 
 def find_neighbour_labels(label, label_stack, bins, args, processed_labels,
