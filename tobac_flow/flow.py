@@ -82,8 +82,16 @@ class Flow:
 
         locations = locations.reshape([n*h,w,2])
 
-        out_image = cv.remap(img.astype(np.float32), locations.reshape([n*h,w,2]), None,
-                             method, None, cv.BORDER_CONSTANT, np.nan).reshape([n,h,w])
+        if isinstance(img, xr.DataArray):
+            out_image = cv.remap(img.data.astype(np.float32),
+                                 locations.reshape([n*h,w,2]),
+                                 None, method, None, cv.BORDER_CONSTANT,
+                                 np.nan).reshape([n,h,w])
+        else:
+            out_image = cv.remap(img.astype(np.float32), 
+                                 locations.reshape([n*h,w,2]),
+                                 None, method, None, cv.BORDER_CONSTANT,
+                                 np.nan).reshape([n,h,w])
         if dtype != np.float32:
             out_image = out_img.astype(dtype)
 
