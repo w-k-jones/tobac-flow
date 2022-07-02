@@ -128,7 +128,7 @@ class Flow:
             if n_back > 0 and step > 0:
                 if img_step != step-1:
                     if hasattr(data, 'compute'):
-                        img = data[step-1].compute().data
+                        img = data[step-1].data
                     else:
                         img = data[step-1]
                     img_step = step-1
@@ -142,7 +142,7 @@ class Flow:
             if n_forward > 0 and step < data.shape[0]-1:
                 if img_step != step+1:
                     if hasattr(data, 'compute'):
-                        img = data[step+1].compute().data
+                        img = data[step+1].data
                     else:
                         img = data[step+1]
                     img_step = step+1
@@ -155,7 +155,7 @@ class Flow:
             for i in range(n_back, n_structure-n_forward):
                 if img_step != step:
                     if hasattr(data, 'compute'):
-                        img = data[step].compute().data
+                        img = data[step].data
                     else:
                         img = data[step]
                     img_step = step
