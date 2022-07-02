@@ -126,13 +126,13 @@ class Flow:
     #           For backward steps:
             n_back = np.count_nonzero(structure[0])
             if n_back > 0 and step > 0:
-                if img_step != step-1:
-                    if hasattr(data, 'compute'):
-                        img = data[step-1].data
-                    else:
-                        img = data[step-1]
-                    img_step = step-1
-                temp[:n_back] = self._warp_flow_step(img, step,
+                # if img_step != step-1:
+                #     if hasattr(data, 'compute'):
+                #         img = data[step-1].data
+                #     else:
+                #         img = data[step-1]
+                #     img_step = step-1
+                temp[:n_back] = self._warp_flow_step(data[step-1], step,
                                                      method=method,
                                                      direction='backward',
                                                      stencil=structure[0]) \
@@ -140,32 +140,32 @@ class Flow:
     #           For forward steps:
             n_forward = np.count_nonzero(structure[2])
             if n_forward > 0 and step < data.shape[0]-1:
-                if img_step != step+1:
-                    if hasattr(data, 'compute'):
-                        img = data[step+1].data
-                    else:
-                        img = data[step+1]
-                    img_step = step+1
-                temp[-n_forward:] = self._warp_flow_step(img, step,
+                # if img_step != step+1:
+                #     if hasattr(data, 'compute'):
+                #         img = data[step+1].data
+                #     else:
+                #         img = data[step+1]
+                #     img_step = step+1
+                temp[-n_forward:] = self._warp_flow_step(data[step+1], step,
                                                          method=method,
                                                          direction='forward',
                                                          stencil=structure[2]) \
                                     * struct_factor[-n_forward:,np.newaxis,np.newaxis]
     #           For same time step:
             for i in range(n_back, n_structure-n_forward):
-                if img_step != step:
-                    if hasattr(data, 'compute'):
-                        img = data[step].data
-                    else:
-                        img = data[step]
-                    img_step = step
+                # if img_step != step:
+                #     if hasattr(data, 'compute'):
+                #         img = data[step].data
+                #     else:
+                #         img = data[step]
+                #     img_step = step
                 if wh_layer[1][i]==1 and wh_layer[2][i]==1:
-                    temp[i] = img * struct_factor[i]
+                    temp[i] = data[step] * struct_factor[i]
                 else:
                     temp[i,
                          (1 if wh_layer[1][i]==0 else 0):(-1 if wh_layer[1][i]==2 else None),
                          (1 if wh_layer[2][i]==0 else 0):(-1 if wh_layer[2][i]==2 else None)] \
-                        = img[(1 if wh_layer[1][i]==2 else 0):(-1 if wh_layer[1][i]==0 else None),
+                        = data[step][(1 if wh_layer[1][i]==2 else 0):(-1 if wh_layer[1][i]==0 else None),
                               (1 if wh_layer[2][i]==2 else 0):(-1 if wh_layer[2][i]==0 else None)] \
                           * struct_factor[i]
 
