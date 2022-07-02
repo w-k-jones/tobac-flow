@@ -83,7 +83,7 @@ class Flow:
         locations = locations.reshape([n*h,w,2])
 
         out_image = cv.remap(img.astype(np.float32), locations.reshape([n*h,w,2]), None,
-                           method, None, cv.BORDER_CONSTANT, np.nan).reshape([n,h,w])
+                             method, None, cv.BORDER_CONSTANT, np.nan).reshape([n,h,w])
         if dtype != np.float32:
             out_image = out_img.astype(dtype)
 
@@ -149,7 +149,7 @@ class Flow:
                 temp[-n_forward:] = self._warp_flow_step(img, step,
                                                          method=method,
                                                          direction='forward',
-                                                         stencil=structure[0]) \
+                                                         stencil=structure[2]) \
                                     * struct_factor[-n_forward:,np.newaxis,np.newaxis]
     #           For same time step:
             for i in range(n_back, n_structure-n_forward):
