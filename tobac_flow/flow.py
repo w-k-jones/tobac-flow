@@ -172,9 +172,11 @@ class Flow:
         # Propagate nan locations forward
         if not func is None:
             if isinstance(data, xr.DataArray):
-                out_array[~np.isfinite(data.data)] = np.nan
+                wh_nan = ~np.isfinite(data.data)
             else:
-                out_array[~np.isfinite(data)] = np.nan
+                wh_nan = ~np.isfinite(data)
+            if np.any(wh_nan):
+                out_array[wh_nan] = np.nan
         return out_array
 
     def diff(self, data, dtype=np.float32):
