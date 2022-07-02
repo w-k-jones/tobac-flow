@@ -163,10 +163,10 @@ class Flow:
                     temp[i] = img * struct_factor[i]
                 else:
                     temp[i,
-                         (1 if wh_layer[2][i]==0 else 0):(-1 if wh_layer[2][i]==2 else None),
-                         (1 if wh_layer[1][i]==0 else 0):(-1 if wh_layer[1][i]==2 else None)] \
-                        = img[(1 if wh_layer[2][i]==2 else 0):(-1 if wh_layer[2][i]==0 else None),
-                              (1 if wh_layer[1][i]==2 else 0):(-1 if wh_layer[1][i]==0 else None)] \
+                         (1 if wh_layer[1][i]==0 else 0):(-1 if wh_layer[1][i]==2 else None),
+                         (1 if wh_layer[2][i]==0 else 0):(-1 if wh_layer[2][i]==2 else None)] \
+                        = img[(1 if wh_layer[1][i]==2 else 0):(-1 if wh_layer[1][i]==0 else None),
+                              (1 if wh_layer[2][i]==2 else 0):(-1 if wh_layer[2][i]==0 else None)] \
                           * struct_factor[i]
 
             if func is None:
