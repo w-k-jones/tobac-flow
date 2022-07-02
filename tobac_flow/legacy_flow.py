@@ -101,7 +101,7 @@ def flow_convolve_nearest(data, flow_func, structure=None, wrap=False, function=
             This must have n or fewer dimensions, and each dimension length must be 3 or 1. The value of the
             convolution output will be multiplied by the correspinding structure values.
         wrap:
-            If true then any points in the convolution which exceed the limits of the relevant dimenion will be
+            If true then any points in the convolution which exceed the limits of the relevant dimension will be
             wrapped around to the other side of the array. Otherwise these points will be masked. Defualts to False
         function:
             A function to apply to the convoluted data along to convolution dimension. This function must have an

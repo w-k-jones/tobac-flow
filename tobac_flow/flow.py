@@ -72,7 +72,7 @@ class Flow:
         n = np.sum(stencil!=0)
         offsets = (np.stack(np.where(stencil!=0), -1)[:,np.newaxis,np.newaxis,:]-1).astype(np.float32)
         locations = np.tile(offsets, [1,h,w,1])
-        locations += np.stack(np.meshgrid(np.arange(w), np.arange(h)), -1)
+        locations += np.stack(np.meshgrid(np.arange(h), np.arange(w), indexing="ij"), -1)
         if direction=='forward':
             locations += self.flow_for[step]
         elif direction=='backward':
