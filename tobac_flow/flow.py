@@ -39,7 +39,11 @@ class Flow:
             vmin = np.nanmin(array)
         if vmax is None:
             vmax = np.nanmax(array)
-        array_out = (array-vmin) * 255 / (vmax-vmin)
+        if vmin==vmax:
+            factor = 0
+        else:
+            factor = 255 / (vmax-vmin)
+        array_out = (array-vmin) * factor
         return array_out.astype('uint8')
 
     def cv_flow(self, a, b, pyr_scale=0.5, levels=5, winsize=16, iterations=3,
