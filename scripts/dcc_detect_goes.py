@@ -28,7 +28,6 @@ parser.add_argument('-gd', help='GOES directory',
 parser.add_argument('--extend_path', help='Extend save directory using year/month/day subdirectories',
                     default=True, type=bool)
 
-start_time = datetime.now()
 args = parser.parse_args()
 start_date = parse_date(args.date, fuzzy=True)
 end_date = start_date + timedelta(hours=args.hours)
@@ -75,7 +74,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     print(datetime.now(),'Loading ABI data', flush=True)
     print('Loading goes data from:',goes_data_path, flush=True)
-    bt, wvd, swd, dataset = goes_dataloader(start_date, end_date, n_pad_files=3, 
+    bt, wvd, swd, dataset = goes_dataloader(start_date, end_date, n_pad_files=3,
                                             x0=x0, x1=x1, y0=y0, y1=y1,
                                             return_new_ds=True, satellite=16,
                                             product='MCMIP', view='C',
@@ -136,9 +135,6 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     print(datetime.now(), 'Preparing output', flush=True)
 
-    # import warnings
-    # warnings.filterwarnings("error")
-    #
     # Growth value
     add_dataarray_to_ds(create_dataarray(wvd_growth, ('t','y','x'), "wvd_growth_rate",
                                          long_name="detected wvd cooling rate", units="K/min",
@@ -154,16 +150,14 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     dataset.coords["core"] = np.arange(1, growth_markers.max()+1, dtype=np.int32)
 
-    get_label_stats(dataset.core_label, dataset)
-
     for field in (bt, dataset.wvd_growth_rate, dataset.bt_growth_rate):
         [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.core_label, field, dim='core', dtype=np.float32)]
 
+    # Now get individual step
     core_step_label = slice_label_da(dataset.core_label)
     add_dataarray_to_ds(core_step_label, dataset)
     dataset.coords["core_step"] = np.arange(1, core_step_label.max()+1, dtype=np.int32)
 
-    # Now get individual step
     for field in (bt, dataset.wvd_growth_rate, dataset.bt_growth_rate):
         [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.core_step_label, field, dim='core_step', dtype=np.float32)]
 
@@ -480,7 +474,8 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     dataset.to_netcdf(save_path)
 
 if __name__=="__main__":
-    print(datetime.now(), 'Commencing DCC detection', flush=True)
+    start_time = datetime.now()
+    print(start_time, 'Commencing DCC detection', flush=True)
 
     print('Start date:', start_date)
     print('End date:', end_date)

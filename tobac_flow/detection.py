@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 from scipy import ndimage as ndi
-from .analysis import filter_labels_by_length, filter_labels_by_length_and_mask, filter_labels_by_length_and_multimask
+from .analysis import filter_labels_by_length, filter_labels_by_mask, filter_labels_by_length_and_mask, filter_labels_by_multimask, filter_labels_by_length_and_multimask
 from .dataset import get_time_diff_from_coord
 
 # Filtering of the growth metric occurs in three steps:
@@ -56,24 +56,14 @@ def detect_growth_markers(flow, wvd):
     s_struct = ndi.generate_binary_structure(2,1)[np.newaxis,...]
     wvd_diff_filtered = ndi.grey_opening(wvd_diff_smoothed, footprint=s_struct) * get_curvature_filter(wvd)
 
-    watershed_markers = flow.label(wvd_diff_filtered>=0.5)
-
-    if isinstance(wvd, xr.DataArray):
-        watershed_markers = filter_labels_by_length_and_mask(watershed_markers, wvd.data>=-5, 3)
-    else:
-        watershed_markers = filter_labels_by_length_and_mask(watershed_markers, wvd>=-5, 3)
-
-    # marker_regions = flow.watershed(-wvd_diff_filtered,
-    #                                 watershed_markers != 0,
-    #                                 mask=wvd_diff_filtered<0.25,
-    #                                 structure=ndi.generate_binary_structure(3,1))
     marker_labels = flow.label(ndi.binary_opening(wvd_diff_filtered>=0.25, structure=s_struct))
-    # marker_labels = flow.label(ndi.binary_opening(marker_regions, structure=s_struct))
-    marker_labels = filter_labels_by_length_and_mask(marker_labels, watershed_markers!=0, 3)
+
+    marker_labels = filter_labels_by_length(marker_labels, 3)
+    marker_labels = filter_labels_by_mask(marker_labels, watershed_markers!=0)
     if isinstance(wvd, xr.DataArray):
-        marker_labels = filter_labels_by_length_and_mask(marker_labels, wvd.data>=-5, 3)
+        marker_labels = filter_labels_by_mask(marker_labels, wvd.data>=-5)
     else:
-        marker_labels = filter_labels_by_length_and_mask(marker_labels, wvd>=-5, 3)
+        marker_labels = filter_labels_by_mask(marker_labels, wvd>=-5)
 
     if isinstance(wvd, xr.DataArray):
         wvd_diff_raw = xr.DataArray(wvd_diff_raw, wvd.coords, wvd.dims)
@@ -119,11 +109,11 @@ def detect_growth_markers_multichannel(flow, wvd, bt, t_sigma=1, overlap=0.5,
                          overlap=overlap, subsegment_shrink=subsegment_shrink,
                          dtype=marker_dtype)
 
-    markers = filter_labels_by_length_and_multimask(markers,
-                                                    [wvd_diff_smoothed>=upper_threshold,
-                                                     bt_diff_smoothed<=-upper_threshold,
-                                                     wvd.data>-5],
-                                                    min_length)
+    markers = filter_labels_by_length(markers, min_length)
+    markers = filter_labels_by_multimask(markers,
+                                         [wvd_diff_smoothed>=upper_threshold,
+                                          bt_diff_smoothed<=-upper_threshold,
+                                          wvd.data>-5])
 
     if isinstance(wvd, xr.DataArray):
         wvd_diff_smoothed = xr.DataArray(wvd_diff_smoothed, wvd.coords, wvd.dims)

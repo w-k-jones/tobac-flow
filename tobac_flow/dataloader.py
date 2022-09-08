@@ -241,7 +241,7 @@ def glob_seviri_files(start_date, end_date,
                       file_type="secondary",
                       file_path="../data/SEVIRI_ORAC/"):
     if file_type not in ["secondary", "cloud", "flux"]:
-        raise ValueError("file_type paramter must be one of 'secondary', 'cloud' or 'flux'")
+        raise ValueError("file_type parameter must be one of 'secondary', 'cloud' or 'flux'")
 
     dates = pd.date_range(start_date, end_date, freq='H', closed='left').to_pydatetime()
 
