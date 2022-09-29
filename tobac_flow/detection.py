@@ -108,11 +108,11 @@ def detect_growth_markers_multichannel(flow, wvd, bt, t_sigma=1, overlap=0.5,
 
     # markers = filter_labels_by_length(markers, min_length)
     if np.count_nonzero(markers) > 0:
-        markers = filter_labels_by_length_and_multimask(markers,
-                                                        [wvd_diff_smoothed>=upper_threshold,
-                                                         bt_diff_smoothed<=-upper_threshold,
-                                                         wvd.data>-5],
-                                                        min_length)
+        markers = filter_labels_by_length_and_multimask_legacy(markers,
+                                                               [wvd_diff_smoothed>=upper_threshold,
+                                                                bt_diff_smoothed<=-upper_threshold,
+                                                                wvd.data>-5],
+                                                               min_length)
     else:
         warnings.warn("No regions detected in labeled array", RuntimeWarning)
 
