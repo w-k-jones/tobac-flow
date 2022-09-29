@@ -335,7 +335,7 @@ def seviri_dataloader(start_date, end_date, n_pad_files=1,
                          'along_track':bt.along_track,
                          'across_track':bt.across_track}
 
-        new_ds = xr.Dataset(coords=bt.coords)
+        new_ds = xr.Dataset(coords=seviri_coords)
 
         return bt, wvd, swd, new_ds
     else:
