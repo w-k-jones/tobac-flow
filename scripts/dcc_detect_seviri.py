@@ -85,7 +85,9 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
     wvd_growth, bt_growth, growth_markers = detect_growth_markers_multichannel(flow, wvd, bt,
                                                                                overlap=0.5,
                                                                                subsegment_shrink=0,
-                                                                               min_length=2)
+                                                                               min_length=2,
+                                                                               lower_threshold=0.125,
+                                                                               upper_threshold=0.25)
 
     print('WVD growth above threshold: area =', np.sum(wvd_growth.data>=0.5))
     print('BT growth above threshold: area =', np.sum(bt_growth.data<=-0.5))
