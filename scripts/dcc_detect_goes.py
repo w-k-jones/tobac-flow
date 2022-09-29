@@ -39,8 +39,6 @@ y0 = int(args.y0)
 y1 = int(args.y1)
 
 save_dir = args.sd
-# if args.extend_path:
-    # save_dir = os.path.join(save_dir, start_date.strftime('%Y/%m/%d'))
 if not os.path.isdir(save_dir):
     try:
         os.makedirs(save_dir)
@@ -63,7 +61,7 @@ if not os.path.isdir(goes_data_path):
         pass
 
 def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_path):
-    from tobac_flow import io, abi, glm
+    from tobac_flow import io, abi
     from tobac_flow.flow import Flow
     from tobac_flow.dataset import get_datetime_from_coord, get_time_diff_from_coord, create_new_goes_ds, add_dataarray_to_ds, create_dataarray
     from tobac_flow.detection import detect_growth_markers, detect_growth_markers_multichannel, edge_watershed
@@ -83,8 +81,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                             replicate_path=True,
                                             check_download=True,
                                             n_attempts=1,
-                                            download_missing=True,
-                                            dtype=np.float32)
+                                            download_missing=True)
 
     print("Dataloader dtype:", bt.dtype, wvd.dtype, swd.dtype)
 
@@ -100,9 +97,8 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     wvd_growth, bt_growth, growth_markers = detect_growth_markers_multichannel(flow, wvd, bt,
                                                                                overlap=0.5,
                                                                                subsegment_shrink=0,
-                                                                               min_length=4,
-                                                                               growth_dtype=np.float32,
-                                                                               marker_dtype=np.int32)
+                                                                               min_length=4)
+
     print('WVD growth above threshold: area =', np.sum(wvd_growth.data>=0.5))
     print('BT growth above threshold: area =', np.sum(bt_growth.data<=-0.5))
     print('Detected markers: area =', np.sum(growth_markers.data!=0))
@@ -116,11 +112,12 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                      verbose=True)
     print("Watershed dtype:", inner_watershed.dtype)
     print(datetime.now(), 'Labelling thick anvil region', flush=True)
-    inner_watershed = filter_labels_by_length_and_mask(flow.label(inner_watershed,
-                                                                  overlap=0.75,
-                                                                  subsegment_shrink=0.25,
-                                                                  dtype=np.int32),
-                                                       growth_markers.data!=0, 4)
+    inner_watershed = flow.label(inner_watershed, overlap=0.75,
+                                 subsegment_shrink=0.25,
+                                 dtype=np.int32)
+    inner_watershed = filter_labels_by_length_and_mask(inner_watershed,
+                                                       growth_markers.data!=0,
+                                                       4)
     print('Detected thick anvils: area =', np.sum(inner_watershed!=0), flush=True)
     print('Detected thick anvils: n =', inner_watershed.max(), flush=True)
 
@@ -472,6 +469,8 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
         dataset[var].encoding.update(comp)
 
     dataset.to_netcdf(save_path)
+
+    dataset.close()
 
 if __name__=="__main__":
     start_time = datetime.now()

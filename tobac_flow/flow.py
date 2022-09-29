@@ -57,8 +57,7 @@ class Flow:
         return flow
 
     def _warp_flow_step(self, img, step, method='linear', direction='forward',
-                        stencil=ndi.generate_binary_structure(3,1)[0],
-                        dtype=np.float32):
+                        stencil=ndi.generate_binary_structure(3,1)[0]):
         if img.shape != self.shape[1:]:
             raise ValueError("Image shape does not match flow shape")
         if method == 'linear':
@@ -77,9 +76,7 @@ class Flow:
             locations += self.flow_for[step]
         elif direction=='backward':
             locations += self.flow_back[step]
-
-        # out_image = np.full([n*h,w,2], np.nan, dtype=np.float32)
-
+        
         locations = locations.reshape([n*h,w,2])
 
         if isinstance(img, xr.DataArray):
@@ -88,12 +85,10 @@ class Flow:
                                  None, method, None, cv.BORDER_CONSTANT,
                                  np.nan).reshape([n,h,w])
         else:
-            out_image = cv.remap(img.astype(np.float32), 
+            out_image = cv.remap(img.astype(np.float32),
                                  locations.reshape([n*h,w,2]),
                                  None, method, None, cv.BORDER_CONSTANT,
                                  np.nan).reshape([n,h,w])
-        if dtype != np.float32:
-            out_image = out_img.astype(dtype)
 
         return out_image
 

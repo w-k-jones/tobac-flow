@@ -2,20 +2,16 @@ import numpy as np
 from scipy import ndimage as ndi
 from .dataset import add_dataarray_to_ds
 
-def apply_func_to_labels(labels, field, func, dtype=None):
-    if dtype == None:
-        dtype = field.dtype
+def apply_func_to_labels(labels, field, func):
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
-    return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]].astype(dtype))
+    return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]])
                      if bins[i+1]>bins[i] else None for i in range(bins.size-1)])
 
-def apply_weighted_func_to_labels(labels, field, weights, func, dtype=None):
-    if dtype == None:
-        dtype = field.dtype
+def apply_weighted_func_to_labels(labels, field, weights, func):
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
-    return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]].astype(dtype),
+    return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]],
                           weights.ravel()[args[bins[i]:bins[i+1]]])
                      if bins[i+1]>bins[i] else None for i in range(bins.size-1)])
 
@@ -112,24 +108,70 @@ def filter_labels_by_length_and_multimask(labels, masks, min_length):
 
     return remap[labels]
 
+def filter_labels_by_length_legacy(labels, min_length):
+    bins = np.cumsum(np.bincount(labels.ravel()))
+    args = np.argsort(labels.ravel())
+    object_lengths = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)])
+    counter = 1
+    for i in range(bins.size-1):
+        if bins[i+1]>bins[i]:
+            if object_lengths[i]<min_length:
+                labels.ravel()[args[bins[i]:bins[i+1]]] = 0
+            else:
+                labels.ravel()[args[bins[i]:bins[i+1]]] = counter
+                counter += 1
+    return labels
+
+def filter_labels_by_length_and_mask_legacy(labels, mask, min_length):
+    bins = np.cumsum(np.bincount(labels.ravel()))
+    args = np.argsort(labels.ravel())
+    object_lengths = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)])
+    counter = 1
+    for i in range(bins.size-1):
+        if bins[i+1]>bins[i]:
+            if object_lengths[i]>=min_length and np.any(mask.ravel()[args[bins[i]:bins[i+1]]]):
+                labels.ravel()[args[bins[i]:bins[i+1]]] = counter
+                counter += 1
+            else:
+                labels.ravel()[args[bins[i]:bins[i+1]]] = 0
+    return labels
+
+
+def filter_labels_by_length_and_multimask_legacy(labels, masks, min_length):
+    if type(masks) is not type(list()):
+        raise ValueError("masks input must be a list of masks to process")
+
+    bins = np.cumsum(np.bincount(labels.ravel()))
+    args = np.argsort(labels.ravel())
+    object_lengths = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)])
+    counter = 1
+    for i in range(bins.size-1):
+        if bins[i+1]>bins[i]:
+            if object_lengths[i]>=min_length and np.all([np.any(m.ravel()[args[bins[i]:bins[i+1]]]) for m in masks]):
+                labels.ravel()[args[bins[i]:bins[i+1]]] = counter
+                counter += 1
+            else:
+                labels.ravel()[args[bins[i]:bins[i+1]]] = 0
+    return labels
+
 def get_stats_for_labels(labels, da, dim=None, dtype=None):
     if not dim:
         dim = labels.name.split("_label")[0]
     if dtype == None:
         dtype = da.dtype
-    mean_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmean, dtype=dtype),
+    mean_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmean),
                                (dim,), f"{dim}_{da.name}_mean",
                                long_name=f"Mean of {da.long_name} for each {dim}",
                                units=da.units, dtype=dtype)
-    std_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanstd, dtype=dtype),
+    std_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanstd),
                               (dim,), f"{dim}_{da.name}_std",
                               long_name=f"Standard deviation of {da.long_name} for each {dim}",
                               units=da.units, dtype=dtype)
-    max_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmax, dtype=dtype),
+    max_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmax),
                               (dim,), f"{dim}_{da.name}_max",
                               long_name=f"Maximum of {da.long_name} for each {dim}",
                               units=da.units, dtype=dtype)
-    min_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmin, dtype=dtype),
+    min_da = create_dataarray(apply_func_to_labels(labels.data, da.data, np.nanmin),
                               (dim,), f"{dim}_{da.name}_min",
                               long_name=f"Minimum of {da.long_name} for each {dim}",
                               units=da.units, dtype=dtype)

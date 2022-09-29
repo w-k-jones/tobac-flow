@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
+import os
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 from glob import glob
@@ -11,13 +12,13 @@ from tobac_flow.abi import get_abi_lat_lon, get_abi_pixel_area
 def goes_dataloader(start_date, end_date, n_pad_files=1,
                     x0=None, x1=None, y0=None, y1=None,
                     time_gap=timedelta(minutes=15),
-                    dtype=np.float32, return_new_ds=False,
+                    return_new_ds=False,
                     **io_kwargs):
 
     abi_files = find_goes_files(start_date, end_date, n_pad_files, **io_kwargs)
 
     # Load ABI files
-    bt, wvd, swd = load_mcmip(abi_files, x0, x1, y0, y1, dtype=dtype)
+    bt, wvd, swd = load_mcmip(abi_files, x0, x1, y0, y1)
 
     # Fill any gaps:
     if io_kwargs["view"] == "M":
@@ -96,7 +97,7 @@ def get_stripe_deviation(da):
     y_std = da.std('y')
     return np.abs(((da-y_mean)/(y_std+1e-8)).mean('x'))
 
-def load_mcmip(files, x0=None, x1=None, y0=None, y1=None, dtype=np.float32):
+def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     ds_slice = {'x':slice(x0,x1), 'y':slice(y0,y1)}
     # Load a stack of goes datasets using xarray
     if len(files)>1:
@@ -105,23 +106,11 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None, dtype=np.float32):
         goes_ds = xr.open_dataset(files[0]).isel(ds_slice)
 
     # Extract fields and load into memory
-    wvd = (goes_ds.CMI_C08 - goes_ds.CMI_C10).astype(dtype)
-    try:
-        wvd = wvd.compute()
-    except AttributeError:
-        pass
+    wvd = (goes_ds.CMI_C08 - goes_ds.CMI_C10).load()
 
-    bt = (goes_ds.CMI_C13).astype(dtype)
-    try:
-        bt = bt.compute()
-    except AttributeError:
-        pass
+    bt = goes_ds.CMI_C13.load()
 
-    swd = (goes_ds.CMI_C13 - goes_ds.CMI_C15).astype(dtype)
-    try:
-        swd = swd.compute()
-    except AttributeError:
-        pass
+    swd = (bt - goes_ds.CMI_C15.load())
 
     # Check for missing data and DQF flags in any channels, propagate to all data
     all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(swd)], 0)
@@ -142,6 +131,8 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None, dtype=np.float32):
     swd.data[all_isnan] = np.nan
     swd.data[all_DQF] = np.nan
     swd.data[all_stripe] = np.nan
+
+    goes_ds.close()
 
     return bt, wvd, swd
 
@@ -171,7 +162,7 @@ def fill_time_gap_nan(da, time_gap=timedelta(minutes=15)):
 def get_full_disk_for_time_gap(start_date, end_date, **io_kwargs):
     start_date = parse_date(start_date.astype('datetime64[s]').astype('str'))
     end_date = parse_date(end_date.astype('datetime64[s]').astype('str'))
-    dates = pd.date_range(start_date, start_date+hours, freq='H').to_pydatetime()
+    dates = pd.date_range(start_date, end_date, freq='H').to_pydatetime()
 #     io_kwargs["view"] = "F"
     F_files = io.find_abi_files(dates, **io_kwargs)#, satellite=16, product='MCMIP', view='F', mode=[3,4,6],
 #                                 save_dir=goes_data_path,
@@ -180,7 +171,7 @@ def get_full_disk_for_time_gap(start_date, end_date, **io_kwargs):
 
     F_dates = [io.get_goes_date(i) for i in F_files]
 
-    return [file for file,date in zip(F_files, F_dates) if date>start_date and date<end_date]
+    return [file for file, date in zip(F_files, F_dates) if date>start_date and date<end_date]
 
 def fill_time_gap_full_disk(bt, wvd, swd, time_gap=timedelta(minutes=15),
                             x0=None, x1=None, y0=None, y1=None,
@@ -217,7 +208,7 @@ def fill_time_gap_full_disk(bt, wvd, swd, time_gap=timedelta(minutes=15),
             swd_concat_list.append(swd.isel(t=slice(last_t_ind, t_ind+1)))
 
             if len(full_disk_files) > 0:
-                full_bt, full_wvd, full_swd = load_mcmip(full_disk_files, x0, x1, y0, y1, dtype=bt.dtype)
+                full_bt, full_wvd, full_swd = load_mcmip(full_disk_files, x0, x1, y0, y1)
 
                 bt_concat_list.append(full_bt)
                 wvd_concat_list.append(full_wvd)
@@ -298,7 +289,7 @@ def seviri_dataloader(start_date, end_date, n_pad_files=1,
                       file_path="../data/SEVIRI_ORAC/",
                       x0=None, x1=None, y0=None, y1=None,
                       time_gap=timedelta(minutes=30),
-                      dtype=np.float32, return_new_ds=False):
+                      return_new_ds=False):
 
     seviri_files = find_seviri_files(start_date, end_date,
                                      n_pad_files=n_pad_files,
@@ -306,24 +297,11 @@ def seviri_dataloader(start_date, end_date, n_pad_files=1,
 
     seviri_ds = load_seviri_dataset(seviri_files, x0, x1, y0, y1)
 
-    bt = seviri_ds.brightness_temperature_in_channel_no_9.astype(dtype)
-    try:
-        bt = bt.compute()
-    except AttributeError:
-        pass
+    bt = seviri_ds.brightness_temperature_in_channel_no_9.load()
 
-    wvd = (seviri_ds.brightness_temperature_in_channel_no_5 - seviri_ds.brightness_temperature_in_channel_no_6).astype(dtype)
-    try:
-        wvd = wvd.compute()
-    except AttributeError:
-        pass
+    wvd = (seviri_ds.brightness_temperature_in_channel_no_5 - seviri_ds.brightness_temperature_in_channel_no_6).load()
 
-
-    swd = (seviri_ds.brightness_temperature_in_channel_no_9-seviri_ds.brightness_temperature_in_channel_no_10).astype(dtype)
-    try:
-        swd = swd.compute()
-    except AttributeError:
-        pass
+    swd = (bt - seviri_ds.brightness_temperature_in_channel_no_10.load())
 
     all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(swd)], 0)
 
@@ -350,4 +328,15 @@ def seviri_dataloader(start_date, end_date, n_pad_files=1,
     swd.attrs["long_name"] = "split window difference"
     swd.attrs["units"] = "K"
 
-    return bt, wvd, swd
+    seviri_ds.close()
+
+    if return_new_ds:
+        seviri_coords = {'t':bt.t,
+                         'along_track':bt.along_track,
+                         'across_track':bt.across_track}
+
+        new_ds = xr.Dataset(coords=bt.coords)
+
+        return bt, wvd, swd, new_ds
+    else:
+        return bt, wvd, swd

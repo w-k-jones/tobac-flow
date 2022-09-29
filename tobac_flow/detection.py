@@ -3,6 +3,7 @@ import xarray as xr
 from scipy import ndimage as ndi
 from .analysis import filter_labels_by_length, filter_labels_by_mask, filter_labels_by_length_and_mask, filter_labels_by_multimask, filter_labels_by_length_and_multimask
 from .dataset import get_time_diff_from_coord
+import warnings
 
 # Filtering of the growth metric occurs in three steps:
 # 1. The mean of the growth is taken over 3 time periods (15 minutes)
@@ -23,8 +24,7 @@ def filtered_tdiff(flow, raw_diff):
 
 # Get a mask which only picks up where the curvature field is positive or negative
 def get_curvature_filter(wvd, sigma=2, threshold=0, direction='negative'):
-    smoothed_wvd = ndi.gaussian_filter(wvd.astype(np.float32),
-                                       (0,sigma,sigma)).astype(wvd.dtype)
+    smoothed_wvd = ndi.gaussian_filter(wvd, (0,sigma,sigma))
     x_diff = np.zeros(wvd.shape)
     x_diff[:,:,1:-1] = np.diff(smoothed_wvd, n=2, axis=2)
 
@@ -94,26 +94,27 @@ def nan_gaussian_filter(a, *args, propagate_nan=True, **kwargs):
 def detect_growth_markers_multichannel(flow, wvd, bt, t_sigma=1, overlap=0.5,
                                        subsegment_shrink=0, min_length=4,
                                        lower_threshold=0.25,
-                                       upper_threshold=0.5,
-                                       growth_dtype=np.float32,
-                                       marker_dtype=np.int32):
+                                       upper_threshold=0.5):
 
-    wvd_diff_smoothed = filtered_tdiff(flow, flow.diff(wvd, dtype=growth_dtype) \
+    wvd_diff_smoothed = filtered_tdiff(flow, flow.diff(wvd) \
                         / get_time_diff_from_coord(wvd.t)[:,np.newaxis,np.newaxis])
-    bt_diff_smoothed = filtered_tdiff(flow, flow.diff(bt, dtype=growth_dtype) \
+    bt_diff_smoothed = filtered_tdiff(flow, flow.diff(bt) \
                        / get_time_diff_from_coord(bt.t)[:,np.newaxis,np.newaxis])
 
     markers = np.logical_or((wvd_diff_smoothed* get_curvature_filter(wvd)) >= lower_threshold,
                             (bt_diff_smoothed* get_curvature_filter(bt, direction="positive")) <= -lower_threshold)
     markers = flow.label(ndi.binary_opening(markers, structure=ndi.generate_binary_structure(2,1)[np.newaxis,...]),
-                         overlap=overlap, subsegment_shrink=subsegment_shrink,
-                         dtype=marker_dtype)
+                         overlap=overlap, subsegment_shrink=subsegment_shrink)
 
-    markers = filter_labels_by_length(markers, min_length)
-    markers = filter_labels_by_multimask(markers,
-                                         [wvd_diff_smoothed>=upper_threshold,
-                                          bt_diff_smoothed<=-upper_threshold,
-                                          wvd.data>-5])
+    # markers = filter_labels_by_length(markers, min_length)
+    if np.count_nonzero(markers) > 0:
+        markers = filter_labels_by_length_and_multimask(markers,
+                                                        [wvd_diff_smoothed>=upper_threshold,
+                                                         bt_diff_smoothed<=-upper_threshold,
+                                                         wvd.data>-5],
+                                                        min_length)
+    else:
+        warnings.warn("No regions detected in labeled array", RuntimeWarning)
 
     if isinstance(wvd, xr.DataArray):
         wvd_diff_smoothed = xr.DataArray(wvd_diff_smoothed, wvd.coords, wvd.dims)
@@ -125,7 +126,7 @@ def detect_growth_markers_multichannel(flow, wvd, bt, t_sigma=1, overlap=0.5,
 
 def edge_watershed(flow, field, markers, upper_threshold, lower_threshold,
                    structure=ndi.generate_binary_structure(3,1),
-                   erode_distance=5, verbose=False, dtype=None):
+                   erode_distance=5, verbose=False):
     if isinstance(field, xr.DataArray):
         field = np.maximum(np.minimum(field.data, upper_threshold), lower_threshold)
     else:
@@ -146,7 +147,7 @@ def edge_watershed(flow, field, markers, upper_threshold, lower_threshold,
                                structure=structure, debug_mode=verbose)
 
     s_struct = ndi.generate_binary_structure(2,1)[np.newaxis]
-    watershed = watershed * ndi.binary_opening(watershed!=0, structure=s_struct).astype(watershed.dtype)
+    watershed = watershed * ndi.binary_opening(watershed!=0, structure=s_struct)
 
     if isinstance(field, xr.DataArray):
         watershed = xr.DataArray(watershed, field.coords, field.dims)
