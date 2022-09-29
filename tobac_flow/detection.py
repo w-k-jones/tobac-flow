@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 from scipy import ndimage as ndi
-from .analysis import filter_labels_by_length, filter_labels_by_mask, filter_labels_by_length_and_mask, filter_labels_by_multimask, filter_labels_by_length_and_multimask
+from .analysis import filter_labels_by_length, filter_labels_by_mask, filter_labels_by_length_and_mask, filter_labels_by_multimask, filter_labels_by_length_and_multimask, filter_labels_by_length_and_multimask_legacy
 from .dataset import get_time_diff_from_coord
 import warnings
 
