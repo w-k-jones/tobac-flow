@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Jones"
+  given-names: "William K."
+  orcid: "https://orcid.org/0000-0001-9786-3723"
+title: "Tobac Flow"
+version: 1.1.0
+date-released: 2022-09-14
+url: "https://github.com/w-k-jones/tobac-flow"
