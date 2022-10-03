@@ -269,7 +269,7 @@ def _get_download_destination(blob, save_dir, replicate_path=True):
     else:
         save_path = save_dir
     if not os.path.isdir(save_path):
-        os.makedirs(save_path)
+        os.makedirs(save_path, exist_ok=True)
     save_file = os.path.join(save_path, blob_name)
     return save_file
 
@@ -550,7 +550,7 @@ def download_blobs(blob_list, save_dir='./', replicate_path=True,
         else:
             save_path = save_dir
         if not os.path.isdir(save_path):
-            os.makedirs(save_path)
+            os.makedirs(save_path, exist_ok=True)
 
         save_file = os.path.join(save_path, blob_name)
         if clobber or not os.path.exists(save_file):
@@ -567,7 +567,7 @@ def find_nexrad_files(date, site, save_dir='./', replicate_path=True, download_m
         else:
             save_path = save_dir
         if not os.path.isdir(save_path):
-            os.makedirs(save_path)
+            os.makedirs(save_path, exist_ok=True)
 
         save_file = os.path.join(save_path, blob_name)
         if os.path.exists(save_file):
