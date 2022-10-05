@@ -8,6 +8,7 @@ from glob import glob
 from tobac_flow import io
 from tobac_flow.dataset import get_datetime_from_coord, create_dataarray, add_dataarray_to_ds
 from tobac_flow.abi import get_abi_lat_lon, get_abi_pixel_area
+import warnings
 
 def goes_dataloader(start_date, end_date, n_pad_files=1,
                     x0=None, x1=None, y0=None, y1=None,
@@ -19,6 +20,20 @@ def goes_dataloader(start_date, end_date, n_pad_files=1,
 
     # Load ABI files
     bt, wvd, swd = load_mcmip(abi_files, x0, x1, y0, y1)
+
+    # Check time is correct on all files, remove if incorrect
+    pad_hours = int(np.ceil(n_pad_files/12))
+    padded_start_date = start_date - timedelta(hours=pad_hours)
+    padded_end_date = end_date + timedelta(hours=pad_hours)
+
+    wh_valid_t = np.logical_and(bt.t > padded_start_date,
+                                bt.t < padded_end_date)
+
+    if not np.all(wh_valid_t):
+        warnings.warn("Invalid time stamps found in ABI data, removing", RuntimeWarning)
+        bt = bt[wh_valid_t]
+        wvd = wvd[wh_valid_t]
+        swd = swd[wh_valid_t]
 
     # Fill any gaps:
     if io_kwargs["view"] == "M":
