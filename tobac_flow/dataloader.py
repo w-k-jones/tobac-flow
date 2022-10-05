@@ -26,8 +26,10 @@ def goes_dataloader(start_date, end_date, n_pad_files=1,
     padded_start_date = start_date - timedelta(hours=pad_hours)
     padded_end_date = end_date + timedelta(hours=pad_hours)
 
-    wh_valid_t = np.logical_and([t > padded_start_date for t in bt.t],
-                                [t < padded_end_date for t in bt.t])
+    datetime_coord = get_datetime_from_coord(bt.t)
+
+    wh_valid_t = np.logical_and([t > padded_start_date for t in datetime_coord],
+                                [t < padded_end_date for t in datetime_coord])
 
     if not np.all(wh_valid_t):
         warnings.warn("Invalid time stamps found in ABI data, removing", RuntimeWarning)

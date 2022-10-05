@@ -318,7 +318,7 @@ def subsegment_labels(input_mask, shrink_factor=0.1, peak_min_distance=5):
         local_maxima[i][tuple(maxima.T)] = True
 
     shrunk_markers = flat_label(np.logical_or(shrunk_markers, local_maxima))
-    shrunk_markers[flat_inner==0] = -1
+    shrunk_markers[labels==0] = -1
 
     struct = ndi.generate_binary_structure(3,1)
     struct[0] = 0
@@ -327,7 +327,7 @@ def subsegment_labels(input_mask, shrink_factor=0.1, peak_min_distance=5):
     subseg_labels = np.zeros_like(labels)
 
     for i in range(subseg_labels.shape[0]):
-        subseg_labels[i] = watershed(-dist_mask[i], shrunk_markers[i], mask=flat_inner[i]!=0)
+        subseg_labels[i] = watershed(-dist_mask[i], shrunk_markers[i], mask=labels[i]!=0)
 
     return subseg_labels
 
