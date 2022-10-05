@@ -13,6 +13,7 @@ opencv
 pyproj
 cf_xarray
 python-dateutil
+scikit-image
 
 # Plotting and vis
 matplotlib
