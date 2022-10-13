@@ -85,7 +85,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
     wvd_growth, bt_growth, growth_markers = detect_growth_markers_multichannel(flow, wvd, bt,
                                                                                overlap=0.5,
                                                                                subsegment_shrink=0,
-                                                                               min_length=2,
+                                                                               min_length=3,
                                                                                lower_threshold=0.125,
                                                                                upper_threshold=0.25)
 
@@ -151,7 +151,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
 
     # Now we have stats of each field for each core and each core time step
     # Next get other data: weighted x,y,lat,lon locations for each step, t per step
-    tt, yy, xx = np.meshgrid(dataset.t, dataset.across_track, dataset.along_track, indexing='ij')
+    tt, yy, xx = np.meshgrid(dataset.t, dataset.along_track, dataset.across_track, indexing='ij')
 
     core_step_x = apply_func_to_labels(core_step_label.data, xx, np.nanmean)
     add_dataarray_to_ds(create_dataarray(core_step_x, ('core_step',), "core_step_x",
@@ -247,7 +247,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
 
     # Now we have stats of each field for each core and each core time step
     # Next get other data: weighted x,y,lat,lon locations for each step, t per step
-    tt, yy, xx = np.meshgrid(dataset.t, dataset.across_track, dataset.along_track, indexing='ij')
+    tt, yy, xx = np.meshgrid(dataset.t, dataset.along_track, dataset.across_track, indexing='ij')
 
     thick_anvil_step_x = apply_func_to_labels(thick_anvil_step_label.data, xx, np.nanmean)
     add_dataarray_to_ds(create_dataarray(thick_anvil_step_x, ('anvil_step',), "thick_anvil_step_x",
@@ -368,7 +368,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
 
     # Now we have stats of each field for each core and each core time step
     # Next get other data: weighted x,y,lat,lon locations for each step, t per step
-    tt, yy, xx = np.meshgrid(dataset.t, dataset.across_track, dataset.along_track, indexing='ij')
+    tt, yy, xx = np.meshgrid(dataset.t, dataset.along_track, dataset.across_track, indexing='ij')
 
     thin_anvil_step_x = apply_func_to_labels(thin_anvil_step_label.data, xx, np.nanmean)
     add_dataarray_to_ds(create_dataarray(thin_anvil_step_x, ('thin_anvil_step',), "thin_anvil_step_x",

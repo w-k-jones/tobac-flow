@@ -86,7 +86,7 @@ def goes_dataloader(start_date, end_date, n_pad_files=1,
 
 def find_goes_files(start_date, end_date, n_pad_files=1, **io_kwargs):
     # Find ABI files
-    dates = pd.date_range(start_date, end_date, freq='H', closed='left').to_pydatetime()
+    dates = pd.date_range(start_date, end_date, freq='H', inclusive='left').to_pydatetime()
 
     abi_files = io.find_abi_files(dates, **io_kwargs)
 
@@ -94,13 +94,13 @@ def find_goes_files(start_date, end_date, n_pad_files=1, **io_kwargs):
         pad_hours = int(np.ceil(n_pad_files/12))
 
         pre_dates = pd.date_range(start_date-timedelta(hours=pad_hours), start_date,
-                                  freq='H', closed='left').to_pydatetime()
+                                  freq='H', inclusive='left').to_pydatetime()
         abi_pre_file = io.find_abi_files(pre_dates, **io_kwargs)
         if len(abi_pre_file):
             abi_pre_file = abi_pre_file[-n_pad_files:]
 
         post_dates = pd.date_range(end_date, end_date+timedelta(hours=pad_hours),
-                                  freq='H', closed='left').to_pydatetime()
+                                  freq='H', inclusive='left').to_pydatetime()
         abi_post_file = io.find_abi_files(post_dates, **io_kwargs)
         if len(abi_post_file):
             abi_post_file = abi_post_file[:n_pad_files]
@@ -251,7 +251,7 @@ def glob_seviri_files(start_date, end_date,
     if file_type not in ["secondary", "cloud", "flux"]:
         raise ValueError("file_type parameter must be one of 'secondary', 'cloud' or 'flux'")
 
-    dates = pd.date_range(start_date, end_date, freq='H', closed='left').to_pydatetime()
+    dates = pd.date_range(start_date, end_date, freq='H', inclusive='left').to_pydatetime()
 
     seviri_files = []
 

@@ -3,12 +3,16 @@ from scipy import ndimage as ndi
 from .dataset import add_dataarray_to_ds
 
 def apply_func_to_labels(labels, field, func):
+    if labels.shape != field.shape:
+        raise ValueError("Input labels and field do not have the same shape")
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
     return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]])
                      if bins[i+1]>bins[i] else None for i in range(bins.size-1)])
 
 def apply_weighted_func_to_labels(labels, field, weights, func):
+    if labels.shape != field.shape:
+        raise ValueError("Input labels and field do not have the same shape")
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
     return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]],
