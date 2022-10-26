@@ -106,7 +106,7 @@ if True:
     marker_distance = get_marker_distance(detection_ds.core_label.data, time_range=3)
     anvil_distance = get_marker_distance(detection_ds.thick_anvil_label, time_range=3)
     glm_distance = get_marker_distance(glm_grid, time_range=3)
-    wvd_distance = get_marker_distance(detection_ds.wvd_label, time_range=3)
+    # wvd_distance = get_marker_distance(detection_ds.wvd_label, time_range=3)
 
     # Create an array to filter objects near to boundaries
     edge_filter_array = np.full(marker_distance.shape, 1).astype('bool')
@@ -122,7 +122,7 @@ if True:
     edge_filter_array[wh_missing_glm] = 0
 
     flash_distance_to_marker = np.repeat(marker_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())
-    flash_distance_to_wvd = np.repeat(wvd_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())
+    # flash_distance_to_wvd = np.repeat(wvd_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())
     flash_distance_to_anvil = np.repeat(anvil_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())
 
     n_glm_in_margin = np.sum(glm_grid.data*edge_filter_array.astype(int))
@@ -133,17 +133,17 @@ if True:
         growth_pod = np.sum(flash_distance_to_marker<=10)/n_glm_in_margin
         growth_pod_hist = np.histogram(flash_distance_to_marker, bins=40,
                                        range=[0,40])[0] / n_glm_in_margin
-        wvd_pod = np.sum(flash_distance_to_wvd<=10)/n_glm_in_margin
-        wvd_pod_hist = np.histogram(flash_distance_to_wvd, bins=40,
-                                    range=[0,40])[0] / n_glm_in_margin
+        # wvd_pod = np.sum(flash_distance_to_wvd<=10)/n_glm_in_margin
+        # wvd_pod_hist = np.histogram(flash_distance_to_wvd, bins=40,
+        #                             range=[0,40])[0] / n_glm_in_margin
         anvil_pod = np.sum(flash_distance_to_anvil<=10)/n_glm_in_margin
         anvil_pod_hist = np.histogram(flash_distance_to_anvil, bins=40,
                                       range=[0,40])[0] / n_glm_in_margin
     else:
         growth_pod = np.float64(np.nan)
         growth_pod_hist = np.zeros([40])
-        wvd_pod = np.float64(np.nan)
-        wvd_pod_hist = np.zeros([40])
+        # wvd_pod = np.float64(np.nan)
+        # wvd_pod_hist = np.zeros([40])
         anvil_pod = np.float64(np.nan)
         anvil_pod_hist = np.zeros([40])
 
@@ -161,18 +161,18 @@ if True:
         growth_far = np.float64(np.nan)
         growth_far_hist = np.zeros([40])
 
-    wvd_margin_flag = apply_func_to_labels(detection_ds.wvd_label.data,
-                                           edge_filter_array, np.nanmin).astype('bool')
-    n_wvd_in_margin = np.sum(wvd_margin_flag)
-    wvd_min_distance = get_min_dist_for_objects(glm_distance, detection_ds.wvd_label.data)[0]
-
-    if n_wvd_in_margin>0:
-        wvd_far = np.sum(wvd_min_distance[wvd_margin_flag]>10) / n_wvd_in_margin
-        wvd_far_hist = np.histogram(wvd_min_distance[wvd_margin_flag], bins=40,
-                                range=[0,40])[0] / n_wvd_in_margin
-    else:
-        wvd_far = np.float64(np.nan)
-        wvd_far_hist = np.zeros([40])
+    # wvd_margin_flag = apply_func_to_labels(detection_ds.wvd_label.data,
+    #                                        edge_filter_array, np.nanmin).astype('bool')
+    # n_wvd_in_margin = np.sum(wvd_margin_flag)
+    # wvd_min_distance = get_min_dist_for_objects(glm_distance, detection_ds.wvd_label.data)[0]
+    #
+    # if n_wvd_in_margin>0:
+    #     wvd_far = np.sum(wvd_min_distance[wvd_margin_flag]>10) / n_wvd_in_margin
+    #     wvd_far_hist = np.histogram(wvd_min_distance[wvd_margin_flag], bins=40,
+    #                             range=[0,40])[0] / n_wvd_in_margin
+    # else:
+    #     wvd_far = np.float64(np.nan)
+    #     wvd_far_hist = np.zeros([40])
 
     anvil_margin_flag = apply_func_to_labels(detection_ds.thick_anvil_label.data,
                                              edge_filter_array, np.nanmin).astype('bool')
@@ -191,10 +191,10 @@ if True:
     print('POD =', growth_pod, flush=True)
     print('FAR = ', growth_far, flush=True)
 
-    print('WVD:', flush=True)
-    print('n =', n_wvd_in_margin, flush=True)
-    print('POD =', wvd_pod, flush=True)
-    print('FAR = ', wvd_far, flush=True)
+    # print('WVD:', flush=True)
+    # print('n =', n_wvd_in_margin, flush=True)
+    # print('POD =', wvd_pod, flush=True)
+    # print('FAR = ', wvd_far, flush=True)
 
     print('anvil:', flush=True)
     print('n =', n_anvil_in_margin, flush=True)
@@ -212,9 +212,9 @@ if True:
     add_dataarray_to_ds(create_dataarray(flash_distance_to_marker, ('flash',), "flash_core_distance",
                                          long_name="closest distance from flash to detected core",
                                          dtype=np.float32), validation_ds)
-    add_dataarray_to_ds(create_dataarray(flash_distance_to_wvd, ('flash',), "flash_wvd_distance",
-                                         long_name="closest distance from flash to detected wvd region",
-                                         dtype=np.float32), validation_ds)
+    # add_dataarray_to_ds(create_dataarray(flash_distance_to_wvd, ('flash',), "flash_wvd_distance",
+    #                                      long_name="closest distance from flash to detected wvd region",
+    #                                      dtype=np.float32), validation_ds)
     add_dataarray_to_ds(create_dataarray(flash_distance_to_anvil, ('flash',), "flash_anvil_distance",
                                          long_name="closest distance from flash to detected anvil",
                                          dtype=np.float32), validation_ds)
@@ -244,27 +244,27 @@ if True:
                                          long_name="total number of anvils inside margin",
                                          dtype=np.int32), validation_ds)
     # wvd validation
-    add_dataarray_to_ds(create_dataarray(wvd_min_distance, ('wvd',), "wvd_glm_distance",
-                                         long_name="closest distance from wvd to GLM flash",
-                                         dtype=np.float32), validation_ds)
-    add_dataarray_to_ds(create_dataarray(wvd_margin_flag, ('wvd',), "wvd_margin_flag",
-                                         long_name="margin flag for wvd",
-                                         dtype=bool), validation_ds)
-    add_dataarray_to_ds(create_dataarray(wvd_far_hist, ('bins',), "wvd_far_histogram",
-                                         long_name="FAR histogram for wvds",
-                                         dtype=np.float32), validation_ds)
-    add_dataarray_to_ds(create_dataarray(wvd_pod_hist, ('bins',), "wvd_pod_histogram",
-                                         long_name="POD histogram for wvds",
-                                         dtype=np.float32), validation_ds)
-    add_dataarray_to_ds(create_dataarray(wvd_pod, tuple(), "wvd_pod",
-                                         long_name="POD for wvds",
-                                         dtype=np.float32), validation_ds)
-    add_dataarray_to_ds(create_dataarray(wvd_far, tuple(), "wvd_far",
-                                         long_name="FAR for wvds",
-                                         dtype=np.float32), validation_ds)
-    add_dataarray_to_ds(create_dataarray(n_wvd_in_margin, tuple(), "wvd_count",
-                                         long_name="total number of wvds inside margin",
-                                         dtype=np.int32), validation_ds)
+    # add_dataarray_to_ds(create_dataarray(wvd_min_distance, ('wvd',), "wvd_glm_distance",
+    #                                      long_name="closest distance from wvd to GLM flash",
+    #                                      dtype=np.float32), validation_ds)
+    # add_dataarray_to_ds(create_dataarray(wvd_margin_flag, ('wvd',), "wvd_margin_flag",
+    #                                      long_name="margin flag for wvd",
+    #                                      dtype=bool), validation_ds)
+    # add_dataarray_to_ds(create_dataarray(wvd_far_hist, ('bins',), "wvd_far_histogram",
+    #                                      long_name="FAR histogram for wvds",
+    #                                      dtype=np.float32), validation_ds)
+    # add_dataarray_to_ds(create_dataarray(wvd_pod_hist, ('bins',), "wvd_pod_histogram",
+    #                                      long_name="POD histogram for wvds",
+    #                                      dtype=np.float32), validation_ds)
+    # add_dataarray_to_ds(create_dataarray(wvd_pod, tuple(), "wvd_pod",
+    #                                      long_name="POD for wvds",
+    #                                      dtype=np.float32), validation_ds)
+    # add_dataarray_to_ds(create_dataarray(wvd_far, tuple(), "wvd_far",
+    #                                      long_name="FAR for wvds",
+    #                                      dtype=np.float32), validation_ds)
+    # add_dataarray_to_ds(create_dataarray(n_wvd_in_margin, tuple(), "wvd_count",
+    #                                      long_name="total number of wvds inside margin",
+    #                                      dtype=np.int32), validation_ds)
     # growth validation
     add_dataarray_to_ds(create_dataarray(growth_min_distance, ('core',), "core_glm_distance",
                                          long_name="closest distance from core to GLM flash",
