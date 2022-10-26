@@ -81,7 +81,7 @@ if True:
         # Process new GLM data
         glm_files = io.find_glm_files(dates, satellite=16, save_dir=goes_data_path,
                                       replicate_path=True, check_download=True,
-                                      n_attempts=1, download_missing=True, verbose=True,
+                                      n_attempts=1, download_missing=True, verbose=False,
                                       min_storage=2**30)
         glm_files = {io.get_goes_date(i):i for i in glm_files}
         print('%d files found'%len(glm_files), flush=True)
