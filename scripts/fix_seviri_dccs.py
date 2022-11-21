@@ -773,7 +773,7 @@ from tobac_flow.analysis import apply_func_to_labels, apply_weighted_func_to_lab
 cld_weights = np.copy(area_stack)
 cld_weights[cld_ds.qcflag.compute().data!=0] = 0
 
-def weighted_statistics_on_labels(labels, da, cld_weights, dim=None, dtype=None):
+def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, dtype=None):
     if not dim:
         dim = labels.name.split("_label")[0]
     if dtype == None:
@@ -937,5 +937,5 @@ for field in (toa_net, toa_cld):
                                                                               field.compute(),
                                                                               area_stack,
                                                                               name='thin_anvil_step',
-                                                                              dim='thin_anvil_step', 
+                                                                              dim='thin_anvil_step',
                                                                               dtype=np.float32)]
