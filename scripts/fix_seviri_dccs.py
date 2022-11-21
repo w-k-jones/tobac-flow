@@ -389,7 +389,7 @@ core_total_area = labeled_comprehension(dataset.area.data[np.newaxis, ...],
                                         np.nansum,
                                         dtype=np.float32,
                                         default=np.nan)
-add_dataarray_to_ds(create_dataarray(core_total_area, ('core',), "core_total area",
+add_dataarray_to_ds(create_dataarray(core_total_area, ('core',), "core_total_area",
                                      long_name="total area of core",
                                      dtype=np.float32), dataset)
 
@@ -464,7 +464,7 @@ thick_anvil_total_area = labeled_comprehension(dataset.area.data[np.newaxis, ...
                                         np.nansum,
                                         dtype=np.float32,
                                         default=np.nan)
-add_dataarray_to_ds(create_dataarray(thick_anvil_total_area, ('anvil',), "thick_anvil_total area",
+add_dataarray_to_ds(create_dataarray(thick_anvil_total_area, ('anvil',), "thick_anvil_total_area",
                                      long_name="total area of thick anvil",
                                      dtype=np.float32), dataset)
 
@@ -539,7 +539,7 @@ thin_anvil_total_area = labeled_comprehension(dataset.area.data[np.newaxis, ...]
                                         np.nansum,
                                         dtype=np.float32,
                                         default=np.nan)
-add_dataarray_to_ds(create_dataarray(thin_anvil_total_area, ('anvil',), "thin_anvil_total area",
+add_dataarray_to_ds(create_dataarray(thin_anvil_total_area, ('anvil',), "thin_anvil_total_area",
                                      long_name="total area of thin anvil",
                                      dtype=np.float32), dataset)
 
@@ -776,6 +776,8 @@ cld_weights[cld_ds.qcflag.compute().data!=0] = 0
 def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, dtype=None):
     if not dim:
         dim = labels.name.split("_label")[0]
+    if not name:
+        name = labels.name.split("_label")[0]
     if dtype == None:
         dtype = da.dtype
 
@@ -803,26 +805,26 @@ def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, 
 
     mean_da = create_dataarray(stats_array[...,0],
                                (dim,),
-                               f"{dim}_{da.name}_mean",
+                               f"{name}_{da.name}_mean",
                                long_name=f"Mean of {long_name} for each {dim}",
                                units=units,
                                dtype=dtype)
 
     std_da = create_dataarray(stats_array[...,1],
                               (dim,),
-                              f"{dim}_{da.name}_std",
+                              f"{name}_{da.name}_std",
                               long_name=f"Standard deviation of {long_name} for each {dim}",
                               units=units,
                               dtype=dtype)
     max_da = create_dataarray(stats_array[...,2],
                               (dim,),
-                              f"{dim}_{da.name}_max",
+                              f"{name}_{da.name}_max",
                               long_name=f"Maximum of {long_name} for each {dim}",
                               units=units,
                               dtype=dtype)
     min_da = create_dataarray(stats_array[...,3],
                               (dim,),
-                              f"{dim}_{da.name}_min",
+                              f"{name}_{da.name}_min",
                               long_name=f"Minimum of {long_name} for each {dim}",
                               units=units,
                               dtype=dtype)
