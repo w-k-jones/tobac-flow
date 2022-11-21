@@ -796,7 +796,7 @@ def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, 
                                     np.nanmax(x[w>0]),
                                     np.nanmin(x[w>0])] if np.nansum(w>0) else [np.nan, np.nan, np.nan, np.nan]
 
-    stats_array = apply_weighted_func_to_labels(dataset.core_label.data,
+    stats_array = apply_weighted_func_to_labels(labels.data,
                                                 da.data,
                                                 cld_weights,
                                                 weighted_stats)
