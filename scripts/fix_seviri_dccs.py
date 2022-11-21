@@ -892,7 +892,7 @@ toa_clr = flx_ds.toa_swdn-flx_ds.toa_swup_clr-flx_ds.toa_lwup_clr
 toa_cld = toa_net-toa_clr
 # toa_cld.attrs["name"] = toa_cld
 toa_net = create_dataarray(toa_net.data, flx_ds.dims, "toa_net", units="")
-toa_net = create_dataarray(toa_cld.data, flx_ds.dims, "toa_cld", units="")
+toa_cld = create_dataarray(toa_cld.data, flx_ds.dims, "toa_cld", units="")
 
 for field in (toa_net, toa_cld):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.core_label,
