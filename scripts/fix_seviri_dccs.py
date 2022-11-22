@@ -28,7 +28,7 @@ if not os.path.isdir(save_dir):
         pass
 
 save_name = fname.split('/')[-1]
-save_name = save_name[:-3] + "fixed.nc"
+save_name = save_name[:-3] + "_fixed.nc"
 
 save_path = os.path.join(save_dir, save_name)
 
