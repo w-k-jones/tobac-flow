@@ -56,7 +56,7 @@ cld_ds = xr.open_mfdataset(cld_files, combine="nested", concat_dim="t")
 cld_ds = cld_ds.assign_coords(t=[parse_date(f[-64:-50]) for f in cld_files])
 
 # Load flux file
-flx_files = find_seviri_files(datetime(2016,7,1), datetime(2016,7,2), n_pad_files=2, file_type="flux",
+flx_files = find_seviri_files(start_date, end_date, n_pad_files=2, file_type="flux",
                                  file_path="/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/flx")
 
 flx_ds = xr.open_mfdataset(flx_files, combine="nested", concat_dim="t")
