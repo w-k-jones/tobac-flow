@@ -912,7 +912,7 @@ toa_cld = create_dataarray(toa_cld.data, flx_ds.dims, "toa_cld", units="")
 toa_swup_cld = create_dataarray(flx_ds.toa_swup.data-flx_ds.toa_swup_clr, flx_ds.dims, "toa_swup_cld", units="")
 toa_lwup_cld = create_dataarray(flx_ds.toa_lwup.data-flx_ds.toa_lwup_clr, flx_ds.dims, "toa_lwup_cld", units="")
 
-for field in (cld_ds.toa_swdn, cld_ds.toa_swup, cld_ds.toa_lwup, toa_net,
+for field in (flx_ds.toa_swdn, flx_ds.toa_swup, flx_ds.toa_lwup, toa_net,
               toa_swup_cld, toa_lwup_cld, toa_cld):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.core_label,
                                                                               field.compute(),
