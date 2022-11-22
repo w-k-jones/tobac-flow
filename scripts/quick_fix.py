@@ -110,15 +110,7 @@ toa_cld = create_dataarray(toa_cld.data, flx_ds.dims, "toa_cld", units="")
 toa_swup_cld = create_dataarray(flx_ds.toa_swup.data-flx_ds.toa_swup_clr, flx_ds.dims, "toa_swup_cld", units="")
 toa_lwup_cld = create_dataarray(flx_ds.toa_lwup.data-flx_ds.toa_lwup_clr, flx_ds.dims, "toa_lwup_cld", units="")
 
-for field in (flx_ds.toa_swdn, flx_ds.toa_swup, flx_ds.toa_lwup, toa_net,
-              toa_swup_cld, toa_lwup_cld, toa_cld):
-    [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.core_label,
-                                                                              field.compute(),
-                                                                              area_stack,
-                                                                              name='core',
-                                                                              dim='core',
-                                                                              dtype=np.float32)]
-
+for field in (toa_swup_cld, toa_lwup_cld, toa_cld):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thick_anvil_label,
                                                                               field.compute(),
                                                                               area_stack,
@@ -131,27 +123,6 @@ for field in (flx_ds.toa_swdn, flx_ds.toa_swup, flx_ds.toa_lwup, toa_net,
                                                                               area_stack,
                                                                               name='thin_anvil',
                                                                               dim='anvil',
-                                                                              dtype=np.float32)]
-
-    [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.core_step_label,
-                                                                              field.compute(),
-                                                                              area_stack,
-                                                                              name='core_step',
-                                                                              dim='core_step',
-                                                                              dtype=np.float32)]
-
-    [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thick_anvil_step_label,
-                                                                              field.compute(),
-                                                                              area_stack,
-                                                                              name='thick_anvil_step',
-                                                                              dim='thick_anvil_step',
-                                                                              dtype=np.float32)]
-
-    [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thin_anvil_step_label,
-                                                                              field.compute(),
-                                                                              area_stack,
-                                                                              name='thin_anvil_step',
-                                                                              dim='thin_anvil_step',
                                                                               dtype=np.float32)]
 
 print(datetime.now(), 'Saving to %s' % (save_path), flush=True)
