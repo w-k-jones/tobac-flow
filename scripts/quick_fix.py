@@ -158,9 +158,7 @@ comp = dict(zlib=True, complevel=5, shuffle=True)
 for var in dataset.data_vars:
     dataset[var].encoding.update(comp)
 
-dataset.to_netcdf(save_path)
+dataset.to_netcdf(fname)
 
 dataset.close()
-dcc_ds.close()
-cld_ds.close()
 flx_ds.close()
