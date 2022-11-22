@@ -25,6 +25,8 @@ dataset = xr.open_dataset(fname)
 start_date = parse_date((fname).split("_S")[-1].split("_E")[0], fuzzy=True)
 end_date = parse_date((fname).split("_E")[-1].split("_X")[0], fuzzy=True)
 
+area_stack = np.repeat(dataset.area.data[np.newaxis,...], dataset.t.size, 0)
+
 flx_files = find_seviri_files(start_date, end_date, n_pad_files=2, file_type="flux",
                                  file_path="/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/flx")
 
