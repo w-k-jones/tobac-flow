@@ -909,8 +909,8 @@ toa_cld = toa_net-toa_clr
 toa_net = create_dataarray(toa_net.data, flx_ds.dims, "toa_net", units="")
 toa_cld = create_dataarray(toa_cld.data, flx_ds.dims, "toa_cld", units="")
 
-toa_swup_cld = create_dataarray(cld_ds.toa_swup.data-cld_d.toa_swup_clr, flx_ds.dims, "toa_swup_cld", units="")
-toa_lwup_cld = create_dataarray(cld_ds.toa_lwup.data-cld_d.toa_lwup_clr, flx_ds.dims, "toa_lwup_cld", units="")
+toa_swup_cld = create_dataarray(flx_ds.toa_swup.data-flx_ds.toa_swup_clr, flx_ds.dims, "toa_swup_cld", units="")
+toa_lwup_cld = create_dataarray(flx_ds.toa_lwup.data-flx_ds.toa_lwup_clr, flx_ds.dims, "toa_lwup_cld", units="")
 
 for field in (cld_ds.toa_swdn, cld_ds.toa_swup, cld_ds.toa_lwup, toa_net,
               toa_swup_cld, toa_lwup_cld, toa_cld):
