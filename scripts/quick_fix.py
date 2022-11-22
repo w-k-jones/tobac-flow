@@ -105,10 +105,10 @@ toa_clr = flx_ds.toa_swdn-flx_ds.toa_swup_clr-flx_ds.toa_lwup_clr
 toa_cld = toa_net-toa_clr
 # toa_cld.attrs["name"] = toa_cld
 toa_net = create_dataarray(toa_net.data, flx_ds.dims, "toa_net", units="")
-toa_cld = create_dataarray(toa_cld.data, flx_ds.dims, "toa_cld", units="")
+toa_cld = create_dataarray(toa_cld.data, flx_ds.dims, "toa_net_cre", units="")
 
-toa_swup_cld = create_dataarray(flx_ds.toa_swup.data-flx_ds.toa_swup_clr, flx_ds.dims, "toa_swup_cld", units="")
-toa_lwup_cld = create_dataarray(flx_ds.toa_lwup.data-flx_ds.toa_lwup_clr, flx_ds.dims, "toa_lwup_cld", units="")
+toa_swup_cld = create_dataarray(flx_ds.toa_swup.data-flx_ds.toa_swup_clr, flx_ds.dims, "toa_swup_cre", units="")
+toa_lwup_cld = create_dataarray(flx_ds.toa_lwup.data-flx_ds.toa_lwup_clr, flx_ds.dims, "toa_lwup_cre", units="")
 
 for field in (toa_swup_cld, toa_lwup_cld, toa_cld):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thick_anvil_label,
@@ -125,13 +125,14 @@ for field in (toa_swup_cld, toa_lwup_cld, toa_cld):
                                                                               dim='anvil',
                                                                               dtype=np.float32)]
 
+save_path = fname[:-3]+"_cre.nc"
 print(datetime.now(), 'Saving to %s' % (save_path), flush=True)
 # Add compression encoding
 comp = dict(zlib=True, complevel=5, shuffle=True)
 for var in dataset.data_vars:
     dataset[var].encoding.update(comp)
 
-dataset.to_netcdf(fname)
+dataset.to_netcdf(save_path)
 
 dataset.close()
 flx_ds.close()
