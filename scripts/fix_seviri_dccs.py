@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from numpy import ma
 import scipy as sp
@@ -13,9 +14,26 @@ from tobac_flow.dataset import add_dataarray_to_ds, create_dataarray
 import argparse
 parser = argparse.ArgumentParser(description="""Validate detected DCCs using GOES-16 GLM data""")
 parser.add_argument('file', help='File to validate', type=str)
+parser.add_argument('-sd', help='Directory to save preprocess files',
+                    default='/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/dcc_detect_fixed/', type=str)
 args = parser.parse_args()
 
 fname = args.file
+
+save_dir = args.sd
+if not os.path.isdir(save_dir):
+    try:
+        os.makedirs(save_dir)
+    except (FileExistsError, OSError):
+        pass
+
+save_name = fname.split('/')[-1]
+save_name = save_name[:-3] + "fixed.nc"
+
+save_path = os.path.join(save_dir, save_name)
+
+print("Saving to:", save_path)
+
 dcc_ds = xr.open_dataset(fname)
 
 seviri_coords = {'t':dcc_ds.t,
@@ -776,8 +794,6 @@ cld_weights[cld_ds.qcflag.compute().data!=0] = 0
 def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, dtype=None):
     if not dim:
         dim = labels.name.split("_label")[0]
-    if not name:
-        name = labels.name.split("_label")[0]
     if dtype == None:
         dtype = da.dtype
 
@@ -791,7 +807,14 @@ def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, 
     except AttributeError:
         units = ""
 
-    weighted_average = lambda x, w : np.average(x, weights=w)
+    def weighted_average(values, weights, ignore_nan=True):
+        if ignore_nan:
+            wh_nan = np.isnan(values)
+            values = values[~wh_nan]
+            weights = weights[~wh_nan]
+
+        return np.average(values, weights=weights)
+
     weighted_std = lambda x, w : weighted_average((x - weighted_average(x, w))**2, w)**0.5
     weighted_stats = lambda x, w : [weighted_average(x, w),
                                     weighted_std(x, w),
@@ -805,26 +828,26 @@ def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, 
 
     mean_da = create_dataarray(stats_array[...,0],
                                (dim,),
-                               f"{name}_{da.name}_mean",
+                               f"{dim}_{da.name}_mean",
                                long_name=f"Mean of {long_name} for each {dim}",
                                units=units,
                                dtype=dtype)
 
     std_da = create_dataarray(stats_array[...,1],
                               (dim,),
-                              f"{name}_{da.name}_std",
+                              f"{dim}_{da.name}_std",
                               long_name=f"Standard deviation of {long_name} for each {dim}",
                               units=units,
                               dtype=dtype)
     max_da = create_dataarray(stats_array[...,2],
                               (dim,),
-                              f"{name}_{da.name}_max",
+                              f"{dim}_{da.name}_max",
                               long_name=f"Maximum of {long_name} for each {dim}",
                               units=units,
                               dtype=dtype)
     min_da = create_dataarray(stats_array[...,3],
                               (dim,),
-                              f"{name}_{da.name}_min",
+                              f"{dim}_{da.name}_min",
                               long_name=f"Minimum of {long_name} for each {dim}",
                               units=units,
                               dtype=dtype)
@@ -833,8 +856,7 @@ def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, 
 
 
 # cot, cer, ctp, stemp, cth, ctt, cwp
-# for field in (cld_ds.cot, cld_ds.cer, cld_ds.ctp, cld_ds.stemp, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
-for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
+for field in (cld_ds.cot, cld_ds.cer, cld_ds.ctp, cld_ds.stemp, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.core_label,
                                                                               field.compute(),
                                                                               cld_weights,
@@ -842,8 +864,6 @@ for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
                                                                               dim='core',
                                                                               dtype=np.float32)]
 
-# for field in (cld_ds.cot, cld_ds.cer, cld_ds.ctp, cld_ds.stemp, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
-for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thick_anvil_label,
                                                                               field.compute(),
                                                                               cld_weights,
@@ -851,8 +871,6 @@ for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
                                                                               dim='anvil',
                                                                               dtype=np.float32)]
 
-# for field in (cld_ds.cot, cld_ds.cer, cld_ds.ctp, cld_ds.stemp, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
-for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thin_anvil_label,
                                                                               field.compute(),
                                                                               cld_weights,
@@ -860,7 +878,6 @@ for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
                                                                               dim='anvil',
                                                                               dtype=np.float32)]
 
-for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.core_step_label,
                                                                               field.compute(),
                                                                               cld_weights,
@@ -868,8 +885,6 @@ for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
                                                                               dim='core_step',
                                                                               dtype=np.float32)]
 
-# for field in (cld_ds.cot, cld_ds.cer, cld_ds.ctp, cld_ds.stemp, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
-for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thick_anvil_step_label,
                                                                               field.compute(),
                                                                               cld_weights,
@@ -877,8 +892,6 @@ for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
                                                                               dim='thick_anvil_step',
                                                                               dtype=np.float32)]
 
-# for field in (cld_ds.cot, cld_ds.cer, cld_ds.ctp, cld_ds.stemp, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
-for field in (cld_ds.cot, cld_ds.cer, cld_ds.cth, cld_ds.ctt, cld_ds.cwp):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thin_anvil_step_label,
                                                                               field.compute(),
                                                                               cld_weights,
@@ -896,7 +909,11 @@ toa_cld = toa_net-toa_clr
 toa_net = create_dataarray(toa_net.data, flx_ds.dims, "toa_net", units="")
 toa_cld = create_dataarray(toa_cld.data, flx_ds.dims, "toa_cld", units="")
 
-for field in (toa_net, toa_cld):
+toa_swup_cld = create_dataarray(cld_ds.toa_swup.data-cld_d.toa_swup_clr, flx_ds.dims, "toa_swup_cld", units="")
+toa_lwup_cld = create_dataarray(cld_ds.toa_lwup.data-cld_d.toa_lwup_clr, flx_ds.dims, "toa_lwup_cld", units="")
+
+for field in (cld_ds.toa_swdn, cld_ds.toa_swup, cld_ds.toa_lwup, toa_net,
+              toa_swup_cld, toa_lwup_cld, toa_cld):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.core_label,
                                                                               field.compute(),
                                                                               area_stack,
@@ -904,14 +921,13 @@ for field in (toa_net, toa_cld):
                                                                               dim='core',
                                                                               dtype=np.float32)]
 
-for field in (toa_net, toa_cld):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thick_anvil_label,
                                                                               field.compute(),
                                                                               area_stack,
                                                                               name='thick_anvil',
                                                                               dim='anvil',
                                                                               dtype=np.float32)]
-for field in (toa_net, toa_cld):
+
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thin_anvil_label,
                                                                               field.compute(),
                                                                               area_stack,
@@ -919,7 +935,6 @@ for field in (toa_net, toa_cld):
                                                                               dim='anvil',
                                                                               dtype=np.float32)]
 
-for field in (toa_net, toa_cld):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.core_step_label,
                                                                               field.compute(),
                                                                               area_stack,
@@ -927,17 +942,47 @@ for field in (toa_net, toa_cld):
                                                                               dim='core_step',
                                                                               dtype=np.float32)]
 
-for field in (toa_net, toa_cld):
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thick_anvil_step_label,
                                                                               field.compute(),
                                                                               area_stack,
                                                                               name='thick_anvil_step',
                                                                               dim='thick_anvil_step',
                                                                               dtype=np.float32)]
-for field in (toa_net, toa_cld):
+
     [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thin_anvil_step_label,
                                                                               field.compute(),
                                                                               area_stack,
                                                                               name='thin_anvil_step',
                                                                               dim='thin_anvil_step',
                                                                               dtype=np.float32)]
+
+ice_proportion = lambda x, w : np.nansum((x==2)*w)/np.nansum((x>0)*w)
+core_step_ice_proportion = apply_weighted_func_to_labels(dataset.core_step_label.data,
+                                                         cld_ds.phase.compute().data,
+                                                         cld_weights,
+                                                         ice_proportion)
+
+add_dataarray_to_ds(create_dataarray(core_step_ice_proportion,
+                                     ('core_step',),
+                                     "core_step_ice_proportion",
+                                     long_name="proportion of core in ice phase",
+                                     dtype=np.float32), dataset)
+
+from  tobac_flow.analysis import get_label_stats
+
+get_label_stats(dataset.core_label, dataset)
+get_label_stats(dataset.thick_anvil_label, dataset)
+get_label_stats(dataset.thin_anvil_label, dataset)
+
+print(datetime.now(), 'Saving to %s' % (save_path), flush=True)
+# Add compression encoding
+comp = dict(zlib=True, complevel=5, shuffle=True)
+for var in dataset.data_vars:
+    dataset[var].encoding.update(comp)
+
+dataset.to_netcdf(save_path)
+
+dataset.close()
+dcc_ds.close()
+cld_ds.close()
+flx_ds.close()
