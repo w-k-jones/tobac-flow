@@ -11,6 +11,8 @@ from glob import glob
 
 from tobac_flow.dataset import add_dataarray_to_ds, create_dataarray
 from tobac_flow.analysis import apply_weighted_func_to_labels
+from tobac_flow.dataloader import find_seviri_files
+
 
 import argparse
 parser = argparse.ArgumentParser(description="""Validate detected DCCs using GOES-16 GLM data""")

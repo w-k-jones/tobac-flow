@@ -57,7 +57,7 @@ if not os.path.isdir(seviri_data_path):
     except (FileExistsError, OSError):
         pass
 
-def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
+def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
     from tobac_flow.flow import Flow
     from tobac_flow.dataset import get_datetime_from_coord, get_time_diff_from_coord, create_new_goes_ds, add_dataarray_to_ds, create_dataarray
     from tobac_flow.detection import detect_growth_markers, detect_growth_markers_multichannel, edge_watershed
