@@ -828,26 +828,26 @@ def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, 
 
     mean_da = create_dataarray(stats_array[...,0],
                                (dim,),
-                               f"{dim}_{da.name}_mean",
+                               f"{name}_{da.name}_mean",
                                long_name=f"Mean of {long_name} for each {dim}",
                                units=units,
                                dtype=dtype)
 
     std_da = create_dataarray(stats_array[...,1],
                               (dim,),
-                              f"{dim}_{da.name}_std",
+                              f"{name}_{da.name}_std",
                               long_name=f"Standard deviation of {long_name} for each {dim}",
                               units=units,
                               dtype=dtype)
     max_da = create_dataarray(stats_array[...,2],
                               (dim,),
-                              f"{dim}_{da.name}_max",
+                              f"{name}_{da.name}_max",
                               long_name=f"Maximum of {long_name} for each {dim}",
                               units=units,
                               dtype=dtype)
     min_da = create_dataarray(stats_array[...,3],
                               (dim,),
-                              f"{dim}_{da.name}_min",
+                              f"{name}_{da.name}_min",
                               long_name=f"Minimum of {long_name} for each {dim}",
                               units=units,
                               dtype=dtype)
