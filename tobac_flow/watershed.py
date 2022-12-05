@@ -15,7 +15,8 @@ from scipy import ndimage as ndi
 class Flow_Func(object):
     """
     Legacy flow object. Holds forwards and backwards flow vectors for use in
-        legacy semi-Lagrangian operations
+        legacy semi-Lagrangian operations. Note that flow vectors are rounded to
+        the nearest integer value for use with nearest neighbour operations
     """
     def __init__(self, flow_x_for, flow_x_back, flow_y_for, flow_y_back):
         """
@@ -37,10 +38,10 @@ class Flow_Func(object):
 
         TODO : Generalise this for n dimensions (3d support priority)
         """
-        self.flow_x_for = flow_x_for
-        self.flow_y_for = flow_y_for
-        self.flow_x_back = flow_x_back
-        self.flow_y_back = flow_y_back
+        self.flow_x_for = np.round(flow_x_for).astype(int)
+        self.flow_y_for = np.round(flow_y_for).astype(int)
+        self.flow_x_back = np.round(flow_x_back).astype(int)
+        self.flow_y_back = np.round(flow_y_back).astype(int)
         self.shape = flow_x_for.shape
 
     def __getitem__(self, items):
@@ -103,9 +104,25 @@ def _checkstruct(structure, n_dims):
             if s not in [1,3]:
                 raise ValueError("""structure input must be an array with
                                     dimensions of length 1 or 3""")
+
+        # Make sure the structure has the same number of dimensions as the
+        #    input data
         if len(structure.shape) < n_dims:
             nd_diff = n_dims - len(structure.shape)
             structure = structure.reshape((1,)*nd_diff+structure.shape)
+
+        # If any dimension is length 1, set it to 3
+        if np.any([s != 3 for s in structure.shape]):
+            wh = [slice(0,3) if s==3 else slice(1,2) for s in structure.shape]
+            temp = np.zeros([3,3,3])
+            temp[wh] = structure
+            structure=temp
+
+        # If it's a masked array, fill the masked values with 0
+        if isinstance(structure, ma.core.MaskedArray):
+            structure = structure.filled(fill_value=0)
+
+        structure = structure.astype('bool')
 
     else:
         raise ValueError("structure input must be an array-like object")
@@ -177,6 +194,35 @@ def _gen_flow_ravel_inds(flow_func, structure, wrap=False):
                         (temp_inds[1]%shape[2]) != temp_inds[1]])
 
         yield ravelled_index, mask
+
+def _smallest_uint_dtype(max_val):
+    """
+    Find the smallest type of uint that can accomodate all values from 0 to
+        max_val
+    """
+    if max_val < np.iinfo(np.uint16).max:
+        return np.uint16
+
+    elif max_val < np.iinfo(np.uint32).max:
+        return np.uint32
+
+    else:
+        return np.uint64
+
+def _smallest_int_dtype(min_val, max_val):
+    """
+    Find the smallest type of int that can accomodate all values from min_val to
+        max_val
+    """
+    max_size = max(max_val, -min_val)
+    if max_size < np.iinfo(np.int16).max:
+        return np.uint16
+
+    elif max_size < np.iinfo(np.int32).max:
+        return np.uint32
+
+    else:
+        return np.int64
 
 def find_nearest_neighbour_inds(data, flow_func, structure=None, wrap=False, dtype=None):
 
@@ -373,8 +419,8 @@ def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
     overflow_map = {}
 
     structure_offsets = np.stack([arr.reshape((-1,)+(1,)*(n_dims-2))-1 for arr in np.where(new_struct!=0)], 1)
-    whp1 = structure_offsets[0] == 1
-    whm1 = structure_offsets[0] == -1
+    whp1 = structure_offsets[:,0:1] == 1
+    whm1 = structure_offsets[:,0:1] == -1
     n_elements = np.sum(new_struct!=0)
 
     bins = np.cumsum(np.bincount(fill.ravel()))
@@ -393,7 +439,16 @@ def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
 
         inds = args[bins[i]:bins[i+1]]
         inds_stack = np.stack(np.unravel_index(inds, shape),0)
+
         temp_inds = inds_stack + structure_offsets
+
+        temp_inds[:,1:2] = (temp_inds[:,1:2]
+                            + flow_func.flow_y_for.ravel()[inds] * whp1
+                            + flow_func.flow_y_back.ravel()[inds] * whm1)
+        temp_inds[:,2:3] = (temp_inds[:,2:3]
+                            + flow_func.flow_x_for.ravel()[inds] * whp1
+                            + flow_func.flow_x_back.ravel()[inds] * whm1)
+
         wrapped_inds = temp_inds % np.array(shape)[np.newaxis,:,np.newaxis]
         mask = np.any(wrapped_inds != temp_inds, 1)
 
