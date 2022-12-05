@@ -246,16 +246,74 @@ class Flow:
                                  dtype=dtype)
 
     def watershed(self, field, markers, mask=None,
-                  structure=ndi.generate_binary_structure(3,1),
+                  structure=None,
                   max_iter=100, debug_mode=False):
-        from .watershed import Flow_Func, flow_network_watershed
+        from skimage.morphology.extrema import local_minima
+        from skimage.morphology._util import _validate_connectivity, _offsets_to_raveled_neighbors
+        from skimage.util import crop, regular_seeds
+        from skimage.segmentation._watershed import _validate_inputs
+        from tobac_flow._watershed import watershed_raveled
 
-        l_flow = Flow_Func(self.flow_for[...,0], self.flow_back[...,0],
-                           self.flow_for[...,1], self.flow_back[...,1])
+        skimage_markers = markers.copy().astype(np.intp)
+        skimage_markers[mask] = -1
 
-        output = flow_network_watershed(field, markers, l_flow,
-                                        mask=mask, structure=structure,
-                                        max_iter=max_iter, debug_mode=debug_mode)
+        connectivity=1
+        offset=None
+        mask=None
+        compactness=0
+        watershed_line=False
+
+        image, markers, mask = _validate_inputs(field,
+                                                skimage_markers,
+                                                mask,
+                                                connectivity)
+
+        connectivity, offset = _validate_connectivity(image.ndim,
+                                                      connectivity,
+                                                      offset)
+
+        # pad the image, markers, and mask so that we can use the mask to
+        # keep from running off the edges
+        pad_width = [(p, p) for p in offset]
+        image = np.pad(image, pad_width, mode='constant')
+        mask = np.pad(mask, pad_width, mode='constant').ravel()
+        output = np.pad(markers, pad_width, mode='constant')
+        flat_neighborhood = _offsets_to_raveled_neighbors(image.shape,
+                                                          connectivity,
+                                                          center=offset)
+        marker_locations = np.flatnonzero(output)
+        image_strides = np.array(image.strides, dtype=np.intp) // image.itemsize
+
+        # Calculate ravelled offsets for flow field
+        forward_offset = (np.pad(np.round(self.flow_for[...,0]).astype(np.intp),
+                                 pad_width,
+                                 mode='constant').ravel() * image_strides[2]
+                          + np.pad(np.round(self.flow_for[...,1]).astype(np.intp),
+                                 pad_width,
+                                 mode='constant').ravel() * image_strides[1])
+
+        backward_offset = (np.pad(np.round(self.flow_back[...,0]).astype(np.intp),
+                                 pad_width,
+                                 mode='constant').ravel() * image_strides[2]
+                          + np.pad(np.round(self.flow_back[...,1]).astype(np.intp),
+                                 pad_width,
+                                 mode='constant').ravel() * image_strides[1])
+
+        forward_offset_locations = (np.round(flat_neighborhood/image_strides[0])==1).astype(np.intp)
+        backward_offset_locations = (np.round(flat_neighborhood/image_strides[0])==-1).astype(np.intp)
+
+        watershed_raveled(image.ravel(),
+                          marker_locations, flat_neighborhood,
+                          forward_offset, backward_offset,
+                          forward_offset_locations, backward_offset_locations,
+                          mask, image_strides, compactness,
+                          output.ravel(),
+                          watershed_line)
+
+        output = crop(output, pad_width, copy=True)
+
+        output[output==-1] = 0
+
         return output
 
     def label(self, data, structure=ndi.generate_binary_structure(3,1),
