@@ -183,7 +183,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     markers = ndi.binary_erosion(field>=upper_threshold, structure=s_struct)
     mask = ndi.binary_erosion(field<=lower_threshold, structure=s_struct, iterations=erode_distance, border_value=1)
 
-    edges = flow.sobel(field, direction='uphill', method='nearest')
+    edges = flow.sobel(field, direction='uphill', method='linear')
 
     watershed = flow.watershed(edges, markers, mask=mask, structure=structure)
 
@@ -211,12 +211,15 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     mask = ndi.binary_erosion(field<=lower_threshold, structure=s_struct, iterations=erode_distance, border_value=1)
 
-    edges = flow.sobel(field, direction='uphill', method='nearest')
+    edges = flow.sobel(field, direction='uphill', method='linear')
 
     thin_anvil_labels = flow.watershed(edges, markers, mask=mask,
                                        structure=structure, debug_mode=False)
 
     thin_anvil_labels *= ndi.binary_opening(thin_anvil_labels, structure=s_struct).astype(int)
+
+    # Mask thick anvil regions
+    thin_anvil_labels *= (thick_anvil_labels==0).astype(int)
 
     print('Detected thin anvils: area =', np.sum(thin_anvil_labels!=0), flush=True)
 
