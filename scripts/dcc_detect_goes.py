@@ -200,7 +200,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     print(datetime.now(),'Remapping thick anvils', flush=True)
     thick_anvil_labels = remap_labels(thick_anvil_labels,
-                                      np.logical_and(thick_anvil_label_lengths, thick_anvil_label_threshold))
+                                      np.logical_and(thick_anvil_label_lengths>3, thick_anvil_label_threshold))
 
     print('Detected thick anvils: area =', np.sum(thick_anvil_labels!=0), flush=True)
     print('Detected thick anvils: n =', thick_anvil_labels.max(), flush=True)
