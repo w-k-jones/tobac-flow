@@ -25,7 +25,7 @@ def labeled_comprehension(field, labels, func, index=False, dtype=None, default=
     comp = ndi.labeled_comprehension(field, labels, index, func, dtype, default, pass_positions)
 
     return comp
-    
+
 def apply_func_to_labels(labels, field, func):
     if labels.shape != field.shape:
         raise ValueError("Input labels and field do not have the same shape")
@@ -247,13 +247,16 @@ def weighted_statistics_on_labels(labels, da, weights, name=None, dim=None, dtyp
             values = values[~wh_nan]
             weights = weights[~wh_nan]
 
+        if np.nansum(weights) == 0:
+            return np.nan
+
         return np.average(values, weights=weights)
 
     weighted_std = lambda x, w : weighted_average((x - weighted_average(x, w))**2, w)**0.5
     weighted_stats = lambda x, w : [weighted_average(x, w),
                                     weighted_std(x, w),
                                     np.nanmax(x[w>0]),
-                                    np.nanmin(x[w>0])] if np.nansum(w>0) else [np.nan, np.nan, np.nan, np.nan]
+                                    np.nanmin(x[w>0])] if np.nansum(w)>0 else [np.nan, np.nan, np.nan, np.nan]
 
     stats_array = apply_weighted_func_to_labels(labels.data,
                                                 da.data,
