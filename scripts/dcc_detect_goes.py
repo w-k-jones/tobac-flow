@@ -191,8 +191,8 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     print(datetime.now(), 'Labelling thick anvil region', flush=True)
     thick_anvil_labels = flow.label(ndi.binary_opening(watershed, structure=s_struct),
-                                    overlap=0.5,
-                                    subsegment_shrink=0.1)
+                                    overlap=overlap,
+                                    subsegment_shrink=subsegment_shrink)
 
     print(datetime.now(),'Filtering thick anvils', flush=True)
     thick_anvil_label_lengths = find_object_lengths(thick_anvil_labels)

@@ -440,16 +440,16 @@ def flow_label(flow,
     back_labels, forward_labels = flow.convolve(flat_labels, method='nearest', dtype=dtype,
                                                 structure=structure*np.array([1,0,1])[:,np.newaxis, np.newaxis])
 
-    processed_labels = []
-    label_map = {}
-
     bins = np.cumsum(np.bincount(flat_labels.ravel()))
     args = np.argsort(flat_labels.ravel())
 
+    processed_labels = np.zeros(bins.size, dtype=bool)
+    label_map = {}
+
     for label in range(1, bins.size):
-        if label not in processed_labels:
+        if not processed_labels[label]:
             label_map[label] = [label]
-            processed_labels.append(label)
+            processed_labels[label] = True
 
             i = 0
             while i < len(label_map[label]):
@@ -479,22 +479,22 @@ def find_neighbour_labels(label, label_stack, bins, args, processed_labels,
         forward_lap = forward_labels.ravel()[args[bins[label-1]:bins[label]]]
         forward_bins = np.bincount(np.maximum(forward_lap,0))
         for new_label in np.unique(forward_lap):
-            if (new_label>0 and
-                new_label not in processed_labels and
-                forward_bins[new_label] >= overlap*np.minimum(bins[label]-bins[label-1], bins[new_label]-bins[new_label-1])):
+            if (new_label>0
+                and not processed_labels[new_label]
+                and forward_bins[new_label] >= overlap*np.minimum(bins[label]-bins[label-1], bins[new_label]-bins[new_label-1])):
 
                 label_stack.append(new_label)
-                processed_labels.append(new_label)
+                processed_labels[new_label] = True
 
         backward_lap = back_labels.ravel()[args[bins[label-1]:bins[label]]]
         backward_bins = np.bincount(np.maximum(backward_lap,0))
         for new_label in np.unique(backward_lap):
-            if (new_label>0 and
-                new_label not in processed_labels and
-                backward_bins[new_label] >= overlap*np.minimum(bins[label]-bins[label-1], bins[new_label]-bins[new_label-1])):
+            if (new_label>0
+                and not processed_labels[new_label]
+                and backward_bins[new_label] >= overlap*np.minimum(bins[label]-bins[label-1], bins[new_label]-bins[new_label-1])):
 
                 label_stack.append(new_label)
-                processed_labels.append(new_label)
+                processed_labels[new_label] = True
 
 def to_8bit(array, vmin=None, vmax=None):
     """
