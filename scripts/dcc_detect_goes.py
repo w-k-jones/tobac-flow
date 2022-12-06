@@ -124,14 +124,12 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                              overlap=overlap,
                              subsegment_shrink=subsegment_shrink)
 
-    print(datetime.now(),'Filtering cores', flush=True)
     core_label_lengths = find_object_lengths(core_labels)
 
     core_label_wvd_mask = mask_labels(core_labels, wvd_markers)
 
     combined_mask = np.logical_and(core_label_lengths>3, core_label_wvd_mask)
 
-    print(datetime.now(),'Remapping cores', flush=True)
     core_labels = remap_labels(core_labels, combined_mask)
     # Split into step labels
     print(datetime.now(),'Filtering cores by BT cooling rate', flush=True)
@@ -166,7 +164,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                               pass_positions=True)
 
     wh_valid_core = core_bt_diff_mean>=0.5
-    print(datetime.now(),'Remapping cores by BT cooling rate', flush=True)
+
     core_labels = remap_labels(core_labels, wh_valid_core)
 
     print('Detected markers: n =', core_labels.max())
@@ -194,11 +192,9 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                     overlap=overlap,
                                     subsegment_shrink=subsegment_shrink)
 
-    print(datetime.now(),'Filtering thick anvils', flush=True)
     thick_anvil_label_lengths = find_object_lengths(thick_anvil_labels)
     thick_anvil_label_threshold = mask_labels(thick_anvil_labels, markers)
 
-    print(datetime.now(),'Remapping thick anvils', flush=True)
     thick_anvil_labels = remap_labels(thick_anvil_labels,
                                       np.logical_and(thick_anvil_label_lengths>3, thick_anvil_label_threshold))
 
@@ -207,7 +203,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     print(datetime.now(), 'Detecting thin anvil region', flush=True)
     upper_threshold = 0
-    lower_threshold = -10
+    lower_threshold = -7.5
 
     field = (wvd+swd).data
     field = np.maximum(np.minimum(field, upper_threshold), lower_threshold)
@@ -928,6 +924,45 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                                                                   dim='thin_anvil_step',
                                                                                   dtype=np.float32)]
 
+    core_nan_flag = np.zeros_like(dataset.core, bool)
+    thick_anvil_nan_flag = np.zeros_like(dataset.anvil, bool)
+    thin_anvil_nan_flag = np.zeros_like(dataset.anvil, bool)
+
+    if np.any(np.isnan(bt.data)):
+        wh_nan = ndi.binary_dilation(np.isnan(bt.data), structure=np.ones([3,3,3]))
+        core_nan_labels = np.unique(dataset.core_label.data[wh_nan])
+
+        if core_nan_labels[0] == 0:
+            core_nan_flag[core_nan_labels[1:]-1] = True
+        else:
+            core_nan_flag[core_nan_labels-1] = True
+
+        thick_anvil_nan_labels = np.unique(dataset.thick_anvil_label.data[wh_nan])
+
+        if thick_anvil_nan_labels[0] == 0:
+            thick_anvil_nan_flag[thick_anvil_nan_labels[1:]-1] = True
+        else:
+            thick_anvil_nan_flag[thick_anvil_nan_labels-1] = True
+
+        thin_anvil_nan_labels = np.unique(dataset.thin_anvil_label.data[wh_nan])
+
+        if thin_anvil_nan_labels[0] == 0:
+            thin_anvil_nan_flag[thin_anvil_nan_labels[1:]-1] = True
+        else:
+            thin_anvil_nan_flag[thin_anvil_nan_labels-1] = True
+
+    add_dataarray_to_ds(create_dataarray(core_nan_flag, ('core',), "core_nan_flag",
+                                         long_name="flag for cores intersecting missing values",
+                                         dtype=bool), dataset)
+
+    add_dataarray_to_ds(create_dataarray(thick_anvil_nan_flag, ('anvil',), "thick_anvil_nan_flag",
+                                         long_name="flag for thick anvils intersecting missing values",
+                                         dtype=bool), dataset)
+
+    add_dataarray_to_ds(create_dataarray(thin_anvil_nan_flag, ('anvil',), "thin_anvil_nan_flag",
+                                         long_name="flag for thin anvils intersecting missing values",
+                                         dtype=bool), dataset)
+    
     print(datetime.now(), 'Saving to %s' % (save_path), flush=True)
     # Add compression encoding
     comp = dict(zlib=True, complevel=5, shuffle=True)
