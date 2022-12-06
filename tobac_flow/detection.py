@@ -23,15 +23,17 @@ def filtered_tdiff(flow, raw_diff):
     return filtered_diff
 
 # Get a mask which only picks up where the curvature field is positive or negative
-def get_curvature_filter(wvd, sigma=2, threshold=0, direction='negative'):
-    smoothed_wvd = ndi.gaussian_filter(wvd, (0,sigma,sigma))
-    x_diff = np.zeros(wvd.shape)
-    x_diff[:,:,1:-1] = np.diff(smoothed_wvd, n=2, axis=2)
+def get_curvature_filter(field, sigma=2, threshold=0, direction='negative'):
+    smoothed_field = ndi.gaussian_filter(field, (0,sigma,sigma))
+    x_diff = np.zeros(field.shape)
+    x_diff[:,:,1:-1] = np.diff(smoothed_field, n=2, axis=2)
 
-    y_diff = np.zeros(wvd.shape)
-    y_diff[:,1:-1] = np.diff(smoothed_wvd, n=2, axis=1)
+    y_diff = np.zeros(field.shape)
+    y_diff[:,1:-1] = np.diff(smoothed_field, n=2, axis=1)
 
-    s_struct = ndi.generate_binary_structure(2,1)[np.newaxis,...]
+    s_struct = ndi.generate_binary_structure(3,1)
+    s_struct[0] = 0
+    s_struct[2] = 0
 
     if direction=='negative':
         curvature_filter = ndi.binary_opening(
@@ -90,6 +92,23 @@ def nan_gaussian_filter(a, *args, propagate_nan=True, **kwargs):
         result[wh_nan] = np.nan
 
     return result
+
+def get_growth_rate(flow, field):
+    growth_rate = flow.diff(field) / get_time_diff_from_coord(field.t)[:,np.newaxis,np.newaxis]
+
+    s_struct = ndi.generate_binary_structure(3,1)
+    s_struct[0] = 0
+    s_struct[2] = 0
+
+    t_struct = np.zeros([3,3,3])
+    t_struct[:,1,1] = 1
+
+    growth_rate = flow.convolve(growth_rate, structure=ndi.generate_binary_structure(3,1),
+                                func=lambda x:np.nanmean(x,0))
+    growth_rate = flow.convolve(growth_rate, structure=ndi.generate_binary_structure(3,1),
+                                func=lambda x:np.nanmax(x,0))
+
+    return growth_rate
 
 def detect_growth_markers_multichannel(flow, wvd, bt, t_sigma=1, overlap=0.5,
                                        subsegment_shrink=0, min_length=4,

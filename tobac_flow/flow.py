@@ -274,7 +274,12 @@ class Flow:
 
         # pad the image, markers, and mask so that we can use the mask to
         # keep from running off the edges
-        pad_width = [(p, p) for p in offset]
+        # pad_width = [(p, p) for p in offset]
+        # Modify padding by maximum of flow vectors
+        pad_offset = offset.copy()
+        pad_offset[1] += np.max(np.round(np.abs(self.flow_for[...,1])).astype(np.intp))
+        pad_offset[2] += np.max(np.round(np.abs(self.flow_for[...,0])).astype(np.intp))
+        pad_width = [(p, p) for p in pad_offset]
         image = np.pad(image, pad_width, mode='constant')
         mask = np.pad(mask, pad_width, mode='constant').ravel()
         output = np.pad(markers, pad_width, mode='constant')
