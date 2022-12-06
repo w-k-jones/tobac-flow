@@ -207,7 +207,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     field = (wvd+swd).data
     field = np.maximum(np.minimum(field, upper_threshold), lower_threshold)
-    markers = thick_anvil_labels
+    markers = thick_anvil_labels * (field >= upper_threshold).astype(int)
 
     mask = ndi.binary_erosion(field<=lower_threshold, structure=s_struct, iterations=erode_distance, border_value=1)
 
@@ -962,7 +962,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     add_dataarray_to_ds(create_dataarray(thin_anvil_nan_flag, ('anvil',), "thin_anvil_nan_flag",
                                          long_name="flag for thin anvils intersecting missing values",
                                          dtype=bool), dataset)
-    
+
     print(datetime.now(), 'Saving to %s' % (save_path), flush=True)
     # Add compression encoding
     comp = dict(zlib=True, complevel=5, shuffle=True)
