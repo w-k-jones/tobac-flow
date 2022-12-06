@@ -7,6 +7,12 @@ def find_object_lengths(labels):
 
     return object_lengths
 
+def mask_labels(labels, wh):
+    masked_labels = np.unique(labels[wh])
+    output = np.zeros(labels.max()+1, dtype=bool)
+    output[masked_labels] = True
+    return output[1:]
+
 def remap_labels(labels, locations):
     remapper = np.zeros(np.nanmax(labels)+1, labels.dtype)
     remapper[1:][locations] = np.arange(1, np.sum(locations)+1)

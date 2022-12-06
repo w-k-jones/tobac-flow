@@ -19,7 +19,7 @@ from tobac_flow.dataloader import goes_dataloader
 from tobac_flow.dataset import get_time_diff_from_coord, add_dataarray_to_ds, create_dataarray
 from tobac_flow.analysis import (slice_labels, get_label_stats, apply_weighted_func_to_labels,
                                  weighted_statistics_on_labels, find_object_lengths, remap_labels,
-                                 labeled_comprehension)
+                                 labeled_comprehension, mask_labels)
 from tobac_flow.detection import get_curvature_filter, get_growth_rate
 
 import argparse
@@ -119,12 +119,22 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     overlap = 0.5
     subsegment_shrink = 0.
 
+    print(datetime.now(),'Labeling cores', flush=True)
     core_labels = flow.label(combined_markers,
                              overlap=overlap,
                              subsegment_shrink=subsegment_shrink)
+
+    print(datetime.now(),'Filtering cores', flush=True)
     core_label_lengths = find_object_lengths(core_labels)
-    core_labels = remap_labels(core_labels, core_label_lengths>3)
+
+    core_label_wvd_mask = mask_labels(core_labels, wvd_markers)
+
+    combined_mask = np.logical_and(core_label_lengths>3, core_label_wvd_mask)
+
+    print(datetime.now(),'Remapping cores', flush=True)
+    core_labels = remap_labels(core_labels, combined_mask)
     # Split into step labels
+    print(datetime.now(),'Filtering cores by BT cooling rate', flush=True)
     core_step_labels = slice_labels(core_labels)
 
     mode = lambda x : stats.mode(x, keepdims=False)[0]
@@ -156,6 +166,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                               pass_positions=True)
 
     wh_valid_core = core_bt_diff_mean>=0.5
+    print(datetime.now(),'Remapping cores by BT cooling rate', flush=True)
     core_labels = remap_labels(core_labels, wh_valid_core)
 
     print('Detected markers: n =', core_labels.max())
@@ -167,11 +178,11 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     field = (wvd-swd).data
     field = np.maximum(np.minimum(field, upper_threshold), lower_threshold)
-    markers = field>=upper_threshold
 
     structure = ndi.generate_binary_structure(3,1)
     s_struct = structure * np.array([0,1,0])[:,np.newaxis, np.newaxis].astype(bool)
 
+    markers = ndi.binary_erosion(field>=upper_threshold, structure=s_struct)
     mask = ndi.binary_erosion(field<=lower_threshold, structure=s_struct, iterations=erode_distance, border_value=1)
 
     edges = flow.sobel(field, direction='uphill', method='nearest')
@@ -182,13 +193,14 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     thick_anvil_labels = flow.label(ndi.binary_opening(watershed, structure=s_struct),
                                     overlap=0.5,
                                     subsegment_shrink=0.1)
+
+    print(datetime.now(),'Filtering thick anvils', flush=True)
     thick_anvil_label_lengths = find_object_lengths(thick_anvil_labels)
+    thick_anvil_label_threshold = mask_labels(thick_anvil_labels, markers)
 
-    thick_anvil_labels = remap_labels(thick_anvil_labels, thick_anvil_label_lengths>3)
-
-    thick_anvil_label_threshold = labeled_comprehension(wvd, thick_anvil_labels, np.nanmax)>upper_threshold
-
-    thick_anvil_labels = remap_labels(thick_anvil_labels, thick_anvil_label_threshold)
+    print(datetime.now(),'Remapping thick anvils', flush=True)
+    thick_anvil_labels = remap_labels(thick_anvil_labels,
+                                      np.logical_and(thick_anvil_label_lengths, thick_anvil_label_threshold))
 
     print('Detected thick anvils: area =', np.sum(thick_anvil_labels!=0), flush=True)
     print('Detected thick anvils: n =', thick_anvil_labels.max(), flush=True)
