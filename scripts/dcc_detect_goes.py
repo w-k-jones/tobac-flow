@@ -216,7 +216,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     edges = flow.sobel(field, direction='uphill', method='linear')
 
     thin_anvil_labels = flow.watershed(edges, markers, mask=mask,
-                                       structure=structure, debug_mode=False)
+                                       structure=structure)
 
     thin_anvil_labels *= ndi.binary_opening(thin_anvil_labels, structure=s_struct).astype(int)
 
