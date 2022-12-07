@@ -205,9 +205,11 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     upper_threshold = 0
     lower_threshold = -7.5
 
+    markers = thick_anvil_labels
     field = (wvd+swd).data
     field = np.maximum(np.minimum(field, upper_threshold), lower_threshold)
-    markers = thick_anvil_labels * (field >= upper_threshold).astype(int)
+    field[markers!=0] = upper_threshold
+    # markers = thick_anvil_labels * (field >= upper_threshold).astype(int)
 
     mask = ndi.binary_erosion(field<=lower_threshold, structure=s_struct, iterations=erode_distance, border_value=1)
 
