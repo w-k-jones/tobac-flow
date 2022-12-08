@@ -16,7 +16,7 @@ from tobac_flow.detection import get_curvature_filter, get_growth_rate
 from tobac_flow.label import slice_labels
 
 import argparse
-parser = argparse.ArgumentParser(description="""Detect and track DCCs in GOES-16 ABI data""")
+parser = argparse.ArgumentParser(description="""Detect and track DCCs in SEVIRI-ORAC data""")
 parser.add_argument('date', help='Date on which to start process', type=str)
 parser.add_argument('hours', help='Number of hours to process', type=float)
 parser.add_argument('-x0', help='Initial subset x location', default=0, type=int)
@@ -56,10 +56,6 @@ print("Saving output to:", save_path)
 seviri_data_path = args.fd
 
 def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
-
-    print(datetime.now(),'Loading ABI data', flush=True)
-    print('Loading goes data from:',goes_data_path, flush=True)
-
     print(datetime.now(),'Loading SEVIRI data', flush=True)
     print('Loading SEVIRI data from:',seviri_data_path , flush=True)
     bt, wvd, swd, dataset = seviri_dataloader(start_date, end_date, n_pad_files=t_offset+1,
