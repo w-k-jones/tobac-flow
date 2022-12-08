@@ -17,10 +17,11 @@ from tobac_flow import io, abi
 from tobac_flow.flow import Flow
 from tobac_flow.dataloader import goes_dataloader
 from tobac_flow.dataset import get_time_diff_from_coord, add_dataarray_to_ds, create_dataarray
-from tobac_flow.analysis import (slice_labels, get_label_stats, apply_weighted_func_to_labels,
+from tobac_flow.analysis import (get_label_stats, apply_weighted_func_to_labels,
                                  weighted_statistics_on_labels, find_object_lengths, remap_labels,
                                  labeled_comprehension, mask_labels)
 from tobac_flow.detection import get_curvature_filter, get_growth_rate
+from tobac_flow.label import slice_labels
 
 import argparse
 parser = argparse.ArgumentParser(description="""Detect and track DCCs in GOES-16 ABI data""")

@@ -3,6 +3,19 @@ from scipy import ndimage as ndi
 from .dataset import add_dataarray_to_ds,  create_dataarray, n_unique_along_axis
 
 def find_object_lengths(labels):
+    """
+    Find the lenght of each label in the leading dimension (usually time)
+
+    Parameters
+    ----------
+    labels : numpy.ndarray
+        Array of labelled regions
+
+    Returns
+    -------
+    object_lengths : numpy.ndarray
+        The length of each label in the leading dimension
+    """
     object_lengths = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)])
 
     return object_lengths
@@ -48,48 +61,6 @@ def apply_weighted_func_to_labels(labels, field, weights, func):
     return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]],
                           weights.ravel()[args[bins[i]:bins[i+1]]])
                      if bins[i+1]>bins[i] else None for i in range(bins.size-1)])
-
-def flat_label(mask, structure=ndi.generate_binary_structure(3,1),
-               dtype=np.int32):
-    label_struct = structure.copy()
-    label_struct[0] = 0
-    label_struct[-1] = 0
-
-    return ndi.label(mask, structure=label_struct, output=dtype)[0]
-
-def get_step_labels_for_label(labels, structure=ndi.generate_binary_structure(3,1),
-                              dtype=np.int32):
-    step_labels = flat_label(labels!=0, structure=structure, dtype=dtype)
-    bins = np.cumsum(np.bincount(labels.ravel()))
-    args = np.argsort(labels.ravel())
-    return [np.unique(step_labels.ravel()[args[bins[i]:bins[i+1]]])
-            if bins[i+1]>bins[i] else None for i in range(bins.size-1)]
-
-def relabel_objects(labels):
-    bins = np.cumsum(np.bincount(labels.ravel()))
-    args = np.argsort(labels.ravel())
-    new_labels = np.zeros_like(labels)
-    counter = 1
-    for i in range(bins.size-1):
-        if bins[i+1]>bins[i]:
-            new_labels.ravel()[args[bins[i]:bins[i+1]]] = counter
-            counter += 1
-    return new_labels
-
-def slice_labels(labels):
-    step_labels = np.zeros_like(labels)
-    max_label = 0
-    for i in range(labels.shape[0]):
-        step_labels[i] = relabel_objects(labels[i])
-        step_labels[i][np.nonzero(step_labels[i])] += max_label
-        max_label = step_labels.max()
-    return step_labels
-
-def slice_label_da(label_da):
-    label_name = label_da.name.split("_label")[0]
-    step_labels = create_dataarray(slice_labels(label_da.data), label_da.dims, f"{label_name}_step_label",
-                                   long_name=f"{label_da.long_name} at each time step", units="", dtype=np.int32)
-    return step_labels
 
 def filter_labels_by_length(labels, min_length):
     wh = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)]) >= min_length
