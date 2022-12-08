@@ -6,6 +6,7 @@ import cv2 as cv
 from scipy import ndimage as ndi
 import warnings
 
+from .convolve import warp_flow_cv, convolve
 from .label import flow_label
 from .watershed import watershed
 
@@ -109,92 +110,54 @@ class Flow:
         self.flow_back[step+1] = np.nanmean([self.flow_back[step+1],
                                              flow_back_warp], 0)
 
-    def convolve(self, data, structure=ndi.generate_binary_structure(3,1), func=None,
-                 method='linear', dtype=np.float32):
-        assert structure.shape == (3,3,3), "Structure input must be a 3x3x3 array"
+    def convolve(self, data, structure=ndi.generate_binary_structure(3,1),
+                 method="linear", fill_value=np.nan, dtype=np.float32,
+                 func=None):
+        """
+        Convolve a sequence of images using optical flow vectors to offset adjacent
+            elements in the leading dimensions
+
+        Parameters
+        ----------
+        data : numpy.ndarray
+            The dataset to be convolved
+        structure : numpy.ndarray, optional
+            The structuring element used to find adjacent pixles for the
+                convolution. Default is a 1 connectivity structure produced by
+                ndi.generate_binary_structure(3,1)
+        method : string
+            The interpolation method to use of the offset pixel locations by the
+                flow vectors. Must be one of 'linear' or 'nearest'
+        dtype : type, optional (default : np.float32)
+            The dtype of the output data
+        fill_value : scalar, optional (default : np.nan)
+            Value used to fill locations that are warped outside of the image
+        func : function, optional (default : np.nan)
+            The function to be applied to the convolved data at each time step. If
+                None, the convolution will return all the convolved pixel locations.
+
+        Returns
+        -------
+        res : numpy.ndarray
+            The convolved data according the the provided structure
+        """
         assert data.shape == self.shape, "Data input must have the same shape as the Flow object"
-        n_structure = np.count_nonzero(structure)
-        wh_layer = np.nonzero(structure)
-        struct_factor = structure[np.nonzero(structure)]
-        if func is None:
-            out_array = np.full((n_structure,)+self.shape, np.nan, dtype=dtype)
-        else:
-            out_array = np.full(self.shape, np.nan, dtype=dtype)
-        img_step = -1
 
-        for step in range(data.shape[0]):
-    #       Construct temporary array for the data from this time step
-            temp = np.full((n_structure,)+data.shape[1:], np.nan)
+        output = convolve(data, self.flow_for, self.flow_back,
+                          structure=structure, method=method,
+                          dtype=dtype, fill_value=fill_value,
+                          func=func)
 
-    #       Now loop through elements of structure
-
-
-    #           For backward steps:
-            n_back = np.count_nonzero(structure[0])
-            if n_back > 0 and step > 0:
-                # if img_step != step-1:
-                #     if hasattr(data, 'compute'):
-                #         img = data[step-1].data
-                #     else:
-                #         img = data[step-1]
-                #     img_step = step-1
-                temp[:n_back] = self._warp_flow_step(data[step-1], step,
-                                                     method=method,
-                                                     direction='backward',
-                                                     stencil=structure[0]) \
-                                * struct_factor[:n_back,np.newaxis,np.newaxis]
-    #           For forward steps:
-            n_forward = np.count_nonzero(structure[2])
-            if n_forward > 0 and step < data.shape[0]-1:
-                # if img_step != step+1:
-                #     if hasattr(data, 'compute'):
-                #         img = data[step+1].data
-                #     else:
-                #         img = data[step+1]
-                #     img_step = step+1
-                temp[-n_forward:] = self._warp_flow_step(data[step+1], step,
-                                                         method=method,
-                                                         direction='forward',
-                                                         stencil=structure[2]) \
-                                    * struct_factor[-n_forward:,np.newaxis,np.newaxis]
-    #           For same time step:
-            for i in range(n_back, n_structure-n_forward):
-                # if img_step != step:
-                #     if hasattr(data, 'compute'):
-                #         img = data[step].data
-                #     else:
-                #         img = data[step]
-                #     img_step = step
-                if wh_layer[1][i]==1 and wh_layer[2][i]==1:
-                    temp[i] = data[step] * struct_factor[i]
-                else:
-                    temp[i,
-                         (1 if wh_layer[1][i]==0 else 0):(-1 if wh_layer[1][i]==2 else None),
-                         (1 if wh_layer[2][i]==0 else 0):(-1 if wh_layer[2][i]==2 else None)] \
-                        = data[step][(1 if wh_layer[1][i]==2 else 0):(-1 if wh_layer[1][i]==0 else None),
-                              (1 if wh_layer[2][i]==2 else 0):(-1 if wh_layer[2][i]==0 else None)] \
-                          * struct_factor[i]
-
-            if func is None:
-                out_array[:,step] = temp
-            else:
-                out_array[step] = func(temp)
-        # Propagate nan locations forward
-        if not func is None:
-            if isinstance(data, xr.DataArray):
-                wh_nan = ~np.isfinite(data.data)
-            else:
-                wh_nan = ~np.isfinite(data)
-            if np.any(wh_nan):
-                out_array[wh_nan] = np.nan
-        return out_array
+        return output
 
     def diff(self, data, dtype=np.float32):
         diff_struct = np.zeros([3,3,3])
         diff_struct[:,1,1] = 1
+        diff_func = lambda x:np.nansum([x[2]-x[1], x[1]-x[0]], axis=0) \
+                                      * 1/np.maximum(np.sum([np.isfinite(x[2]),
+                                                             np.isfinite(x[0])], 0), 1)
         diff = self.convolve(data, structure=diff_struct,
-                             func=lambda x:np.nansum([x[2]-x[1], x[1]-x[0]], axis=0) \
-                                           * 1/np.maximum(np.sum([np.isfinite(x[2]), np.isfinite(x[0])], 0), 1),
+                             func=diff_func,
                              dtype=dtype)
         return diff
 
