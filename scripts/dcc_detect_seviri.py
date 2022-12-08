@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import xarray as xr
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 from scipy import ndimage as ndi
