@@ -8,6 +8,7 @@ import warnings
 
 from .convolve import warp_flow_cv, convolve
 from .label import flow_label
+from .sobel import sobel
 from .watershed import watershed
 
 class Flow:
@@ -161,55 +162,36 @@ class Flow:
                              dtype=dtype)
         return diff
 
-    def _sobel_matrix(self, ndims):
-        sobel_matrix = np.array([-1,0,1])
-        for i in range(ndims-1):
-            sobel_matrix = np.multiply.outer(np.array([1,2,1]), sobel_matrix)
-        return sobel_matrix
+    def sobel(self, data, method='linear', dtype=None,
+              fill_value=np.nan, direction=None,):
+        """
+        Sobel edge detection algorithm in a semi-Lagrangian space
 
+        Parameters
+        ----------
+        data : numpy.ndarray
+            Data in which to detect edges
+        method : string
+            The interpolation method to use of the offset pixel locations by the
+                flow vectors. Must be one of 'linear' or 'nearest'
+        dtype : type, optional (default : np.float32)
+            The dtype of the output data
+        fill_value : scalar, optional (default : np.nan)
+            Value used to fill locations that are invalid
+        direction : string, optional (default : None)
+            If 'downhill' or 'uphill' only calculate edges where the surrounding
+                pixels are less than or greater than the centre pixel respecitively
 
-    def _sobel_func_uphill(self, x):
-        sobel_matrix = self._sobel_matrix(3)
-        x = np.fmax(x-x[13],0)
-        out_array = np.nansum(x * sobel_matrix.ravel()[:,np.newaxis,np.newaxis], 0)**2
-        out_array += np.nansum(x * sobel_matrix.transpose([1,2,0]).ravel()[:,np.newaxis,np.newaxis], 0)**2
-        out_array += np.nansum(x * sobel_matrix.transpose([2,0,1]).ravel()[:,np.newaxis,np.newaxis], 0)**2
+        Returns
+        -------
+        res : numpy.ndarray
+            The magnitude of the edges detected using the sobel method
+        """
+        res = sobel(data, self.flow_for, self.flow_back,
+                    method=method, dtype=dtype,
+                    fill_value=fill_value, direction=direction)
 
-        return out_array ** 0.5
-
-    def _sobel_func_downhill(self, x):
-        sobel_matrix = self._sobel_matrix(3)
-        x = np.fmin(x-x[13],0)
-        out_array = np.nansum(x * sobel_matrix.ravel()[:,np.newaxis,np.newaxis], 0)**2
-        out_array += np.nansum(x * sobel_matrix.transpose([1,2,0]).ravel()[:,np.newaxis,np.newaxis], 0)**2
-        out_array += np.nansum(x * sobel_matrix.transpose([2,0,1]).ravel()[:,np.newaxis,np.newaxis], 0)**2
-
-        return out_array ** 0.5
-
-    def _sobel_func(self, x):
-        sobel_matrix = self._sobel_matrix(3)
-        x -= x[13]
-        out_array = np.nansum(x * sobel_matrix.ravel()[:,np.newaxis,np.newaxis], 0)**2
-        out_array += np.nansum(x * sobel_matrix.transpose([1,2,0]).ravel()[:,np.newaxis,np.newaxis], 0)**2
-        out_array += np.nansum(x * sobel_matrix.transpose([2,0,1]).ravel()[:,np.newaxis,np.newaxis], 0)**2
-
-        return out_array ** 0.5
-
-    def sobel(self, data, method='linear', direction=None, dtype=None):
-        if dtype == None:
-            dtype = data.dtype
-        if direction == 'uphill':
-            return self.convolve(data, structure=np.ones((3,3,3)),
-                                 func=self._sobel_func_uphill, method=method,
-                                 dtype=dtype)
-        if direction == 'downhill':
-            return self.convolve(data, structure=np.ones((3,3,3)),
-                                 func=self._sobel_func_downhill, method=method,
-                                 dtype=dtype)
-        else:
-            return self.convolve(data, structure=np.ones((3,3,3)),
-                                 func=self._sobel_func, method=method,
-                                 dtype=dtype)
+        return res
 
     def watershed(self, field, markers, mask=None,
                   structure=ndi.generate_binary_structure(3,1)):
@@ -319,21 +301,3 @@ interp_modes = {'nearest':cv.INTER_NEAREST,
                 'linear':cv.INTER_LINEAR,
                 'cubic':cv.INTER_CUBIC,
                 'lanczos':cv.INTER_LANCZOS4}
-
-def cv_remap(img, locs, border_mode='constant', interp_mode='linear',
-             cval=np.nan, dtype=None):
-    """
-    Wrapper function for cv.remap
-    """
-    assert border_mode in border_modes, \
-        f"{border_mode} not a valid input for border_mode keyword, input must be one of {list(border_modes.keys())}"
-    assert interp_mode in interp_modes, \
-        f"{interp_mode} not a valid input for border_mode keyword, input must be one of {list(interp_modes.keys())}"
-
-    if not dtype:
-        dtype = img.dtype
-    out_img = np.full(locs.shape[:-1], cval, dtype=dtype)
-
-    cv.remap(img, locs.astype(np.float32), None, interp_modes[interp_mode],
-             out_img, border_modes[border_mode], cval)
-    return out_img
