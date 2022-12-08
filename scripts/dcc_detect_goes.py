@@ -90,14 +90,19 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     wvd_growth = get_growth_rate(flow, wvd)
     bt_growth = get_growth_rate(flow, bt)
 
-    wvd_curvature_filter = get_curvature_filter(wvd)
+    wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
     bt_curvature_filter = get_curvature_filter(bt, direction="positive")
 
     wvd_threshold = 0.25
     bt_threshold = 0.5
 
-    wvd_markers = (wvd_growth * get_curvature_filter(wvd)) > wvd_threshold
-    bt_markers = (bt_growth * get_curvature_filter(bt)) < -bt_threshold
+    wvd_markers = np.logical_and(wvd_growth > wvd_threshold,
+                                 wvd_curvature_filter)
+    bt_markers =  np.logical_and(bt_growth  < -bt_threshold,
+                                 bt_curvature_filter)
+
+    del wvd_growth
+    del bt_growth
 
     s_struct = ndi.generate_binary_structure(3,1)
     s_struct *= np.array([0,1,0])[:,np.newaxis, np.newaxis].astype(bool)
@@ -190,12 +195,13 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     thick_anvil_labels = remap_labels(thick_anvil_labels,
                                       np.logical_and(thick_anvil_label_lengths>t_offset, thick_anvil_label_threshold))
 
+    del watershed
     print('Detected thick anvils: area =', np.sum(thick_anvil_labels!=0), flush=True)
     print('Detected thick anvils: n =', thick_anvil_labels.max(), flush=True)
 
     print(datetime.now(), 'Detecting thin anvil region', flush=True)
     upper_threshold = 0
-    lower_threshold = -10
+    lower_threshold = -7.5
 
     markers = thick_anvil_labels
     field = (wvd+swd).data
@@ -870,6 +876,8 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     add_dataarray_to_ds(create_dataarray(thin_anvil_step_lon, ('thin_anvil_step',), "thin_anvil_step_lon",
                                          long_name="longitude of thin anvil at time step",
                                          dtype=np.float32), dataset)
+
+    del x_stack, y_stack, lat_stack, lon_stack
 
     get_label_stats(dataset.core_label, dataset)
     get_label_stats(dataset.thick_anvil_label, dataset)

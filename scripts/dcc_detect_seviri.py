@@ -118,14 +118,16 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
     wvd_growth = get_growth_rate(flow, wvd)
     bt_growth = get_growth_rate(flow, bt)
 
-    wvd_curvature_filter = get_curvature_filter(wvd)
+    wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
     bt_curvature_filter = get_curvature_filter(bt, direction="positive")
 
     wvd_threshold = 0.25
     bt_threshold = 0.5
 
-    wvd_markers = (wvd_growth * get_curvature_filter(wvd)) > wvd_threshold
-    bt_markers = (bt_growth * get_curvature_filter(bt)) < -bt_threshold
+    wvd_markers = np.logical_and(wvd_growth > wvd_threshold,
+                                 wvd_curvature_filter)
+    bt_markers =  np.logical_and(bt_growth  < -bt_threshold,
+                                 bt_curvature_filter)
 
     del wvd_growth
     del bt_growth
@@ -228,7 +230,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
 
     print(datetime.now(), 'Detecting thin anvil region', flush=True)
     upper_threshold = 0
-    lower_threshold = -10
+    lower_threshold = -7.5
 
     markers = thick_anvil_labels
     field = (wvd+swd).data
