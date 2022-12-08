@@ -127,6 +127,9 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
     wvd_markers = (wvd_growth * get_curvature_filter(wvd)) > wvd_threshold
     bt_markers = (bt_growth * get_curvature_filter(bt)) < -bt_threshold
 
+    del wvd_growth
+    del bt_growth
+
     s_struct = ndi.generate_binary_structure(3,1)
     s_struct *= np.array([0,1,0])[:,np.newaxis, np.newaxis].astype(bool)
 
@@ -212,6 +215,8 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
                                     overlap=overlap,
                                     subsegment_shrink=subsegment_shrink)
 
+    del watershed
+
     thick_anvil_label_lengths = find_object_lengths(thick_anvil_labels)
     thick_anvil_label_threshold = mask_labels(thick_anvil_labels, markers)
 
@@ -239,6 +244,8 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
                                        structure=structure)
 
     thin_anvil_labels *= ndi.binary_opening(thin_anvil_labels, structure=s_struct).astype(int)
+
+    del edges
 
     # Mask thick anvil regions
     # thin_anvil_labels *= (thick_anvil_labels==0).astype(int)
@@ -898,6 +905,8 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
     add_dataarray_to_ds(create_dataarray(thin_anvil_step_lon, ('thin_anvil_step',), "thin_anvil_step_lon",
                                          long_name="longitude of thin anvil at time step",
                                          dtype=np.float32), dataset)
+
+    del x_stack, y_stack, lat_stack, lon_stack
 
     get_label_stats(dataset.core_label, dataset)
     get_label_stats(dataset.thick_anvil_label, dataset)
