@@ -1,12 +1,10 @@
 import numpy as np
-from numpy import ma
-import pandas as pd
 import xarray as xr
-import cv2 as cv
+import cv2
 from scipy import ndimage as ndi
 import warnings
 
-from .convolve import warp_flow_cv, convolve
+from .convolve import warp_flow, convolve
 from .label import flow_label
 from .sobel import sobel
 from .watershed import watershed
@@ -15,101 +13,31 @@ class Flow:
     """
     Class to perform semi-lagrangian operations using optical flow
     """
-    def __init__(self, dataset, smoothing_passes=1, flow_kwargs={}):
-        self.get_flow(dataset, smoothing_passes, flow_kwargs)
-
-    def get_flow(self, data, smoothing_passes, flow_kwargs):
+    def __init__(self, data, model="DIS", vr_steps=0, smoothing_passes=0):
         self.shape = data.shape
-        self.flow_for = np.full(self.shape+(2,), np.nan, dtype=np.float32)
-        self.flow_back = np.full(self.shape+(2,), np.nan, dtype=np.float32)
+        self.get_flow(data, model=model, vr_steps=vr_steps,
+                      smoothing_passes=smoothing_passes)
 
-        for i in range(self.shape[0]-1):
-            print(i, end='\r')
-            a, b = data[i].compute().data, data[i+1].compute().data
-
-            self.flow_for[i] = self.cv_flow(a, b, **flow_kwargs)
-            self.flow_back[i+1] = self.cv_flow(b, a, **flow_kwargs)
-            if smoothing_passes > 0:
-                for j in range(smoothing_passes):
-                    self._smooth_flow_step(i)
-
-        self.flow_back[0] = -self.flow_for[0]
-        self.flow_for[-1] = -self.flow_back[-1]
-
-    def to_8bit(self, array, vmin=None, vmax=None):
+    def get_flow(self, data, model="DIS", vr_steps=0, smoothing_passes=0):
         """
-        Converts an array to an 8-bit range between 0 and 255
+        Calculates forward and backward optical flow vectors for a given set of data
+
+        Parameters
+        ----------
+        data : numpy.ndarray
+            Array of data to calculate optical flow for. Flow vectors are calculated
+                along the leading dimension
+        model : string, optional (default : 'DIS')
+            opencv optical flow model to use
+        vr_steps : int, optional (default : 0)
+            Number of variational refinement operations to perform
+        smoothing_step : int, optional (default : 0)
+            Number of smoothing operation between the forward and backward flow to
+                perform
         """
-        if vmin is None:
-            vmin = np.nanmin(array)
-        if vmax is None:
-            vmax = np.nanmax(array)
-        if vmin==vmax:
-            factor = 0
-        else:
-            factor = 255 / (vmax-vmin)
-        array_out = (array-vmin) * factor
-        return array_out.astype('uint8')
-
-    def cv_flow(self, a, b, pyr_scale=0.5, levels=5, winsize=16, iterations=3,
-                poly_n=5, poly_sigma=1.1, flags=cv.OPTFLOW_FARNEBACK_GAUSSIAN):
-        """
-        Wrapper function for cv.calcOpticalFlowFarneback
-        """
-        flow = cv.calcOpticalFlowFarneback(self.to_8bit(a), self.to_8bit(b), None,
-                                           pyr_scale, levels, winsize, iterations,
-                                           poly_n, poly_sigma, flags)
-        return flow
-
-    def _warp_flow_step(self, img, step, method='linear', direction='forward',
-                        stencil=ndi.generate_binary_structure(3,1)[0]):
-        if img.shape != self.shape[1:]:
-            raise ValueError("Image shape does not match flow shape")
-        if method == 'linear':
-            method = cv.INTER_LINEAR
-        elif method =='nearest':
-            method = cv.INTER_NEAREST
-        else:
-            raise ValueError("method must be either 'linear' or 'nearest'")
-
-        h, w = self.shape[1:]
-        n = np.sum(stencil!=0)
-        offsets = (np.stack(np.where(stencil!=0), -1)[:,np.newaxis,np.newaxis,::-1]-1).astype(np.float32)
-        locations = np.tile(offsets, [1,h,w,1])
-        locations += np.stack(np.meshgrid(np.arange(w), np.arange(h)), -1)
-        if direction=='forward':
-            locations += self.flow_for[step]
-        elif direction=='backward':
-            locations += self.flow_back[step]
-
-        locations = locations.reshape([n*h,w,2])
-
-        if isinstance(img, xr.DataArray):
-            out_image = cv.remap(img.data.astype(np.float32),
-                                 locations.reshape([n*h,w,2]),
-                                 None, method, None, cv.BORDER_CONSTANT,
-                                 np.nan).reshape([n,h,w])
-        else:
-            out_image = cv.remap(img.astype(np.float32),
-                                 locations.reshape([n*h,w,2]),
-                                 None, method, None, cv.BORDER_CONSTANT,
-                                 np.nan).reshape([n,h,w])
-
-        return out_image
-
-    def _smooth_flow_step(self, step):
-        flow_for_warp = np.full_like(self.flow_for[step], np.nan)
-        flow_back_warp = np.full_like(self.flow_back[step+1], np.nan)
-
-        flow_for_warp[...,0] = -self._warp_flow_step(self.flow_back[step+1,...,0], step)
-        flow_for_warp[...,1] = -self._warp_flow_step(self.flow_back[step+1,...,1], step)
-        flow_back_warp[...,0] = -self._warp_flow_step(self.flow_for[step,...,0], step+1, direction='backward')
-        flow_back_warp[...,1] = -self._warp_flow_step(self.flow_for[step,...,1], step+1, direction='backward')
-
-        self.flow_for[step] = np.nanmean([self.flow_for[step],
-                                          flow_for_warp], 0)
-        self.flow_back[step+1] = np.nanmean([self.flow_back[step+1],
-                                             flow_back_warp], 0)
+        self.flow_for, self.flow_back = get_flow(data, model=model,
+                                                 vr_steps=vr_steps,
+                                                 smoothing_passes=smoothing_passes)
 
     def convolve(self, data, structure=ndi.generate_binary_structure(3,1),
                  method="linear", fill_value=np.nan, dtype=np.float32,
@@ -152,6 +80,22 @@ class Flow:
         return output
 
     def diff(self, data, dtype=np.float32):
+        """
+        Calculate the gradient of a dataset along the leading dimension in a
+            semi-Lagrangian framework
+
+        Parameters
+        ----------
+        data : numpy.ndarray
+            The data to find the gradient of
+        dtype : type, optional (default : np.float32)
+            The dtype of the output data
+
+        Returns
+        -------
+        diff : numpy.ndarray
+            The gradient of the data along the leading dimension
+        """
         diff_struct = np.zeros([3,3,3])
         diff_struct[:,1,1] = 1
         diff_func = lambda x:np.nansum([x[2]-x[1], x[1]-x[0]], axis=0) \
@@ -257,47 +201,170 @@ class Flow:
                           overlap=overlap, subsegment_shrink=subsegment_shrink)
 
 
+"""
+Dicts to convert keyword inputs to opencv flags for flow keywords
+"""
+flow_flags = {'default':0, 'gaussian':cv2.OPTFLOW_FARNEBACK_GAUSSIAN}
+
+"""
+Dicts to convert keyword inputs to opencv flags for remap keywords
+"""
+border_modes = {'constant':cv2.BORDER_CONSTANT,
+                'nearest':cv2.BORDER_REPLICATE,
+                'reflect':cv2.BORDER_REFLECT,
+                'mirror':cv2.BORDER_REFLECT_101,
+                'wrap':cv2.BORDER_WRAP,
+                'isolated':cv2.BORDER_ISOLATED,
+                'transparent':cv2.BORDER_TRANSPARENT}
+
+interp_modes = {'nearest':cv2.INTER_NEAREST,
+                'linear':cv2.INTER_LINEAR,
+                'cubic':cv2.INTER_CUBIC,
+                'lanczos':cv2.INTER_LANCZOS4}
+
+# Let's create a new optical_flow derivation function
+vr_model = cv2.VariationalRefinement.create()
+
+def get_of_model(model):
+    """
+    Initiates an opencv optical flow model
+
+    Parameters
+    ----------
+    model : string
+        The model to initatite. Must be one of 'Farneback', 'DeepFlow', 'PCA',
+            'SimpleFlow', 'SparseToDense', 'DIS', 'DenseRLOF', 'DualTVL1'
+
+    Returns
+    -------
+    of_model : cv2.DenseOpticalFlow
+        opencv optical flow model
+    """
+    if model == "Farneback":
+        of_model = cv2.optflow.createOptFlow_Farneback()
+    elif model == "DeepFlow":
+        of_model = cv2.optflow.createOptFlow_DeepFlow()
+    elif model == "PCA":
+        of_model = cv2.optflow.createOptFlow_PCAFlow()
+    elif model == "SimpleFlow":
+        of_model = cv2.optflow.createOptFlow_SimpleFlow()
+    elif model == "SparseToDense":
+        of_model = cv2.optflow.createOptFlow_SparseToDense()
+    elif model == "DIS":
+        of_model = cv2.DISOpticalFlow.create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM)
+        of_model.setUseSpatialPropagation(True)
+    elif model == "DenseRLOF":
+        of_model = cv2.optflow.createOptFlow_DenseRLOF()
+    elif model == "DualTVL1":
+        of_model = cv2.optflow.createOptFlow_DualTVL1()
+    else:
+        raise ValueError("'model' parameter must be one of: 'Farneback', 'DeepFlow', 'PCA', 'SimpleFlow', 'SparseToDense', 'DIS', 'DenseRLOF', 'DualTVL1'")
+
+    return of_model
+
+def get_flow(data, model="DIS", vr_steps=0, smoothing_passes=0):
+    """
+    Calculates forward and backward optical flow vectors for a given set of data
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Array of data to calculate optical flow for. Flow vectors are calculated
+            along the leading dimension
+    model : string, optional (default : 'DIS')
+        opencv optical flow model to use
+    vr_steps : int, optional (default : 0)
+        Number of variational refinement operations to perform
+    smoothing_passes : int, optional (default : 0)
+        Number of smoothing operation between the forward and backward flow to
+            perform
+
+    Returns
+    -------
+    forward_flow : numpy.ndarray
+        Array of optical flow vectors acting forward along the leading dimension
+            of data
+    backward_flow : numpy.ndarray
+        Array of optical flow vectors acting backwards along the leading
+            dimension of data
+    """
+    if isinstance(data, xr.DataArray):
+        data = data.compute().data
+
+    vmax = np.nanmax(data)
+    vmin = np.nanmin(data)
+
+    forward_flow = np.full(data.shape+(2,), np.nan, dtype=np.float32)
+    backward_flow = np.full(data.shape+(2,), np.nan, dtype=np.float32)
+
+    of_model = get_of_model(model)
+
+    for i in range(data.shape[0]-1):
+        prev_frame = to_8bit(data[i], vmin, vmax)
+        next_frame = to_8bit(data[i+1], vmin, vmax)
+
+        forward_flow[i], backward_flow[i+1] = get_flow_frame(prev_frame,
+                                                             next_frame,
+                                                             of_model,
+                                                             vr_steps=vr_steps,
+                                                             smoothing_steps=smoothing_passes)
+
+    forward_flow[-1] = -backward_flow[-1]
+    backward_flow[0] = -forward_flow[0]
+
+    return forward_flow, backward_flow
+
 def to_8bit(array, vmin=None, vmax=None):
     """
-    Converts an array to an 8-bit range between 0 and 255 with dtype uint8
+    Converts an array to an 8-bit range between 0 and 255
     """
     if vmin is None:
         vmin = np.nanmin(array)
     if vmax is None:
         vmax = np.nanmax(array)
-    array_out = (array-vmin) * 255 / (vmax-vmin)
+    if vmin==vmax:
+        factor = 0
+    else:
+        factor = 255 / (vmax-vmin)
+    array_out = (array-vmin) * factor
     return array_out.astype('uint8')
 
-"""
-Dicts to convert keyword inputs to opencv flags for flow keywords
-"""
-flow_flags = {'default':0, 'gaussian':cv.OPTFLOW_FARNEBACK_GAUSSIAN}
+def warp_flow(img, flow):
+    h, w = flow.shape[:2]
+    locs = flow.copy()
+    locs[:,:,0] += np.arange(w)
+    locs[:,:,1] += np.arange(h)[:,np.newaxis]
+    res = cv2.remap(img, locs, None, cv2.INTER_LINEAR)
+    return res
 
-def cv_flow(a, b, pyr_scale=0.5, levels=5, winsize=16, iterations=3,
-            poly_n=5, poly_sigma=1.1, flags='gaussian'):
-    """
-    Wrapper function for cv.calcOpticalFlowFarneback
-    """
-    assert flags in flow_flags, \
-        f"{flags} not a valid input for flags keyword, input must be one of {list(flow_flags.keys())}"
+def get_flow_frame(prev_frame,
+                   next_frame,
+                   of_model,
+                   vr_steps=0,
+                   smoothing_steps=0):
 
-    flow = cv.calcOpticalFlowFarneback(to_8bit(a), to_8bit(b), None,
-                                       pyr_scale, levels, winsize, iterations,
-                                       poly_n, poly_sigma, flow_flags[flags])
-    return flow
+    forward_flow = of_model.calc(prev_frame, next_frame, None)
 
-"""
-Dicts to convert keyword inputs to opencv flags for remap keywords
-"""
-border_modes = {'constant':cv.BORDER_CONSTANT,
-                'nearest':cv.BORDER_REPLICATE,
-                'reflect':cv.BORDER_REFLECT,
-                'mirror':cv.BORDER_REFLECT_101,
-                'wrap':cv.BORDER_WRAP,
-                'isolated':cv.BORDER_ISOLATED,
-                'transparent':cv.BORDER_TRANSPARENT}
+    if vr_steps > 0:
+        forward_flow = vr_model.calc(prev_frame, next_frame, forward_flow)
 
-interp_modes = {'nearest':cv.INTER_NEAREST,
-                'linear':cv.INTER_LINEAR,
-                'cubic':cv.INTER_CUBIC,
-                'lanczos':cv.INTER_LANCZOS4}
+    backward_flow = of_model.calc(next_frame, prev_frame, None)
+
+    if vr_steps > 0:
+        backward_flow = vr_model.calc(next_frame, prev_frame, backward_flow)
+
+    if smoothing_steps > 0:
+        for i in range(smoothing_steps):
+            forward_flow, backward_flow = smooth_flow_step(forward_flow, backward_flow)
+
+    return forward_flow, backward_flow
+
+def smooth_flow_step(forward_flow, backward_flow):
+    forward_flow, backward_flow = (np.nanmean([forward_flow,
+                                               np.stack([-warp_flow(backward_flow[...,0], forward_flow),
+                                                         -warp_flow(backward_flow[...,1], forward_flow)], -1)], 0),
+                                   np.nanmean([backward_flow,
+                                               np.stack([-warp_flow(forward_flow[...,0], backward_flow),
+                                                         -warp_flow(forward_flow[...,1], backward_flow)], -1)], 0))
+
+    return forward_flow, backward_flow

@@ -3,7 +3,7 @@ import scipy.ndimage as ndi
 import cv2
 import xarray as xr
 
-def warp_flow_cv(img, flow, method="linear",
+def warp_flow(img, flow, method="linear",
                  fill_value=np.nan, offsets=np.array([[0,0]])):
     """
     Warp an image according to a set of optical flow vectors. Can be provided
@@ -132,7 +132,7 @@ def convolve_step(prev_step, same_step, next_step, forward_flow, backward_flow,
 
     if n_backward:
         offsets = np.stack(np.where(structure[0]), -1)[...,::-1]-1
-        res[:n_backward] = warp_flow_cv(prev_step, backward_flow,
+        res[:n_backward] = warp_flow(prev_step, backward_flow,
                                         method=method, fill_value=fill_value,
                                         offsets=offsets)
 
@@ -142,7 +142,7 @@ def convolve_step(prev_step, same_step, next_step, forward_flow, backward_flow,
 
     if n_forward:
         offsets = np.stack(np.where(structure[-1]), -1)[...,::-1]-1
-        res[-n_forward:] = warp_flow_cv(next_step, forward_flow,
+        res[-n_forward:] = warp_flow(next_step, forward_flow,
                                         method=method, fill_value=fill_value,
                                         offsets=offsets)
 

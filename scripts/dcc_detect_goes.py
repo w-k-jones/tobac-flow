@@ -1,13 +1,5 @@
 import os
-import sys
-import inspect
-import itertools
-import warnings
-
 import numpy as np
-from numpy import ma
-import pandas as pd
-import xarray as xr
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 from scipy import ndimage as ndi
@@ -48,6 +40,7 @@ x0 = int(args.x0)
 x1 = int(args.x1)
 y0 = int(args.y0)
 y1 = int(args.y1)
+t_offset = 3
 
 save_dir = args.sd
 if not os.path.isdir(save_dir):
@@ -76,7 +69,8 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     print(datetime.now(),'Loading ABI data', flush=True)
     print('Loading goes data from:',goes_data_path, flush=True)
 
-    bt, wvd, swd, dataset = goes_dataloader(start_date, end_date, n_pad_files=4,
+    bt, wvd, swd, dataset = goes_dataloader(start_date, end_date,
+                                            n_pad_files=t_offset+1,
                                             x0=x0, x1=x1, y0=y0, y1=y1,
                                             return_new_ds=True, satellite=16,
                                             product='MCMIP', view='C',
@@ -89,10 +83,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     print(datetime.now(),'Calculating flow field', flush=True)
 
-    flow_kwargs = {'pyr_scale':0.5, 'levels':5, 'winsize':16, 'iterations':3,
-                   'poly_n':5, 'poly_sigma':1.1, 'flags':256}
-
-    flow = Flow(bt, flow_kwargs=flow_kwargs, smoothing_passes=3)
+    flow = Flow(bt, model="DIS", vr_steps=1, smoothing_passes=1)
 
     print(datetime.now(),'Detecting growth markers', flush=True)
 
@@ -129,7 +120,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     core_label_wvd_mask = mask_labels(core_labels, wvd_markers)
 
-    combined_mask = np.logical_and(core_label_lengths>3, core_label_wvd_mask)
+    combined_mask = np.logical_and(core_label_lengths>t_offset, core_label_wvd_mask)
 
     core_labels = remap_labels(core_labels, combined_mask)
     # Split into step labels
@@ -153,8 +144,8 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     #                      / ((step_t[i+3] - step_t[i]).astype("timedelta64[s]").astype("int")/60) )
     #                     for i in range(len(step_bt)-3)]
 
-        step_bt_diff = ((step_bt[:-3] - step_bt[3:])
-                        / ((step_t[3:] - step_t[:-3]).astype("timedelta64[s]").astype("int")/60) )
+        step_bt_diff = ((step_bt[:-t_offset] - step_bt[t_offset:])
+                        / ((step_t[t_offset:] - step_t[:-t_offset]).astype("timedelta64[s]").astype("int")/60) )
 
         return np.nanmax(step_bt_diff)
 
@@ -197,14 +188,14 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     thick_anvil_label_threshold = mask_labels(thick_anvil_labels, markers)
 
     thick_anvil_labels = remap_labels(thick_anvil_labels,
-                                      np.logical_and(thick_anvil_label_lengths>3, thick_anvil_label_threshold))
+                                      np.logical_and(thick_anvil_label_lengths>t_offset, thick_anvil_label_threshold))
 
     print('Detected thick anvils: area =', np.sum(thick_anvil_labels!=0), flush=True)
     print('Detected thick anvils: n =', thick_anvil_labels.max(), flush=True)
 
     print(datetime.now(), 'Detecting thin anvil region', flush=True)
     upper_threshold = 0
-    lower_threshold = -7.5
+    lower_threshold = -10
 
     markers = thick_anvil_labels
     field = (wvd+swd).data

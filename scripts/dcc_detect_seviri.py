@@ -76,7 +76,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
     print("Dataloader dtype:", bt.dtype, wvd.dtype, swd.dtype)
 
     print(datetime.now(),'Calculating flow field', flush=True)
-    flow_kwargs = {'pyr_scale':0.5, 'levels':5, 'winsize':16, 'iterations':3,
+    flow_kwargs = {'pyr_scale':0.5, 'levels':5, 'winsize':32, 'iterations':3,
                    'poly_n':5, 'poly_sigma':1.1, 'flags':256}
 
     flow = Flow(bt, flow_kwargs=flow_kwargs, smoothing_passes=3)
