@@ -2,31 +2,74 @@ import numpy as np
 from scipy import ndimage as ndi
 from .dataset import add_dataarray_to_ds,  create_dataarray, n_unique_along_axis
 
-def find_object_lengths(labels):
+def find_object_lengths(labels, axis=0):
     """
-    Find the lenght of each label in the leading dimension (usually time)
+    Find the length of each label in the leading dimension (usually time)
 
     Parameters
     ----------
     labels : numpy.ndarray
         Array of labelled regions
+    axis : int, optional (default : 0)
+        The axis to find the object length along
 
     Returns
     -------
     object_lengths : numpy.ndarray
         The length of each label in the leading dimension
     """
-    object_lengths = np.array([o[0].stop-o[0].start for o in ndi.find_objects(labels)])
+    object_lengths = np.array([o[axis].stop-o[axis].start
+                               for o in ndi.find_objects(labels)])
 
     return object_lengths
 
-def mask_labels(labels, wh):
-    masked_labels = np.unique(labels[wh])
+def mask_labels(labels, mask):
+    """
+    Apply a mask to an array of labelled regions to find which labels overlap
+        the mask array
+
+    Parameters
+    ----------
+    labels : numpy.ndarray
+        The array of labeled regions to apply the mask to
+    mask : numpy.ndarray
+        The mask to apply to the labeled array. Must have the same shape as
+            labels
+
+    Returns
+    -------
+    output : numpy.ndarray
+        A 1d array of length (labels.max()) which is True for each label which
+            overlaps the masked regions, and False for those which do not
+    """
+    assert labels.shape == mask.shape, "Labels and mask parameters must have the same shape"
+    masked_labels = np.unique(labels[mask])
     output = np.zeros(labels.max()+1, dtype=bool)
     output[masked_labels] = True
     return output[1:]
 
 def remap_labels(labels, locations):
+    """
+    Remap a label array to a new array of contiguous values for the labels that
+        are True in locations
+
+    Parameters
+    ----------
+    labels : numpy.ndarray
+        The array of labeled regions to remap
+    locations : numpy.ndarray
+        An array of length (labels.max()) with values of True for labels that
+            are to be retained and renumbered, and False for labels to be
+            removed
+
+    Returns
+    -------
+    remapped_labels : numpy.ndarray
+        A label array of the same shape as the labels parameter, with the
+            regions corresponding to the True values in 'locations' retained
+            and renumbered with contiguous integer values
+    """
+    assert locations.size == labels.max(), "The size of the locations parameter must be equal to the maximum label in the labels parameter"
     remapper = np.zeros(np.nanmax(labels)+1, labels.dtype)
     remapper[1:][locations] = np.arange(1, np.sum(locations)+1)
 
@@ -34,14 +77,44 @@ def remap_labels(labels, locations):
 
     return remapped_labels
 
-def labeled_comprehension(field, labels, func, index=False, dtype=None, default=None, pass_positions=False):
+def labeled_comprehension(field, labels, func, index=False, dtype=None,
+                          default=None, pass_positions=False):
+    """
+    Wrapper for the scipy.ndimage.labeled_comprehension function
+
+    Parameters
+    ----------
+    field : numpy.ndarray
+        Data to apply the function overlap
+    labels : numpy.ndarray
+        The array of labeled regions
+    func : function
+        The function to apply to each labelled region
+    index : list, optional (default : None)
+        The label values to apply the comprehension over. Default value of None
+            will apply the comprehension to all labels
+    dtype : type, optional (default : None)
+        The dtype of the output. Defaults to that of the input field
+    default : scalar, optional (default : None)
+        The value to return if a label does not exist
+    pass_positions : bool, optional (default : False)
+        If true, will pass the indexes of the label locations to the funtion in
+            labeled_comprehension
+
+    Returns
+    -------
+    comp : numpy.ndarray
+        An array of the result of func applied to each labelled region included
+            in index
+    """
     if not dtype:
         dtype = field.dtype
 
     if not index:
         index = range(1, int(np.nanmax(labels))+1)
 
-    comp = ndi.labeled_comprehension(field, labels, index, func, dtype, default, pass_positions)
+    comp = ndi.labeled_comprehension(field, labels, index, func,
+                                     dtype, default, pass_positions)
 
     return comp
 

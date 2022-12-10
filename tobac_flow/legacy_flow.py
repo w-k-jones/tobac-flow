@@ -461,11 +461,6 @@ def flow_network_watershed(field, markers, flow_func, mask=None, structure=None,
     new_struct = structure.copy()
     new_struct[1,1,1] = 0
     for iter in range(1, max_iter+1):
-        # Make a flow stack using the current fill
-        fill_gen = (fill[t] for t in range(fill.shape[0]))
-        def _fill_mask_argmin(temp, axis):
-            temp.mask = np.logical_or(temp.mask, temp==next(fill_gen))
-            return ma.array(np.argmin(temp, 0), mask=np.all(temp.mask, 0), dtype=bool)
 
         flow_gen = enumerate(_gen_flow_ravel_inds(flow_func, new_struct, wrap=False))
         # Temporary function that masks the values with the same fill as the origin point
@@ -625,4 +620,5 @@ def flow_label(data, flow, structure=ndi.generate_binary_structure(3,1)):
         if bin_edges[label-1] < bin_edges[label]:
             t_labels.ravel()[args[bin_edges[label-1]:bin_edges[label]]] = i+1
     t_labels = np.fmax(t_labels,0).astype(int)
+
     return t_labels

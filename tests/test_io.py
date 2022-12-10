@@ -2,6 +2,9 @@ from tobac_flow import io
 from datetime import datetime
 import os
 
+def test_find_glm_blobs():
+    assert len(io.find_glm_blobs(datetime(2018,6,19,19))) == 180, "Error running test of find_glm_blobs(), wrong number of blobs detected"
+
 def test_find_glm_files():
     blobs = io.find_glm_blobs(datetime(2018,6,19,19))
     io.download_blob(blobs[0], save_dir='./', replicate_path=False)
@@ -10,9 +13,6 @@ def test_find_glm_files():
     assert len(files) == 1, "Error running test of find_glm_files(), wrong number of files detected"
     for f in files:
         os.remove(f)
-
-def test_find_glm_blobs():
-    assert len(io.find_glm_blobs(datetime(2018,6,19,19))) == 180, "Error running test of find_glm_blobs(), wrong number of blobs detected"
 
 def test_find_abi_files():
     test_date = datetime(2000,1,1,12)
