@@ -72,8 +72,10 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     bt, wvd, swd, dataset = goes_dataloader(start_date, end_date,
                                             n_pad_files=t_offset+1,
                                             x0=x0, x1=x1, y0=y0, y1=y1,
-                                            return_new_ds=True, satellite=16,
-                                            product='MCMIP', view='C',
+                                            return_new_ds=True,
+                                            satellite=16,
+                                            product='MCMIP',
+                                            view='C',
                                             mode=[3,4,6],
                                             save_dir=goes_data_path,
                                             replicate_path=True,
@@ -101,9 +103,6 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     bt_markers =  np.logical_and(bt_growth  < -bt_threshold,
                                  bt_curvature_filter)
 
-    del wvd_growth
-    del bt_growth
-
     s_struct = ndi.generate_binary_structure(3,1)
     s_struct *= np.array([0,1,0])[:,np.newaxis, np.newaxis].astype(bool)
 
@@ -121,22 +120,33 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                              overlap=overlap,
                              subsegment_shrink=subsegment_shrink)
 
+    # Filter labels by length and wvd growth threshold
     core_label_lengths = find_object_lengths(core_labels)
 
+    print("Core labels meeting length threshold:", np.sum(core_label_lengths>t_offset))
+
     core_label_wvd_mask = mask_labels(core_labels, wvd_markers)
+
+    print("Core labels meeting WVD growth threshold:", np.sum(core_label_wvd_mask))
 
     combined_mask = np.logical_and(core_label_lengths>t_offset, core_label_wvd_mask)
 
     core_labels = remap_labels(core_labels, combined_mask)
+
+    print("Filtered core count:", core_labels.max())
+
     # Split into step labels
     print(datetime.now(),'Filtering cores by BT cooling rate', flush=True)
     core_step_labels = slice_labels(core_labels)
 
     mode = lambda x : stats.mode(x, keepdims=False)[0]
-    core_step_core_index = labeled_comprehension(core_labels, core_step_labels, mode, default=0)
+    core_step_core_index = labeled_comprehension(core_labels, core_step_labels,
+                                                 mode, default=0)
 
-    core_step_bt_mean = labeled_comprehension(bt, core_step_labels, np.nanmean, default=np.nan)
-    core_step_t = labeled_comprehension(bt.t.data[:, np.newaxis, np.newaxis], core_step_labels, np.nanmin, default=0)
+    core_step_bt_mean = labeled_comprehension(bt, core_step_labels, np.nanmean,
+                                              default=np.nan)
+    core_step_t = labeled_comprehension(bt.t.data[:, np.newaxis, np.newaxis],
+                                        core_step_labels, np.nanmin, default=0)
 
     def bt_diff_func(step_bt, pos):
         step_t = core_step_t[pos]
@@ -164,7 +174,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     core_labels = remap_labels(core_labels, wh_valid_core)
 
-    print('Detected markers: n =', core_labels.max())
+    print('Final detected core count: n =', core_labels.max())
 
     print(datetime.now(), 'Detecting thick anvil region', flush=True)
     upper_threshold = -5
@@ -178,9 +188,11 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     s_struct = structure * np.array([0,1,0])[:,np.newaxis, np.newaxis].astype(bool)
 
     markers = ndi.binary_erosion(field>=upper_threshold, structure=s_struct)
-    mask = ndi.binary_erosion(field<=lower_threshold, structure=s_struct, iterations=erode_distance, border_value=1)
+    mask = ndi.binary_erosion(field<=lower_threshold, structure=np.ones([3,3,3]),
+                              iterations=erode_distance, border_value=1)
 
-    edges = flow.sobel(field, direction='uphill', method='linear')
+    # edges = flow.sobel(field, direction='uphill', method='linear')
+    edges = flow.sobel(field, method='linear')
 
     watershed = flow.watershed(edges, markers, mask=mask, structure=structure)
 
@@ -189,27 +201,32 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                     overlap=overlap,
                                     subsegment_shrink=subsegment_shrink)
 
+    print('Initial detected thick anvils: area =', np.sum(thick_anvil_labels!=0), flush=True)
+    print('Initial detected thick anvils: n =', thick_anvil_labels.max(), flush=True)
+
     thick_anvil_label_lengths = find_object_lengths(thick_anvil_labels)
     thick_anvil_label_threshold = mask_labels(thick_anvil_labels, markers)
 
     thick_anvil_labels = remap_labels(thick_anvil_labels,
-                                      np.logical_and(thick_anvil_label_lengths>t_offset, thick_anvil_label_threshold))
+                                      np.logical_and(thick_anvil_label_lengths>t_offset,
+                                                     thick_anvil_label_threshold))
 
-    del watershed
-    print('Detected thick anvils: area =', np.sum(thick_anvil_labels!=0), flush=True)
-    print('Detected thick anvils: n =', thick_anvil_labels.max(), flush=True)
+    print('Final detected thick anvils: area =', np.sum(thick_anvil_labels!=0), flush=True)
+    print('Final detected thick anvils: n =', thick_anvil_labels.max(), flush=True)
 
     print(datetime.now(), 'Detecting thin anvil region', flush=True)
     upper_threshold = 0
     lower_threshold = -7.5
 
     markers = thick_anvil_labels
+    markers *= ndi.binary_erosion(markers, structure=s_struct).astype(int)
+
     field = (wvd+swd).data
     field = np.maximum(np.minimum(field, upper_threshold), lower_threshold)
     field[markers!=0] = upper_threshold
-    # markers = thick_anvil_labels * (field >= upper_threshold).astype(int)
 
-    mask = ndi.binary_erosion(field<=lower_threshold, structure=s_struct, iterations=erode_distance, border_value=1)
+    mask = ndi.binary_erosion(field<=lower_threshold, structure=np.ones([3,3,3]),
+                              iterations=erode_distance, border_value=1)
 
     edges = flow.sobel(field, direction='uphill', method='linear')
 
@@ -217,9 +234,6 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                        structure=structure)
 
     thin_anvil_labels *= ndi.binary_opening(thin_anvil_labels, structure=s_struct).astype(int)
-
-    # Mask thick anvil regions
-    # thin_anvil_labels *= (thick_anvil_labels==0).astype(int)
 
     print('Detected thin anvils: area =', np.sum(thin_anvil_labels!=0), flush=True)
 
@@ -230,9 +244,10 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     add_dataarray_to_ds(create_dataarray(core_labels,
                                          ('t','y','x'),
                                          "core_label",
+                                         coords={"t":bt.t},
                                          long_name="labels for detected cores",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     dataset.coords["core"] = np.arange(1, dataset.core_label.data.max()+1, dtype=np.int32)
 
@@ -242,9 +257,10 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     add_dataarray_to_ds(create_dataarray(core_step_labels,
                                          ('t','y','x'),
                                          "core_step_label",
+                                         coords={"t":bt.t},
                                          long_name="labels for detected cores at each time step",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     dataset.coords["core_step"] = np.arange(1, dataset.core_step_label.data.max()+1, dtype=np.int32)
 
@@ -252,9 +268,10 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     add_dataarray_to_ds(create_dataarray(thick_anvil_labels,
                                          ('t','y','x'),
                                          "thick_anvil_label",
+                                         coords={"t":bt.t},
                                          long_name="labels for detected thick anvil regions",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     dataset.coords["anvil"] = np.arange(1, dataset.thick_anvil_label.data.max()+1, dtype=np.int32)
 
@@ -263,9 +280,10 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     add_dataarray_to_ds(create_dataarray(thick_anvil_step_labels,
                                          ('t','y','x'),
                                          "thick_anvil_step_label",
+                                         coords={"t":bt.t},
                                          long_name="labels for detected thick anvil regions at each time step",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     dataset.coords["thick_anvil_step"] = np.arange(1, dataset.thick_anvil_step_label.data.max()+1, dtype=np.int32)
 
@@ -273,18 +291,20 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     add_dataarray_to_ds(create_dataarray(thin_anvil_labels,
                                          ('t','y','x'),
                                          "thin_anvil_label",
+                                         coords={"t":bt.t},
                                          long_name="labels for detected thin anvil regions",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     thin_anvil_step_labels = slice_labels(thin_anvil_labels)
 
     add_dataarray_to_ds(create_dataarray(thin_anvil_step_labels,
                                          ('t','y','x'),
                                          "thin_anvil_step_label",
+                                         coords={"t":bt.t},
                                          long_name="labels for detected thin anvil regions at each time step",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     dataset.coords["thin_anvil_step"] = np.arange(1, dataset.thin_anvil_step_label.data.max()+1, dtype=np.int32)
 
@@ -886,7 +906,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     # Add BT, WVD, SWD stats
     weights = area_stack
 
-    for field in (bt, wvd, swd):
+    for field in (bt.sel(t=dataset.t), wvd.sel(t=dataset.t), swd.sel(t=dataset.t)):
         [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.core_label,
                                                                                   field.compute(),
                                                                                   weights,
@@ -935,21 +955,21 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     if np.any(np.isnan(bt.data)):
         wh_nan = ndi.binary_dilation(np.isnan(bt.data), structure=np.ones([3,3,3]))
-        core_nan_labels = np.unique(dataset.core_label.data[wh_nan])
+        core_nan_labels = np.unique(core_labels[wh_nan])
 
         if core_nan_labels[0] == 0:
             core_nan_flag[core_nan_labels[1:]-1] = True
         else:
             core_nan_flag[core_nan_labels-1] = True
 
-        thick_anvil_nan_labels = np.unique(dataset.thick_anvil_label.data[wh_nan])
+        thick_anvil_nan_labels = np.unique(thick_anvil_labels[wh_nan])
 
         if thick_anvil_nan_labels[0] == 0:
             thick_anvil_nan_flag[thick_anvil_nan_labels[1:]-1] = True
         else:
             thick_anvil_nan_flag[thick_anvil_nan_labels-1] = True
 
-        thin_anvil_nan_labels = np.unique(dataset.thin_anvil_label.data[wh_nan])
+        thin_anvil_nan_labels = np.unique(thin_anvil_labels[wh_nan])
 
         if thin_anvil_nan_labels[0] == 0:
             thin_anvil_nan_flag[thin_anvil_nan_labels[1:]-1] = True

@@ -39,8 +39,8 @@ def time_diff(datetime_list):
 def get_time_diff_from_coord(coord):
     return np.array(time_diff(get_datetime_from_coord(coord)))
 
-def create_dataarray(array, dims, name, long_name=None, units=None, dtype=None):
-    da = xr.DataArray(array.astype(dtype), dims=dims)
+def create_dataarray(array, dims, name, coords=None, long_name=None, units=None, dtype=None):
+    da = xr.DataArray(array.astype(dtype), coords=coords, dims=dims)
     da.name = name
     da.attrs["standard_name"] = name
     if long_name:

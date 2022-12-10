@@ -263,7 +263,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
                                          "core_label",
                                          long_name="labels for detected cores",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     dataset.coords["core"] = np.arange(1, dataset.core_label.data.max()+1, dtype=np.int32)
 
@@ -275,7 +275,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
                                          "core_step_label",
                                          long_name="labels for detected cores at each time step",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     dataset.coords["core_step"] = np.arange(1, dataset.core_step_label.data.max()+1, dtype=np.int32)
 
@@ -285,7 +285,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
                                          "thick_anvil_label",
                                          long_name="labels for detected thick anvil regions",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     dataset.coords["anvil"] = np.arange(1, dataset.thick_anvil_label.data.max()+1, dtype=np.int32)
 
@@ -296,7 +296,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
                                          "thick_anvil_step_label",
                                          long_name="labels for detected thick anvil regions at each time step",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     dataset.coords["thick_anvil_step"] = np.arange(1, dataset.thick_anvil_step_label.data.max()+1, dtype=np.int32)
 
@@ -306,7 +306,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
                                          "thin_anvil_label",
                                          long_name="labels for detected thin anvil regions",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     thin_anvil_step_labels = slice_labels(thin_anvil_labels)
 
@@ -315,7 +315,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
                                          "thin_anvil_step_label",
                                          long_name="labels for detected thin anvil regions at each time step",
                                          units="",
-                                         dtype=np.int32), dataset)
+                                         dtype=np.int32).sel(t=dataset.t), dataset)
 
     dataset.coords["thin_anvil_step"] = np.arange(1, dataset.thin_anvil_step_label.data.max()+1, dtype=np.int32)
 
@@ -965,22 +965,23 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
     thin_anvil_nan_flag = np.zeros_like(dataset.anvil, bool)
 
     if np.any(np.isnan(bt.data)):
-        wh_nan = ndi.binary_dilation(np.isnan(bt.data), structure=np.ones([3,3,3]))
-        core_nan_labels = np.unique(dataset.core_label.data[wh_nan])
+        wh_nan = ndi.binary_dilation(np.isnan(bt.data),
+                                     structure=np.ones([3,3,3]))
+        core_nan_labels = np.unique(core_labels[wh_nan])
 
         if core_nan_labels[0] == 0:
             core_nan_flag[core_nan_labels[1:]-1] = True
         else:
             core_nan_flag[core_nan_labels-1] = True
 
-        thick_anvil_nan_labels = np.unique(dataset.thick_anvil_label.data[wh_nan])
+        thick_anvil_nan_labels = np.unique(thick_anvil_labels[wh_nan])
 
         if thick_anvil_nan_labels[0] == 0:
             thick_anvil_nan_flag[thick_anvil_nan_labels[1:]-1] = True
         else:
             thick_anvil_nan_flag[thick_anvil_nan_labels-1] = True
 
-        thin_anvil_nan_labels = np.unique(dataset.thin_anvil_label.data[wh_nan])
+        thin_anvil_nan_labels = np.unique(thin_anvil_labels[wh_nan])
 
         if thin_anvil_nan_labels[0] == 0:
             thin_anvil_nan_flag[thin_anvil_nan_labels[1:]-1] = True

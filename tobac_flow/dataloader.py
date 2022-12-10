@@ -5,17 +5,52 @@ import os
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 from glob import glob
-from tobac_flow import io
-from tobac_flow.dataset import get_datetime_from_coord, create_dataarray, add_dataarray_to_ds
-from tobac_flow.abi import get_abi_lat_lon, get_abi_pixel_area
 import warnings
+
+from . import io
+from .dataset import (get_datetime_from_coord, create_dataarray,
+                      add_dataarray_to_ds)
+from .abi import get_abi_lat_lon, get_abi_pixel_area
 
 def goes_dataloader(start_date, end_date, n_pad_files=1,
                     x0=None, x1=None, y0=None, y1=None,
                     time_gap=timedelta(minutes=15),
                     return_new_ds=False,
                     **io_kwargs):
+    """
+    Load longwave brightness temperature, water vapour difference and split
+        window difference from GOES-ABI data for DCC detection
 
+    Parameters
+    ----------
+    start_date : datetime.datetime
+        Initial date of ABI file to load
+    end_data : datetime.datetime
+        Final date of ABI files to load
+    n_pad_files : int, optional (default : 1)
+        Number of files to append on either side of the start_date and end_date
+            to pad to resulting dataset
+    x0 : int, optional (default : None)
+        The initial x index to subset the dataset.
+    x1 : int, optional (default : None)
+        The final x index to subset the dataset.
+    y0 : int, optional (default : None)
+        The final y index to subset the dataset.
+    y1 : int, optional (default : None)
+        The final y index to subset the dataset.
+    time_gap : datetime.timedelta, optional (default : timedelta(minutes=15))
+        If the time between subsequent files is greater than this, try to fill
+            these gaps using data from other scan regions. If this is not
+            possible then an all-Nan slice will be inserted in the data at this
+            point.
+    return_new_ds : bool, optional (default : False)
+        If True, returns a dataset of the same dimensions as the bt, wvd and swd
+            data that includes dataarrays of latitude, longitude and area of
+            each pixel. Note, if any time gaps have been filled with NaNs these
+            will NOT be included in the t coord of the new dataset.
+    **io_kwargs : optional
+        Keywords to be passed to the io.find_goes_files function
+    """
     abi_files = find_goes_files(start_date, end_date, n_pad_files, **io_kwargs)
 
     # Load ABI files
@@ -32,7 +67,8 @@ def goes_dataloader(start_date, end_date, n_pad_files=1,
                                 [t < padded_end_date for t in datetime_coord])
 
     if not np.all(wh_valid_t):
-        warnings.warn("Invalid time stamps found in ABI data, removing", RuntimeWarning)
+        warnings.warn("Invalid time stamps found in ABI data, removing",
+                      RuntimeWarning)
         bt = bt[wh_valid_t]
         wvd = wvd[wh_valid_t]
         swd = swd[wh_valid_t]
@@ -40,11 +76,34 @@ def goes_dataloader(start_date, end_date, n_pad_files=1,
     # Fill any gaps:
     if io_kwargs["view"] == "M":
         io_kwargs["view"] = "C"
-        bt, wvd, swd = fill_time_gap_full_disk(bt, wvd, swd, time_gap, x0, x1, y0, y1, **io_kwargs)
+        bt, wvd, swd = fill_time_gap_full_disk(bt, wvd, swd, time_gap,
+                                               x0, x1, y0, y1, **io_kwargs)
 
     if io_kwargs["view"] == "C":
         io_kwargs["view"] = "F"
-        bt, wvd, swd = fill_time_gap_full_disk(bt, wvd, swd, time_gap, x0, x1, y0, y1, **io_kwargs)
+        bt, wvd, swd = fill_time_gap_full_disk(bt, wvd, swd, time_gap,
+                                               x0, x1, y0, y1, **io_kwargs)
+
+    if return_new_ds:
+        goes_ds = xr.open_dataset(abi_files[0])
+
+        goes_coords = {'t':bt.t, 'y':bt.y, 'x':bt.x,
+                       'y_image':goes_ds.y_image, 'x_image':goes_ds.x_image}
+
+        new_ds = xr.Dataset(coords=goes_coords)
+        new_ds["goes_imager_projection"] = goes_ds.goes_imager_projection
+        lat, lon = get_abi_lat_lon(new_ds)
+        add_dataarray_to_ds(create_dataarray(lat, ('y', 'x'), 'lat',
+                                             long_name="latitude",
+                                             dtype=np.float32), new_ds)
+        add_dataarray_to_ds(create_dataarray(lon, ('y', 'x'), 'lon',
+                                             long_name="longitude",
+                                             dtype=np.float32), new_ds)
+        add_dataarray_to_ds(create_dataarray(get_abi_pixel_area(new_ds),
+                                             ('y', 'x'), 'area',
+                                             long_name="pixel area",
+                                             units='km^2',
+                                             dtype=np.float32), new_ds)
 
     bt = fill_time_gap_nan(bt, time_gap)
     wvd = fill_time_gap_nan(wvd, time_gap)
@@ -66,19 +125,6 @@ def goes_dataloader(start_date, end_date, n_pad_files=1,
     swd.attrs["units"] = "K"
 
     if return_new_ds:
-        goes_ds = xr.open_dataset(abi_files[0])
-
-        goes_coords = {'t':bt.t, 'y':bt.y, 'x':bt.x,
-                       'y_image':goes_ds.y_image, 'x_image':goes_ds.x_image}
-
-        new_ds = xr.Dataset(coords=goes_coords)
-        new_ds["goes_imager_projection"] = goes_ds.goes_imager_projection
-        lat, lon = get_abi_lat_lon(new_ds)
-        add_dataarray_to_ds(create_dataarray(lat, ('y', 'x'), 'lat', long_name="latitude", dtype=np.float32), new_ds)
-        add_dataarray_to_ds(create_dataarray(lon, ('y', 'x'), 'lon', long_name="longitude", dtype=np.float32), new_ds)
-        add_dataarray_to_ds(create_dataarray(get_abi_pixel_area(new_ds), ('y', 'x'), 'area',
-                                             long_name="pixel area", units='km^2', dtype=np.float32), new_ds)
-
         return bt, wvd, swd, new_ds
 
     else:
@@ -158,7 +204,7 @@ def create_nan_slice(da, t_ind):
     nan_slice_da.t.data[0] = (da.t[t_ind]+(da.t[t_ind+1]-da.t[t_ind])/2).item()
     return nan_slice_da
 
-def fill_time_gap_nan(da, time_gap=timedelta(minutes=15)):
+def fill_time_gap_nan(da, time_gap):
     where_time_gap = np.where(np.diff(get_datetime_from_coord(da.t))>time_gap)[0]
 
     concat_list = []
@@ -307,7 +353,40 @@ def seviri_dataloader(start_date, end_date, n_pad_files=1,
                       x0=None, x1=None, y0=None, y1=None,
                       time_gap=timedelta(minutes=30),
                       return_new_ds=False):
+    """
+    Load longwave brightness temperature, water vapour difference and split
+        window difference from Meteosat seviri_files data for DCC detection
 
+    Parameters
+    ----------
+    start_date : datetime.datetime
+        Initial date of SEVIRI file to load
+    end_data : datetime.datetime
+        Final date of SEVIRI files to load
+    n_pad_files : int, optional (default : 1)
+        Number of files to append on either side of the start_date and end_date
+            to pad to resulting dataset
+    file_path : string, optional (default : "../data/SEVIRI_ORAC/")
+        The path to the directory in which the SEVIRI secondary files are stored
+    x0 : int, optional (default : None)
+        The initial x index to subset the dataset.
+    x1 : int, optional (default : None)
+        The final x index to subset the dataset.
+    y0 : int, optional (default : None)
+        The final y index to subset the dataset.
+    y1 : int, optional (default : None)
+        The final y index to subset the dataset.
+    time_gap : datetime.timedelta, optional (default : timedelta(minutes=15))
+        If the time between subsequent files is greater than this, try to fill
+            these gaps using data from other scan regions. If this is not
+            possible then an all-Nan slice will be inserted in the data at this
+            point.
+    return_new_ds : bool, optional (default : False)
+        If True, returns a dataset of the same dimensions as the bt, wvd and swd
+            data that includes dataarrays of latitude, longitude and area of
+            each pixel. Note, if any time gaps have been filled with NaNs these
+            will NOT be included in the t coord of the new dataset.
+    """
     seviri_files = find_seviri_files(start_date, end_date,
                                      n_pad_files=n_pad_files,
                                      file_path=file_path)
@@ -325,6 +404,13 @@ def seviri_dataloader(start_date, end_date, n_pad_files=1,
     bt.data[all_isnan] = np.nan
     wvd.data[all_isnan] = np.nan
     swd.data[all_isnan] = np.nan
+
+    if return_new_ds:
+        seviri_coords = {'t':bt.t,
+                         'along_track':bt.along_track,
+                         'across_track':bt.across_track}
+
+        new_ds = xr.Dataset(coords=seviri_coords)
 
     bt = fill_time_gap_nan(bt, time_gap)
     wvd = fill_time_gap_nan(wvd, time_gap)
@@ -348,12 +434,6 @@ def seviri_dataloader(start_date, end_date, n_pad_files=1,
     seviri_ds.close()
 
     if return_new_ds:
-        seviri_coords = {'t':bt.t,
-                         'along_track':bt.along_track,
-                         'across_track':bt.across_track}
-
-        new_ds = xr.Dataset(coords=seviri_coords)
-
         return bt, wvd, swd, new_ds
     else:
         return bt, wvd, swd

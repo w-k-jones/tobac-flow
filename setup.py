@@ -3,7 +3,7 @@ from Cython.Build import cythonize
 import numpy
 
 setup(name='tobac flow',
-      version='1.5',
+      version='1.6',
       description="""Detection and tracking of deep convective clouds in high
         time resolution geostationary satellite imagery""",
       url='',
