@@ -71,8 +71,10 @@ def remap_labels(labels, locations):
     """
     assert locations.size == labels.max(), "The size of the locations parameter must be equal to the maximum label in the labels parameter"
     remapper = np.zeros(np.nanmax(labels)+1, labels.dtype)
-    remapper[1:][locations] = np.arange(1, np.sum(locations)+1)
-
+    if locations.dtype == bool:
+        remapper[1:][locations] = np.arange(1, np.sum(locations)+1)
+    else:
+        remapper[locations] = np.arange(1, np.sum(locations)+1)
     remapped_labels = remapper[labels]
 
     return remapped_labels

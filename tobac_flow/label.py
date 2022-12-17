@@ -331,7 +331,8 @@ def find_neighbour_labels(label, label_stack, bins, args, processed_labels,
         for new_label in np.unique(forward_lap):
             if (new_label>0
                 and not processed_labels[new_label]
-                and forward_bins[new_label] >= overlap*np.minimum(bins[label]-bins[label-1], bins[new_label]-bins[new_label-1])):
+                and forward_bins[new_label] >= overlap * np.minimum(bins[label]-bins[label-1],
+                                                                    bins[new_label]-bins[new_label-1])):
 
                 label_stack.append(new_label)
                 processed_labels[new_label] = True
@@ -341,7 +342,8 @@ def find_neighbour_labels(label, label_stack, bins, args, processed_labels,
         for new_label in np.unique(backward_lap):
             if (new_label>0
                 and not processed_labels[new_label]
-                and backward_bins[new_label] >= overlap*np.minimum(bins[label]-bins[label-1], bins[new_label]-bins[new_label-1])):
+                and backward_bins[new_label] >= overlap * np.minimum(bins[label]-bins[label-1],
+                                                                     bins[new_label]-bins[new_label-1])):
 
                 label_stack.append(new_label)
                 processed_labels[new_label] = True

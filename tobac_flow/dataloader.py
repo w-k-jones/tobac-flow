@@ -222,7 +222,11 @@ def fill_time_gap_nan(da, time_gap):
     else:
         return da
 
-def get_full_disk_for_time_gap(start_date, end_date, **io_kwargs):
+def find_full_disk_for_time_gap(start_date, end_date, **io_kwargs):
+    """
+    Given a start date and an end date, find the ABI files that occur between
+        the two dates
+    """
     start_date = parse_date(start_date.astype('datetime64[s]').astype('str'))
     end_date = parse_date(end_date.astype('datetime64[s]').astype('str'))
     dates = pd.date_range(start_date, end_date, freq='H').to_pydatetime()
@@ -265,7 +269,7 @@ def fill_time_gap_full_disk(bt, wvd, swd, time_gap=timedelta(minutes=15),
 
     if where_time_gap.size > 0:
         for t_ind in where_time_gap:
-            full_disk_files = get_full_disk_for_time_gap(bt.t.data[t_ind], bt.t.data[t_ind+1], **io_kwargs)
+            full_disk_files = find_full_disk_for_time_gap(bt.t.data[t_ind], bt.t.data[t_ind+1], **io_kwargs)
             bt_concat_list.append(bt.isel(t=slice(last_t_ind, t_ind+1)))
             wvd_concat_list.append(wvd.isel(t=slice(last_t_ind, t_ind+1)))
             swd_concat_list.append(swd.isel(t=slice(last_t_ind, t_ind+1)))
