@@ -31,6 +31,8 @@ def warp_flow(img: np.ndarray,
             that the array is warped to
     res : numpy.ndarray, optional (default : None)
         Array to insert the output into. If None, a new array will be created
+    grid_locs : numpy.ndarray, optional (default : None)
+        Array of grid locations
 
     Returns
     -------
@@ -157,6 +159,10 @@ def convolve_step(prev_step: np.ndarray,
         The dtype of the output data
     fill_value : scalar, optional (default : np.nan)
         Value used to fill locations that are warped outside of the image
+    res : numpy.ndarray, optional (default : None)
+        Array to insert the output into. If None, a new array will be created
+    grid_locs : numpy.ndarray, optional (default : None)
+        Array of grid locations
 
     Returns
     -------
@@ -232,7 +238,7 @@ def convolve(data: np.ndarray,
         The dtype of the output data
     fill_value : scalar, optional (default : np.nan)
         Value used to fill locations that are warped outside of the image
-    func : function, optional (default : np.nan)
+    func : callable, optional (default : None)
         The function to be applied to the convolved data at each time step. If
             None, the convolution will return all the convolved pixel locations.
 
