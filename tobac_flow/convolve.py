@@ -103,7 +103,7 @@ def convolve_same_step(img: np.ndarray,
         locs = (np.stack(np.meshgrid(np.arange(w), np.arange(h)),-1)
                 + np.atleast_2d(offsets)[:,np.newaxis,np.newaxis,:]).astype(int)
     else:
-        locs = grid_locs + np.atleast_2d(offsets)[:,np.newaxis,np.newaxis,:]).astype(int)
+        locs = grid_locs + np.atleast_2d(offsets)[:,np.newaxis,np.newaxis,:].astype(int)
 
     wh_nan = np.logical_or.reduce([locs[...,0] < 0,
                                    locs[...,1] < 0,
@@ -187,7 +187,7 @@ def convolve_step(prev_step: np.ndarray,
                                                         offsets,
                                                         fill_value=fill_value,
                                                         res=res[n_backward:-n_forward],
-                                                        grid_locs=grid_locs))
+                                                        grid_locs=grid_locs)
 
     if n_forward:
         offsets = np.stack(np.where(structure[-1]), -1)[...,::-1]-1
@@ -253,7 +253,7 @@ def convolve(data: np.ndarray,
         res = np.full((n_struct,) + data.shape, fill_value, dtype=dtype)
 
     h, w = data.shape[1:]
-    grid_locs  = (np.stack(np.meshgrid(np.arange(w), np.arange(h)), -1)
+    grid_locs = np.stack(np.meshgrid(np.arange(w), np.arange(h)), -1)
     temp_res = np.full((n_struct,) + data.shape[1:], fill_value, dtype=dtype)
 
     for i in range(data.shape[0]):
@@ -273,9 +273,9 @@ def convolve(data: np.ndarray,
                                         structure=structure,
                                         method=method,
                                         dtype=dtype,
-                                        fill_value=fill_value),
+                                        fill_value=fill_value,
                                         res=temp_res,
-                                        grid_locs=grid_locs)
+                                        grid_locs=grid_locs))
         else:
             res[:,i] = convolve_step(prev_frame, step_frame, next_frame,
                                      forward_flow[i], backward_flow[i],

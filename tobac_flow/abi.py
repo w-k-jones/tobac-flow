@@ -52,7 +52,7 @@ def get_abi_pixel_area(dataset: xr.Dataset) -> np.ndarray:
     area = dx*dy
     return area
 
-def get_abi_x_y(lat: np.ndarray, lon: np.ndarray, dataset: xr.Dataset): -> tuple[np.ndarray, np.ndarray]
+def get_abi_x_y(lat: np.ndarray, lon: np.ndarray, dataset: xr.Dataset) -> tuple[np.ndarray, np.ndarray]:
     """
     Get the x, y coordinates in the ABI projection for given latitudes and
         longitudes
