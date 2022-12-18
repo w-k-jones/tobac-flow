@@ -1,8 +1,11 @@
 import numpy as np
 from scipy import ndimage as ndi
 from .dataset import add_dataarray_to_ds,  create_dataarray, n_unique_along_axis
+from typing import Callable
 
-def find_object_lengths(labels, axis=0):
+def find_object_lengths(
+        labels: np.ndarray[int], axis: int = 0
+    ) -> np.ndarray[int]:
     """
     Find the length of each label in the leading dimension (usually time)
 
@@ -23,7 +26,9 @@ def find_object_lengths(labels, axis=0):
 
     return object_lengths
 
-def mask_labels(labels, mask):
+def mask_labels(
+        labels: np.ndarray[int], mask: np.ndarray[bool]
+    ) -> np.ndarray[bool]:
     """
     Apply a mask to an array of labelled regions to find which labels overlap
         the mask array
@@ -48,7 +53,9 @@ def mask_labels(labels, mask):
     output[masked_labels] = True
     return output[1:]
 
-def remap_labels(labels, locations):
+def remap_labels(
+        labels: np.ndarray[int], locations: np.ndarray[bool] | np.ndarray[int]
+    ) -> np.ndarray[int]:
     """
     Remap a label array to a new array of contiguous values for the labels that
         are True in locations
@@ -79,8 +86,15 @@ def remap_labels(labels, locations):
 
     return remapped_labels
 
-def labeled_comprehension(field, labels, func, index=False, dtype=None,
-                          default=None, pass_positions=False):
+def labeled_comprehension(
+        field: np.ndarray,
+        labels: np.ndarray[int],
+        func: Callable,
+        index: bool = False,
+        dtype: type | None = None,
+        default: float | None= None,
+        pass_positions: bool = False
+    ) -> np.ndarray:
     """
     Wrapper for the scipy.ndimage.labeled_comprehension function
 
@@ -120,7 +134,14 @@ def labeled_comprehension(field, labels, func, index=False, dtype=None,
 
     return comp
 
-def apply_func_to_labels(labels, field, func):
+def apply_func_to_labels(
+        labels: np.ndarray[int], field: np.ndarray, func: Callable
+    ) -> np.ndarray:
+    """
+    Apply a given function to the regions of an array given by an array of
+        labels. Functions similar to ndi.labeled_comprehension, but may be more
+        adaptable in some circumstances
+    """
     if labels.shape != field.shape:
         raise ValueError("Input labels and field do not have the same shape")
     bins = np.cumsum(np.bincount(labels.ravel()))
@@ -128,7 +149,17 @@ def apply_func_to_labels(labels, field, func):
     return np.array([func(field.ravel()[args[bins[i]:bins[i+1]]])
                      if bins[i+1]>bins[i] else None for i in range(bins.size-1)])
 
-def apply_weighted_func_to_labels(labels, field, weights, func):
+def apply_weighted_func_to_labels(
+        labels: np.ndarray[int],
+        field: np.ndarray,
+        weights: np.ndarray,
+        func: Callable
+    ) -> np.ndarray:
+    """
+    Apply a given weighted function to the regions of an array given by an array
+        of labels. The weights provided by the weights array in the labelled
+        region will also be provided to the function.
+    """
     if labels.shape != field.shape:
         raise ValueError("Input labels and field do not have the same shape")
     bins = np.cumsum(np.bincount(labels.ravel()))
