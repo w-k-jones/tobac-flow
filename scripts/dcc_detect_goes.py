@@ -95,8 +95,8 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
     bt_curvature_filter = get_curvature_filter(bt, direction="positive")
 
-    wvd_threshold = 0.25
-    bt_threshold = 0.5
+    wvd_threshold = 0.125
+    bt_threshold = 0.25
 
     wvd_markers = np.logical_and(wvd_growth > wvd_threshold,
                                  wvd_curvature_filter)
@@ -125,7 +125,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     print("Core labels meeting length threshold:", np.sum(core_label_lengths>t_offset))
 
-    core_label_wvd_mask = mask_labels(core_labels, wvd_markers)
+    core_label_wvd_mask = mask_labels(core_labels, wvd_growth > wvd_threshold*2)
 
     print("Core labels meeting WVD growth threshold:", np.sum(core_label_wvd_mask))
 
@@ -145,6 +145,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
 
     core_step_bt_mean = labeled_comprehension(bt, core_step_labels, np.nanmean,
                                               default=np.nan)
+
     core_step_t = labeled_comprehension(bt.t.data[:, np.newaxis, np.newaxis],
                                         core_step_labels, np.nanmin, default=0)
 
@@ -188,11 +189,12 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     s_struct = structure * np.array([0,1,0])[:,np.newaxis, np.newaxis].astype(bool)
 
     markers = ndi.binary_erosion(field>=upper_threshold, structure=s_struct)
-    mask = ndi.binary_erosion(field<=lower_threshold, structure=np.ones([3,3,3]),
-                              iterations=erode_distance, border_value=1)
+    mask = ndi.binary_erosion(
+        field<=lower_threshold, structure=np.ones([3,3,3]),
+        iterations=erode_distance, border_value=1
+    )
 
-    # edges = flow.sobel(field, direction='uphill', method='linear')
-    edges = flow.sobel(field, method='linear')
+    edges = flow.sobel(field, direction='uphill', method='linear')
 
     watershed = flow.watershed(edges, markers, mask=mask, structure=structure)
 
@@ -225,8 +227,10 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
     field = np.maximum(np.minimum(field, upper_threshold), lower_threshold)
     field[markers!=0] = upper_threshold
 
-    mask = ndi.binary_erosion(field<=lower_threshold, structure=np.ones([3,3,3]),
-                              iterations=erode_distance, border_value=1)
+    mask = ndi.binary_erosion(
+        field<=lower_threshold, structure=np.ones([3,3,3]),
+        iterations=erode_distance, border_value=1
+    )
 
     edges = flow.sobel(field, direction='uphill', method='linear')
 
