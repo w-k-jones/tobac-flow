@@ -3,6 +3,7 @@ import xarray as xr
 import cv2
 from scipy import ndimage as ndi
 import warnings
+from typing import Callable
 
 from .convolve import warp_flow, convolve
 from .label import flow_label
@@ -13,12 +14,32 @@ class Flow:
     """
     Class to perform semi-lagrangian operations using optical flow
     """
-    def __init__(self, data, model="DIS", vr_steps=0, smoothing_passes=0):
+    def __init__(
+        self,
+        data: np.ndarray,
+        model: str = "DIS",
+        vr_steps: int = 0,
+        smoothing_passes: int = 0
+    ) -> None:
+        """
+        Initialise the flow object with a data array and calculate the optical
+            flow vectors for that array
+        """
         self.shape = data.shape
-        self.get_flow(data, model=model, vr_steps=vr_steps,
-                      smoothing_passes=smoothing_passes)
+        self.calculate_flow(
+            data,
+            model=model,
+            vr_steps=vr_steps,
+            smoothing_passes=smoothing_passes
+        )
 
-    def get_flow(self, data, model="DIS", vr_steps=0, smoothing_passes=0):
+    def calculate_flow(
+        self,
+        data: np.ndarray,
+        model: str = "DIS",
+        vr_steps: int = 0,
+        smoothing_passes: int = 0
+    ) -> None:
         """
         Calculates forward and backward optical flow vectors for a given set of data
 
@@ -35,13 +56,22 @@ class Flow:
             Number of smoothing operation between the forward and backward flow to
                 perform
         """
-        self.flow_for, self.flow_back = get_flow(data, model=model,
-                                                 vr_steps=vr_steps,
-                                                 smoothing_passes=smoothing_passes)
+        self.flow_for, self.flow_back = calculate_flow(
+            data,
+            model=model,
+            vr_steps=vr_steps,
+            smoothing_passes=smoothing_passes
+        )
 
-    def convolve(self, data, structure=ndi.generate_binary_structure(3,1),
-                 method="linear", fill_value=np.nan, dtype=np.float32,
-                 func=None):
+    def convolve(
+        self,
+        data: np.ndarray,
+        structure: np.ndarray = ndi.generate_binary_structure(3,1),
+        method: str = "linear",
+        fill_value: float = np.nan,
+        dtype: type = np.float32,
+        func: Callable | None = None
+    ) -> np.ndarray:
         """
         Convolve a sequence of images using optical flow vectors to offset adjacent
             elements in the leading dimensions
@@ -72,14 +102,20 @@ class Flow:
         """
         assert data.shape == self.shape, "Data input must have the same shape as the Flow object"
 
-        output = convolve(data, self.flow_for, self.flow_back,
-                          structure=structure, method=method,
-                          dtype=dtype, fill_value=fill_value,
-                          func=func)
+        output = convolve(
+            data,
+            self.flow_for,
+            self.flow_back,
+            structure=structure,
+            method=method,
+            dtype=dtype,
+            fill_value=fill_value,
+            func=func
+        )
 
         return output
 
-    def diff(self, data, dtype=np.float32):
+    def diff(self, data: np.ndarray, dtype: type = np.float32) -> np.ndarray:
         """
         Calculate the gradient of a dataset along the leading dimension in a
             semi-Lagrangian framework
@@ -98,16 +134,27 @@ class Flow:
         """
         diff_struct = np.zeros([3,3,3])
         diff_struct[:,1,1] = 1
-        diff_func = lambda x:np.nansum([x[2]-x[1], x[1]-x[0]], axis=0) \
-                                      * 1/np.maximum(np.sum([np.isfinite(x[2]),
-                                                             np.isfinite(x[0])], 0), 1)
-        diff = self.convolve(data, structure=diff_struct,
-                             func=diff_func,
-                             dtype=dtype)
+        diff_func = lambda x:np.nansum(
+            [x[2]-x[1], x[1]-x[0]], axis=0) \
+            * 1 / np.maximum(
+                np.sum([np.isfinite(x[2]), np.isfinite(x[0])], 0), 1
+            )
+        diff = self.convolve(
+            data, structure=diff_struct,
+            func=diff_func,
+            dtype=dtype
+        )
+
         return diff
 
-    def sobel(self, data, method='linear', dtype=None,
-              fill_value=np.nan, direction=None,):
+    def sobel(
+        self,
+        data: np.ndarray,
+        method: str = 'linear',
+        dtype: type = None,
+        fill_value: float = np.nan,
+        direction: str | None = None
+    ) -> np.ndarray:
         """
         Sobel edge detection algorithm in a semi-Lagrangian space
 
@@ -131,14 +178,25 @@ class Flow:
         res : numpy.ndarray
             The magnitude of the edges detected using the sobel method
         """
-        res = sobel(data, self.flow_for, self.flow_back,
-                    method=method, dtype=dtype,
-                    fill_value=fill_value, direction=direction)
+        res = sobel(
+            data,
+            self.flow_for,
+            self.flow_back,
+            method=method,
+            dtype=dtype,
+            fill_value=fill_value,
+            direction=direction
+        )
 
         return res
 
-    def watershed(self, field, markers, mask=None,
-                  structure=ndi.generate_binary_structure(3,1)):
+    def watershed(
+        self,
+        field: np.ndarray,
+        markers: np.ndarray[int],
+        mask: np.ndarray[bool] | None = None,
+        structure: np.ndarray[bool] = ndi.generate_binary_structure(3,1)
+    ) -> np.ndarray[int]:
         """
         Watershed segmentation of a sequence of images in a Semi-Lagrangian
             framework.
@@ -170,8 +228,14 @@ class Flow:
 
         return output
 
-    def label(self, data, structure=ndi.generate_binary_structure(3,1),
-              dtype=np.int32, overlap=0, subsegment_shrink=0):
+    def label(
+        self,
+        data: np.ndarray[bool],
+        structure: np.ndarray[bool] = ndi.generate_binary_structure(3,1),
+        dtype: type = np.int32,
+        overlap: float = 0,
+        subsegment_shrink: float = 0
+    ) -> np.ndarray[int]:
         """
         Label 3d connected objects in a semi-Lagrangian reference frame
 
@@ -196,13 +260,26 @@ class Flow:
         peak_min_distance : int - optional
             The minimum distance between maxima allowed when performing
                 subsegmentation. Defaults to 5
-        """
-        return flow_label(self, data, structure=structure, dtype=dtype,
-                          overlap=overlap, subsegment_shrink=subsegment_shrink)
 
+        Returns
+        -------
+        labels : numpy.ndarray[int]
+            The labelled array of the regions in mask
+        """
+        labels = flow_label(
+            self,
+            data,
+            structure=structure,
+            dtype=dtype,
+            overlap=overlap,
+            subsegment_shrink=subsegment_shrink
+        )
+
+        return labels
 
 """
 Dicts to convert keyword inputs to opencv flags for flow keywords
+TODO: consider enum?
 """
 flow_flags = {'default':0, 'gaussian':cv2.OPTFLOW_FARNEBACK_GAUSSIAN}
 
@@ -225,7 +302,7 @@ interp_modes = {'nearest':cv2.INTER_NEAREST,
 # Let's create a new optical_flow derivation function
 vr_model = cv2.VariationalRefinement.create()
 
-def get_of_model(model):
+def get_of_model(model: str) -> cv2.DenseOpticalFlow:
     """
     Initiates an opencv optical flow model
 
@@ -262,7 +339,12 @@ def get_of_model(model):
 
     return of_model
 
-def get_flow(data, model="DIS", vr_steps=0, smoothing_passes=0):
+def calculate_flow(
+    data: np.ndarray | xr.DataArray,
+    model: str = "DIS",
+    vr_steps: int = 0,
+    smoothing_passes: int = 0
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Calculates forward and backward optical flow vectors for a given set of data
 
@@ -303,18 +385,24 @@ def get_flow(data, model="DIS", vr_steps=0, smoothing_passes=0):
         prev_frame = to_8bit(data[i], vmin, vmax)
         next_frame = to_8bit(data[i+1], vmin, vmax)
 
-        forward_flow[i], backward_flow[i+1] = get_flow_frame(prev_frame,
-                                                             next_frame,
-                                                             of_model,
-                                                             vr_steps=vr_steps,
-                                                             smoothing_steps=smoothing_passes)
+        forward_flow[i], backward_flow[i+1] = calculate_flow_frame(
+            prev_frame,
+            next_frame,
+            of_model,
+            vr_steps=vr_steps,
+            smoothing_steps=smoothing_passes
+        )
 
     forward_flow[-1] = -backward_flow[-1]
     backward_flow[0] = -forward_flow[0]
 
     return forward_flow, backward_flow
 
-def to_8bit(array, vmin=None, vmax=None):
+def to_8bit(
+    array: np.ndarray,
+    vmin: float = None,
+    vmax:float = None
+) -> np.ndarray:
     """
     Converts an array to an 8-bit range between 0 and 255
     """
@@ -326,10 +414,13 @@ def to_8bit(array, vmin=None, vmax=None):
         factor = 0
     else:
         factor = 255 / (vmax-vmin)
-    array_out = (array-vmin) * factor
-    return array_out.astype('uint8')
+    array_out = ((array-vmin) * factor).astype('uint8')
+    return array_out
 
-def warp_flow(img, flow):
+def warp_flow(img: np.ndarray, flow: np.ndarray) -> np.ndarray:
+    """
+    Warp an image according to a given set of optical flow vectors
+    """
     h, w = flow.shape[:2]
     locs = flow.copy()
     locs[:,:,0] += np.arange(w)
@@ -337,12 +428,17 @@ def warp_flow(img, flow):
     res = cv2.remap(img, locs, None, cv2.INTER_LINEAR)
     return res
 
-def get_flow_frame(prev_frame,
-                   next_frame,
-                   of_model,
-                   vr_steps=0,
-                   smoothing_steps=0):
-
+def calculate_flow_frame(
+    prev_frame: np.ndarray[np.uint8],
+    next_frame: np.ndarray[np.uint8],
+    of_model: cv2.DenseOpticalFlow,
+    vr_steps: int = 0,
+    smoothing_steps: int = 0
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Calculate the forward and backward optical flow vectors between two
+        subsequent images
+    """
     forward_flow = of_model.calc(prev_frame, next_frame, None)
 
     if vr_steps > 0:
@@ -355,11 +451,19 @@ def get_flow_frame(prev_frame,
 
     if smoothing_steps > 0:
         for i in range(smoothing_steps):
-            forward_flow, backward_flow = smooth_flow_step(forward_flow, backward_flow)
+            forward_flow, backward_flow = smooth_flow_step(
+                forward_flow, backward_flow
+            )
 
     return forward_flow, backward_flow
 
-def smooth_flow_step(forward_flow, backward_flow):
+def smooth_flow_step(
+    forward_flow: np.ndarray, backward_flow: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Smooth a set of flow vectors by warping and averaging the corresponding
+        forward and backward vectors
+    """
     forward_flow, backward_flow = (np.nanmean([forward_flow,
                                                np.stack([-warp_flow(backward_flow[...,0], forward_flow),
                                                          -warp_flow(backward_flow[...,1], forward_flow)], -1)], 0),
