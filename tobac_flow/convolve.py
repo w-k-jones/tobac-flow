@@ -4,13 +4,15 @@ import cv2
 import xarray as xr
 from typing import Callable
 
-def warp_flow(img: np.ndarray,
-              flow: np.ndarray,
-              method: str = "linear",
-              fill_value: float = np.nan,
-              offsets: np.ndarray = np.array([[0,0]]),
-              res: np.ndarray | None = None,
-              grid_locs: np.ndarray | None = None) -> np.ndarray:
+def warp_flow(
+    img: np.ndarray,
+    flow: np.ndarray,
+    method: str = "linear",
+    fill_value: float = np.nan,
+    offsets: np.ndarray = np.array([[0,0]]),
+    res: np.ndarray | None = None,
+    grid_locs: np.ndarray | None = None
+) -> np.ndarray:
     """
     Warp an image according to a set of optical flow vectors. Can be provided
         with an array of offsets to warp the image to set of adjacent locations
@@ -72,11 +74,13 @@ def warp_flow(img: np.ndarray,
 
     return res
 
-def convolve_same_step(img: np.ndarray,
-                       offsets: np.ndarray,
-                       fill_value: float = np.nan,
-                       res: np.ndarray | None = None,
-                       grid_locs: np.ndarray | None = None) -> np.ndarray:
+def convolve_same_step(
+    img: np.ndarray,
+    offsets: np.ndarray,
+    fill_value: float = np.nan,
+    res: np.ndarray | None = None,
+    grid_locs: np.ndarray | None = None
+) -> np.ndarray:
     """
     Convolve an image according to a set of offsets provided by a structuring
         element
@@ -124,17 +128,19 @@ def convolve_same_step(img: np.ndarray,
 
     return res
 
-def convolve_step(prev_step: np.ndarray,
-                  same_step: np.ndarray,
-                  next_step: np.ndarray,
-                  forward_flow: np.ndarray,
-                  backward_flow: np.ndarray,
-                  structure: np.ndarray = ndi.generate_binary_structure(3,1),
-                  method: str = "linear",
-                  dtype: type = np.float32,
-                  fill_value: float = np.nan,
-                  res: np.ndarray | None = None,
-                  grid_locs: np.ndarray | None = None) -> np.ndarray:
+def convolve_step(
+    prev_step: np.ndarray,
+    same_step: np.ndarray,
+    next_step: np.ndarray,
+    forward_flow: np.ndarray,
+    backward_flow: np.ndarray,
+    structure: np.ndarray = ndi.generate_binary_structure(3,1),
+    method: str = "linear",
+    dtype: type = np.float32,
+    fill_value: float = np.nan,
+    res: np.ndarray | None = None,
+    grid_locs: np.ndarray | None = None
+) -> np.ndarray:
     """
     Convolve a sequence of images using optical flow vectors to offset adjacent
         elements in the leading dimensions at a single time step
@@ -207,14 +213,16 @@ def convolve_step(prev_step: np.ndarray,
 
     return res
 
-def convolve(data: np.ndarray,
-             forward_flow: np.ndarray,
-             backward_flow: np.ndarray,
-             structure: np.ndarray = ndi.generate_binary_structure(3,1),
-             method: str = "linear",
-             dtype: type = np.float32,
-             fill_value: float = np.nan,
-             func: Callable | None = None) -> np.ndarray:
+def convolve(
+    data: np.ndarray,
+    forward_flow: np.ndarray,
+    backward_flow: np.ndarray,
+    structure: np.ndarray = ndi.generate_binary_structure(3,1),
+    method: str = "linear",
+    dtype: type = np.float32,
+    fill_value: float = np.nan,
+    func: Callable | None = None
+) -> np.ndarray:
     """
     Convolve a sequence of images using optical flow vectors to offset adjacent
         elements in the leading dimensions
@@ -289,6 +297,7 @@ def convolve(data: np.ndarray,
                                      method=method,
                                      dtype=dtype,
                                      fill_value=fill_value,
+                                     res=res[:,i],
                                      grid_locs=grid_locs)
     if func is not None:
         res[np.isnan(data)] = fill_value
