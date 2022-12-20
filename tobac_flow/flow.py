@@ -26,7 +26,7 @@ class Flow:
             flow vectors for that array
         """
         self.shape = data.shape
-        self.calculate_flow(
+        self.forward_flow, self.backward_flow = self.calculate_flow(
             data,
             model=model,
             vr_steps=vr_steps,
@@ -39,7 +39,7 @@ class Flow:
         model: str = "DIS",
         vr_steps: int = 0,
         smoothing_passes: int = 0
-    ) -> None:
+    ) -> tuple[np.ndarray[float], np.ndarray[float]]:
         """
         Calculates forward and backward optical flow vectors for a given set of data
 
@@ -55,13 +55,24 @@ class Flow:
         smoothing_step : int, optional (default : 0)
             Number of smoothing operation between the forward and backward flow to
                 perform
+        
+        Returns
+        -------
+        forward_flow : numpy.ndarray
+            Array of optical flow vectors acting forward along the leading dimension
+                of data
+        backward_flow : numpy.ndarray
+            Array of optical flow vectors acting backwards along the leading
+                dimension of data
         """
-        self.flow_for, self.flow_back = calculate_flow(
+        forward_flow, backward_flow = calculate_flow(
             data,
             model=model,
             vr_steps=vr_steps,
             smoothing_passes=smoothing_passes
         )
+
+        return forward_flow, backward_flow
 
     def convolve(
         self,
@@ -104,8 +115,8 @@ class Flow:
 
         output = convolve(
             data,
-            self.flow_for,
-            self.flow_back,
+            self.forward_flow,
+            self.backward_flow,
             structure=structure,
             method=method,
             dtype=dtype,
@@ -140,7 +151,8 @@ class Flow:
                 np.sum([np.isfinite(x[2]), np.isfinite(x[0])], 0), 1
             )
         diff = self.convolve(
-            data, structure=diff_struct,
+            data,
+            structure=diff_struct,
             func=diff_func,
             dtype=dtype
         )
@@ -180,8 +192,8 @@ class Flow:
         """
         res = sobel(
             data,
-            self.flow_for,
-            self.flow_back,
+            self.forward_flow,
+            self.backward_flow,
             method=method,
             dtype=dtype,
             fill_value=fill_value,
@@ -223,8 +235,14 @@ class Flow:
             The resulting labelled regions of the input data corresponding to each
                 marker
         """
-        output = watershed(self, field, markers, mask=mask,
-                           structure=structure)
+        output = watershed(
+            self.forward_flow,
+            self.backward_flow,
+            field,
+            markers,
+            mask=mask,
+            structure=structure
+        )
 
         return output
 
