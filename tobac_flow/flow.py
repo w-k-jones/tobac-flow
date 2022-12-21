@@ -10,69 +10,75 @@ from .label import flow_label
 from .sobel import sobel
 from .watershed import watershed
 
+def create_flow(
+    data: np.ndarray,
+    model: str = "DIS",
+    vr_steps: int = 0,
+    smoothing_passes: int = 0
+) -> "Flow":
+    """
+    Calculates forward and backward optical flow vectors for a given set of data
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Array of data to calculate optical flow for. Flow vectors are calculated
+            along the leading dimension
+    model : string, optional (default : 'DIS')
+        opencv optical flow model to use
+    vr_steps : int, optional (default : 0)
+        Number of variational refinement operations to perform
+    smoothing_step : int, optional (default : 0)
+        Number of smoothing operation between the forward and backward flow to
+            perform
+
+    Returns
+    -------
+    flow : Flow
+        A Flow object with optical flow vectors calculated from the input data
+    """
+    forward_flow, backward_flow = calculate_flow(
+        data,
+        model=model,
+        vr_steps=vr_steps,
+        smoothing_passes=smoothing_passes
+    )
+
+    flow = Flow(forward_flow, backward_flow)
+
+    return flow
+
 class Flow:
     """
     Class to perform semi-lagrangian operations using optical flow
     """
     def __init__(
         self,
-        data: np.ndarray,
-        model: str = "DIS",
-        vr_steps: int = 0,
-        smoothing_passes: int = 0
+        forward_flow: np.ndarray,
+        backward_flow: np.ndarray
     ) -> None:
         """
         Initialise the flow object with a data array and calculate the optical
             flow vectors for that array
         """
-        self.shape = data.shape
-        self.forward_flow, self.backward_flow = self.calculate_flow(
-            data,
-            model=model,
-            vr_steps=vr_steps,
-            smoothing_passes=smoothing_passes
-        )
+        if forward_flow.shape != backward_flow.shape:
+            raise ValueError("Forward and backward flow vector arrays must have the same shape")
+        self.shape = forward_flow.shape[:-1]
+        self.forward_flow = forward_flow
+        self.backward_flow = backward_flow
 
-    def calculate_flow(
-        self,
-        data: np.ndarray,
-        model: str = "DIS",
-        vr_steps: int = 0,
-        smoothing_passes: int = 0
-    ) -> tuple[np.ndarray[float], np.ndarray[float]]:
+    @property
+    def flow(self) -> tuple[np.ndarray, np.ndarray]:
         """
-        Calculates forward and backward optical flow vectors for a given set of data
-
-        Parameters
-        ----------
-        data : numpy.ndarray
-            Array of data to calculate optical flow for. Flow vectors are calculated
-                along the leading dimension
-        model : string, optional (default : 'DIS')
-            opencv optical flow model to use
-        vr_steps : int, optional (default : 0)
-            Number of variational refinement operations to perform
-        smoothing_step : int, optional (default : 0)
-            Number of smoothing operation between the forward and backward flow to
-                perform
-        
-        Returns
-        -------
-        forward_flow : numpy.ndarray
-            Array of optical flow vectors acting forward along the leading dimension
-                of data
-        backward_flow : numpy.ndarray
-            Array of optical flow vectors acting backwards along the leading
-                dimension of data
+        Return the flow vectors
         """
-        forward_flow, backward_flow = calculate_flow(
-            data,
-            model=model,
-            vr_steps=vr_steps,
-            smoothing_passes=smoothing_passes
-        )
+        return self.forward_flow, self.backward_flow
 
-        return forward_flow, backward_flow
+    def __getitem__(self, items) -> "Flow":
+        """
+        Return a subset of the flow object
+        """
+        return Flow(self.forward_flow[items], self.backward_flow[items])
 
     def convolve(
         self,
