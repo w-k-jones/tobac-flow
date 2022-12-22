@@ -8,7 +8,7 @@ from skimage.morphology._util import (_validate_connectivity,
 from skimage.util import crop, regular_seeds
 from skimage.segmentation._watershed import _validate_inputs
 
-from ._watershed import watershed_raveled
+from tobac_flow._watershed import watershed_raveled
 
 def watershed(
     forward_flow: np.ndarray,

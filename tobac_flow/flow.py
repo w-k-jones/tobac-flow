@@ -5,10 +5,10 @@ from scipy import ndimage as ndi
 import warnings
 from typing import Callable
 
-from .convolve import warp_flow, convolve
-from .label import flow_label
-from .sobel import sobel
-from .watershed import watershed
+from tobac_flow.convolve import warp_flow, convolve
+from tobac_flow.label import flow_label
+from tobac_flow.sobel import sobel
+from tobac_flow.watershed import watershed
 
 def create_flow(
     data: np.ndarray,
@@ -310,23 +310,27 @@ flow_flags = {'default':0, 'gaussian':cv2.OPTFLOW_FARNEBACK_GAUSSIAN}
 """
 Dicts to convert keyword inputs to opencv flags for remap keywords
 """
-border_modes = {'constant':cv2.BORDER_CONSTANT,
-                'nearest':cv2.BORDER_REPLICATE,
-                'reflect':cv2.BORDER_REFLECT,
-                'mirror':cv2.BORDER_REFLECT_101,
-                'wrap':cv2.BORDER_WRAP,
-                'isolated':cv2.BORDER_ISOLATED,
-                'transparent':cv2.BORDER_TRANSPARENT}
+border_modes = {
+    'constant':cv2.BORDER_CONSTANT,
+    'nearest':cv2.BORDER_REPLICATE,
+    'reflect':cv2.BORDER_REFLECT,
+    'mirror':cv2.BORDER_REFLECT_101,
+    'wrap':cv2.BORDER_WRAP,
+    'isolated':cv2.BORDER_ISOLATED,
+    'transparent':cv2.BORDER_TRANSPARENT
+}
 
-interp_modes = {'nearest':cv2.INTER_NEAREST,
-                'linear':cv2.INTER_LINEAR,
-                'cubic':cv2.INTER_CUBIC,
-                'lanczos':cv2.INTER_LANCZOS4}
+interp_modes = {
+    'nearest':cv2.INTER_NEAREST,
+    'linear':cv2.INTER_LINEAR,
+    'cubic':cv2.INTER_CUBIC,
+    'lanczos':cv2.INTER_LANCZOS4
+}
 
 # Let's create a new optical_flow derivation function
 vr_model = cv2.VariationalRefinement.create()
 
-def get_of_model(model: str) -> cv2.DenseOpticalFlow:
+def select_of_model(model: str) -> cv2.DenseOpticalFlow:
     """
     Initiates an opencv optical flow model
 
@@ -355,6 +359,7 @@ def get_of_model(model: str) -> cv2.DenseOpticalFlow:
         of_model = cv2.DISOpticalFlow.create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM)
         of_model.setUseSpatialPropagation(True)
     elif model == "DenseRLOF":
+        raise NotImplementedError("DenseRLOF requires multi-channel input which is currently not implemented")
         of_model = cv2.optflow.createOptFlow_DenseRLOF()
     elif model == "DualTVL1":
         of_model = cv2.optflow.createOptFlow_DualTVL1()
@@ -403,7 +408,7 @@ def calculate_flow(
     forward_flow = np.full(data.shape+(2,), np.nan, dtype=np.float32)
     backward_flow = np.full(data.shape+(2,), np.nan, dtype=np.float32)
 
-    of_model = get_of_model(model)
+    of_model = select_of_model(model)
 
     for i in range(data.shape[0]-1):
         prev_frame = to_8bit(data[i], vmin, vmax)
@@ -449,7 +454,9 @@ def warp_flow(img: np.ndarray, flow: np.ndarray) -> np.ndarray:
     locs = flow.copy()
     locs[:,:,0] += np.arange(w)
     locs[:,:,1] += np.arange(h)[:,np.newaxis]
-    res = cv2.remap(img, locs, None, cv2.INTER_LINEAR)
+    res = cv2.remap(
+        img, locs, None, cv2.INTER_LINEAR, None, cv2.BORDER_CONSTANT, np.nan
+    )
     return res
 
 def calculate_flow_frame(
@@ -488,11 +495,35 @@ def smooth_flow_step(
     Smooth a set of flow vectors by warping and averaging the corresponding
         forward and backward vectors
     """
-    forward_flow, backward_flow = (np.nanmean([forward_flow,
-                                               np.stack([-warp_flow(backward_flow[...,0], forward_flow),
-                                                         -warp_flow(backward_flow[...,1], forward_flow)], -1)], 0),
-                                   np.nanmean([backward_flow,
-                                               np.stack([-warp_flow(forward_flow[...,0], backward_flow),
-                                                         -warp_flow(forward_flow[...,1], backward_flow)], -1)], 0))
+    # This is a complete mess, we should clean it up
+    # For now I've expanded it to see what's actually happening
+    forward_flow, backward_flow = (
+        np.nanmean(
+            [
+                forward_flow,
+                np.stack(
+                    [
+                        -warp_flow(backward_flow[...,0], forward_flow),
+                        -warp_flow(backward_flow[...,1], forward_flow)
+                    ],
+                    -1
+                )
+            ],
+            0
+        ),
+        np.nanmean(
+            [
+                backward_flow,
+                np.stack(
+                    [
+                        -warp_flow(forward_flow[...,0], backward_flow),
+                        -warp_flow(forward_flow[...,1], backward_flow)
+                    ],
+                    -1
+                )
+            ],
+            0
+        )
+    )
 
     return forward_flow, backward_flow
