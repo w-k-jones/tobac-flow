@@ -8,10 +8,14 @@ from scipy import stats
 from tobac_flow import io, abi
 from tobac_flow.flow import Flow
 from tobac_flow.dataloader import goes_dataloader
-from tobac_flow.dataset import get_time_diff_from_coord, add_dataarray_to_ds, create_dataarray
-from tobac_flow.analysis import (get_label_stats, apply_weighted_func_to_labels,
-                                 weighted_statistics_on_labels, find_object_lengths, remap_labels,
-                                 labeled_comprehension, mask_labels)
+from tobac_flow.dataset import (
+    get_time_diff_from_coord, add_dataarray_to_ds, create_dataarray
+)
+from tobac_flow.analysis import (
+    get_label_stats, apply_weighted_func_to_labels,
+    weighted_statistics_on_labels, find_object_lengths, remap_labels,
+    labeled_comprehension, mask_labels
+)
 from tobac_flow.detection import get_curvature_filter, get_growth_rate
 from tobac_flow.label import slice_labels
 
@@ -73,7 +77,7 @@ def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_p
                                             n_pad_files=t_offset+1,
                                             x0=x0, x1=x1, y0=y0, y1=y1,
                                             return_new_ds=True,
-                                            satellite=16,
+                                            satellite=satellite,
                                             product='MCMIP',
                                             view='C',
                                             mode=[3,4,6],

@@ -359,8 +359,8 @@ def select_of_model(model: str) -> cv2.DenseOpticalFlow:
         of_model = cv2.DISOpticalFlow.create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM)
         of_model.setUseSpatialPropagation(True)
     elif model == "DenseRLOF":
-        raise NotImplementedError("DenseRLOF requires multi-channel input which is currently not implemented")
         of_model = cv2.optflow.createOptFlow_DenseRLOF()
+        raise NotImplementedError("DenseRLOF requires multi-channel input which is currently not implemented")
     elif model == "DualTVL1":
         of_model = cv2.optflow.createOptFlow_DualTVL1()
     else:
