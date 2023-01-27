@@ -208,7 +208,7 @@ def _find_abi_blobs(date, satellite=16, product='Rad', view='C', mode=3, channel
     level = 'L1b' if product == 'Rad' else 'L2'
 
     blob_path = 'ABI-%s-%s%.1s/%04d/%03d/%02d/' % (level, product, view, date.year, doy, date.hour)
-    if product == 'Rad' or product == 'CMI':
+    if product == 'Rad' or product == 'CMIP':
         blob_prefix = 'OR_ABI-%s-%s%s-M%1dC%02d_G%2d_s' % (level, product, view, mode, channel, satellite)
     else:
         blob_prefix = 'OR_ABI-%s-%s%s-M%1d_G%2d_s' % (level, product, view, mode, satellite)
@@ -302,7 +302,7 @@ def download_blob(blob, save_dir, replicate_path=True,
             except OSError:
                 if n_attempts>1:
 
-                        _download_a_blob(blob, save_dir, replicate_path=replicate_path,
+                        download_blob(blob, save_dir, replicate_path=replicate_path,
                                          check_download=check_download,
                                          n_attempts=n_attempts-1,
                                          clobber=clobber)
@@ -311,7 +311,7 @@ def download_blob(blob, save_dir, replicate_path=True,
             if check_download and not _check_if_file_exists_and_is_valid(save_path, blob,
                                                                          remove_corrupt=True):
                 if n_attempts>1:
-                    _download_a_blob(blob, save_dir, replicate_path=replicate_path,
+                    download_blob(blob, save_dir, replicate_path=replicate_path,
                                     check_download=check_download,
                                     n_attempts=n_attempts-1,
                                     clobber=clobber)
