@@ -15,8 +15,11 @@ from tobac_flow.dataloader import find_seviri_files
 
 
 import argparse
-parser = argparse.ArgumentParser(description="""Validate detected DCCs using GOES-16 GLM data""")
-parser.add_argument('file', help='File to validate', type=str)
+
+parser = argparse.ArgumentParser(
+    description="""Validate detected DCCs using GOES-16 GLM data"""
+)
+parser.add_argument("file", help="File to validate", type=str)
 args = parser.parse_args()
 
 fname = args.file
@@ -25,16 +28,24 @@ dataset = xr.open_dataset(fname)
 start_date = parse_date((fname).split("_S")[-1].split("_E")[0], fuzzy=True)
 end_date = parse_date((fname).split("_E")[-1].split("_X")[0], fuzzy=True)
 
-area_stack = np.repeat(dataset.area.data[np.newaxis,...], dataset.t.size, 0)
+area_stack = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
 
-flx_files = find_seviri_files(start_date, end_date, n_pad_files=2, file_type="flux",
-                                 file_path="/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/flx")
+flx_files = find_seviri_files(
+    start_date,
+    end_date,
+    n_pad_files=2,
+    file_type="flux",
+    file_path="/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/flx",
+)
 
 flx_ds = xr.open_mfdataset(flx_files, combine="nested", concat_dim="t")
 
 flx_ds = flx_ds.assign_coords(t=[parse_date(f[-46:-34]) for f in flx_files])
 
-def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, dtype=None):
+
+def weighted_statistics_on_labels(
+    labels, da, cld_weights, name=None, dim=None, dtype=None
+):
     if not dim:
         dim = labels.name.split("_label")[0]
     if dtype == None:
@@ -58,75 +69,105 @@ def weighted_statistics_on_labels(labels, da, cld_weights, name=None, dim=None, 
 
         return np.average(values, weights=weights)
 
-    weighted_std = lambda x, w : weighted_average((x - weighted_average(x, w))**2, w)**0.5
-    weighted_stats = lambda x, w : [weighted_average(x, w),
-                                    weighted_std(x, w),
-                                    np.nanmax(x[w>0]),
-                                    np.nanmin(x[w>0])] if np.nansum(w>0) else [np.nan, np.nan, np.nan, np.nan]
+    weighted_std = (
+        lambda x, w: weighted_average((x - weighted_average(x, w)) ** 2, w) ** 0.5
+    )
+    weighted_stats = (
+        lambda x, w: [
+            weighted_average(x, w),
+            weighted_std(x, w),
+            np.nanmax(x[w > 0]),
+            np.nanmin(x[w > 0]),
+        ]
+        if np.nansum(w > 0)
+        else [np.nan, np.nan, np.nan, np.nan]
+    )
 
-    stats_array = apply_weighted_func_to_labels(labels.data,
-                                                da.data,
-                                                cld_weights,
-                                                weighted_stats)
+    stats_array = apply_weighted_func_to_labels(
+        labels.data, da.data, cld_weights, weighted_stats
+    )
 
-    mean_da = create_dataarray(stats_array[...,0],
-                               (dim,),
-                               f"{name}_{da.name}_mean",
-                               long_name=f"Mean of {long_name} for each {dim}",
-                               units=units,
-                               dtype=dtype)
+    mean_da = create_dataarray(
+        stats_array[..., 0],
+        (dim,),
+        f"{name}_{da.name}_mean",
+        long_name=f"Mean of {long_name} for each {dim}",
+        units=units,
+        dtype=dtype,
+    )
 
-    std_da = create_dataarray(stats_array[...,1],
-                              (dim,),
-                              f"{name}_{da.name}_std",
-                              long_name=f"Standard deviation of {long_name} for each {dim}",
-                              units=units,
-                              dtype=dtype)
-    max_da = create_dataarray(stats_array[...,2],
-                              (dim,),
-                              f"{name}_{da.name}_max",
-                              long_name=f"Maximum of {long_name} for each {dim}",
-                              units=units,
-                              dtype=dtype)
-    min_da = create_dataarray(stats_array[...,3],
-                              (dim,),
-                              f"{name}_{da.name}_min",
-                              long_name=f"Minimum of {long_name} for each {dim}",
-                              units=units,
-                              dtype=dtype)
+    std_da = create_dataarray(
+        stats_array[..., 1],
+        (dim,),
+        f"{name}_{da.name}_std",
+        long_name=f"Standard deviation of {long_name} for each {dim}",
+        units=units,
+        dtype=dtype,
+    )
+    max_da = create_dataarray(
+        stats_array[..., 2],
+        (dim,),
+        f"{name}_{da.name}_max",
+        long_name=f"Maximum of {long_name} for each {dim}",
+        units=units,
+        dtype=dtype,
+    )
+    min_da = create_dataarray(
+        stats_array[..., 3],
+        (dim,),
+        f"{name}_{da.name}_min",
+        long_name=f"Minimum of {long_name} for each {dim}",
+        units=units,
+        dtype=dtype,
+    )
 
     return mean_da, std_da, max_da, min_da
 
+
 # toa_sw, toa_lw, toa_net
-toa_net = flx_ds.toa_swdn-flx_ds.toa_swup-flx_ds.toa_lwup
+toa_net = flx_ds.toa_swdn - flx_ds.toa_swup - flx_ds.toa_lwup
 # toa_net.attrs["name"] = toa_net
-toa_clr = flx_ds.toa_swdn-flx_ds.toa_swup_clr-flx_ds.toa_lwup_clr
+toa_clr = flx_ds.toa_swdn - flx_ds.toa_swup_clr - flx_ds.toa_lwup_clr
 # toa_clr.attrs["name"] = toa_cld
-toa_cld = toa_net-toa_clr
+toa_cld = toa_net - toa_clr
 # toa_cld.attrs["name"] = toa_cld
 toa_net = create_dataarray(toa_net.data, flx_ds.dims, "toa_net", units="")
 toa_cld = create_dataarray(toa_cld.data, flx_ds.dims, "toa_net_cre", units="")
 
-toa_swup_cld = create_dataarray(-flx_ds.toa_swup.data+flx_ds.toa_swup_clr, flx_ds.dims, "toa_swup_cre", units="")
-toa_lwup_cld = create_dataarray(-flx_ds.toa_lwup.data+flx_ds.toa_lwup_clr, flx_ds.dims, "toa_lwup_cre", units="")
+toa_swup_cld = create_dataarray(
+    -flx_ds.toa_swup.data + flx_ds.toa_swup_clr, flx_ds.dims, "toa_swup_cre", units=""
+)
+toa_lwup_cld = create_dataarray(
+    -flx_ds.toa_lwup.data + flx_ds.toa_lwup_clr, flx_ds.dims, "toa_lwup_cre", units=""
+)
 
 for field in (toa_swup_cld, toa_lwup_cld, toa_cld):
-    [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thick_anvil_label,
-                                                                              field.compute(),
-                                                                              area_stack,
-                                                                              name='thick_anvil',
-                                                                              dim='anvil',
-                                                                              dtype=np.float32)]
+    [
+        add_dataarray_to_ds(da, dataset)
+        for da in weighted_statistics_on_labels(
+            dataset.thick_anvil_label,
+            field.compute(),
+            area_stack,
+            name="thick_anvil",
+            dim="anvil",
+            dtype=np.float32,
+        )
+    ]
 
-    [add_dataarray_to_ds(da, dataset) for da in weighted_statistics_on_labels(dataset.thin_anvil_label,
-                                                                              field.compute(),
-                                                                              area_stack,
-                                                                              name='thin_anvil',
-                                                                              dim='anvil',
-                                                                              dtype=np.float32)]
+    [
+        add_dataarray_to_ds(da, dataset)
+        for da in weighted_statistics_on_labels(
+            dataset.thin_anvil_label,
+            field.compute(),
+            area_stack,
+            name="thin_anvil",
+            dim="anvil",
+            dtype=np.float32,
+        )
+    ]
 
-save_path = fname[:-3]+"_cre.nc"
-print(datetime.now(), 'Saving to %s' % (save_path), flush=True)
+save_path = fname[:-3] + "_cre.nc"
+print(datetime.now(), "Saving to %s" % (save_path), flush=True)
 # Add compression encoding
 comp = dict(zlib=True, complevel=5, shuffle=True)
 for var in dataset.data_vars:

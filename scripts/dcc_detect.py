@@ -13,19 +13,29 @@ from dateutil.parser import parse as parse_date
 from scipy import ndimage as ndi
 
 import argparse
-parser = argparse.ArgumentParser(description="""Detect and track DCCs in GOES-16 ABI data""")
-parser.add_argument('date', help='Date on which to start process', type=str)
-parser.add_argument('days', help='Number of days to process', type=float)
-parser.add_argument('-x0', help='Initial subset x location', default=0, type=int)
-parser.add_argument('-x1', help='End subset x location', default=2500, type=int)
-parser.add_argument('-y0', help='Initial subset y location', default=0, type=int)
-parser.add_argument('-y1', help='End subset y location', default=1500, type=int)
-parser.add_argument('-sd', help='Directory to save preprocess files',
-                    default='../data/dcc_detect', type=str)
-parser.add_argument('-gd', help='GOES directory',
-                    default='../data/GOES16', type=str)
-parser.add_argument('--extend_path', help='Extend save directory using year/month/day subdirectories',
-                    default=True, type=bool)
+
+parser = argparse.ArgumentParser(
+    description="""Detect and track DCCs in GOES-16 ABI data"""
+)
+parser.add_argument("date", help="Date on which to start process", type=str)
+parser.add_argument("days", help="Number of days to process", type=float)
+parser.add_argument("-x0", help="Initial subset x location", default=0, type=int)
+parser.add_argument("-x1", help="End subset x location", default=2500, type=int)
+parser.add_argument("-y0", help="Initial subset y location", default=0, type=int)
+parser.add_argument("-y1", help="End subset y location", default=1500, type=int)
+parser.add_argument(
+    "-sd",
+    help="Directory to save preprocess files",
+    default="../data/dcc_detect",
+    type=str,
+)
+parser.add_argument("-gd", help="GOES directory", default="../data/GOES16", type=str)
+parser.add_argument(
+    "--extend_path",
+    help="Extend save directory using year/month/day subdirectories",
+    default=True,
+    type=bool,
+)
 
 start_time = datetime.now()
 args = parser.parse_args()
@@ -39,14 +49,14 @@ y1 = int(args.y1)
 
 save_dir = args.sd
 # if args.extend_path:
-    # save_dir = os.path.join(save_dir, start_date.strftime('%Y/%m/%d'))
+# save_dir = os.path.join(save_dir, start_date.strftime('%Y/%m/%d'))
 if not os.path.isdir(save_dir):
     try:
         os.makedirs(save_dir)
     except (FileExistsError, OSError):
         pass
 
-save_name = 'detected_dccs_%s.nc' % (start_date.strftime('%Y%m%d_%H0000'))
+save_name = "detected_dccs_%s.nc" % (start_date.strftime("%Y%m%d_%H0000"))
 
 save_path = os.path.join(save_dir, save_name)
 
@@ -57,71 +67,101 @@ if not os.path.isdir(goes_data_path):
     except (FileExistsError, OSError):
         pass
 
+
 def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
     from tobac_flow import io, abi, glm
     from tobac_flow.flow import Flow
-    from tobac_flow.dataset import get_datetime_from_coord, get_time_diff_from_coord, create_new_goes_ds, add_dataarray_to_ds, create_dataarray
+    from tobac_flow.dataset import (
+        get_datetime_from_coord,
+        get_time_diff_from_coord,
+        create_new_goes_ds,
+        add_dataarray_to_ds,
+        create_dataarray,
+    )
     from tobac_flow.detection import detect_growth_markers, edge_watershed
-    from tobac_flow.analysis import filter_labels_by_length, filter_labels_by_length_and_mask, apply_func_to_labels, apply_weighted_func_to_labels, get_label_stats, get_stats_for_labels, slice_label_da
+    from tobac_flow.analysis import (
+        filter_labels_by_length,
+        filter_labels_by_length_and_mask,
+        apply_func_to_labels,
+        apply_weighted_func_to_labels,
+        get_label_stats,
+        get_stats_for_labels,
+        slice_label_da,
+    )
     from tobac_flow.validation import get_min_dist_for_objects, get_marker_distance
     from tobac_flow.abi import get_abi_proj
 
-    print(datetime.now(),'Loading ABI data', flush=True)
-    print('Saving data to:',goes_data_path, flush=True)
-    dates = pd.date_range(start_date, end_date, freq='H', closed='left').to_pydatetime()
-    abi_files = io.find_abi_files(dates, satellite=16, product='MCMIP',
-                                  view='C', mode=[3,4,6], save_dir=goes_data_path,
-                                  replicate_path=True, check_download=True,
-                                  n_attempts=1, download_missing=True, verbose=True,
-                                  min_storage=2**30)
+    print(datetime.now(), "Loading ABI data", flush=True)
+    print("Saving data to:", goes_data_path, flush=True)
+    dates = pd.date_range(start_date, end_date, freq="H", closed="left").to_pydatetime()
+    abi_files = io.find_abi_files(
+        dates,
+        satellite=16,
+        product="MCMIP",
+        view="C",
+        mode=[3, 4, 6],
+        save_dir=goes_data_path,
+        replicate_path=True,
+        check_download=True,
+        n_attempts=1,
+        download_missing=True,
+        verbose=True,
+        min_storage=2**30,
+    )
 
     # Test with some multichannel data
-    ds_slice = {'x':slice(x0,x1), 'y':slice(y0,y1)}
+    ds_slice = {"x": slice(x0, x1), "y": slice(y0, y1)}
     # Load a stack of goes datasets using xarray. Select a region over Northern Florida. (full file size in 1500x2500 pixels)
-    with xr.open_mfdataset(abi_files, concat_dim='t', combine='nested').isel(ds_slice) as goes_ds:
+    with xr.open_mfdataset(abi_files, concat_dim="t", combine="nested").isel(
+        ds_slice
+    ) as goes_ds:
         goes_dates = get_datetime_from_coord(goes_ds.t)
         # Check for invalid dates (which are given a date in 2000)
-        wh_valid_dates = [gd > datetime(2001,1,1) for gd in goes_dates]
+        wh_valid_dates = [gd > datetime(2001, 1, 1) for gd in goes_dates]
         if np.any(np.logical_not(wh_valid_dates)):
             warnings.warn("Missing timestep found, removing")
-            goes_ds = goes_ds.isel({'t':wh_valid_dates})
+            goes_ds = goes_ds.isel({"t": wh_valid_dates})
 
-        print('%d files found'%len(abi_files), flush=True)
+        print("%d files found" % len(abi_files), flush=True)
 
-        if len(abi_files)==0:
+        if len(abi_files) == 0:
             raise ValueError("No ABI files discovered, aborting")
 
         # Extract fields and load into memory
-        print(datetime.now(),'Loading WVD', flush=True)
+        print(datetime.now(), "Loading WVD", flush=True)
         wvd = goes_ds.CMI_C08 - goes_ds.CMI_C10
         if hasattr(wvd, "compute"):
             wvd = wvd.compute()
-        print(datetime.now(),'Loading BT', flush=True)
+        print(datetime.now(), "Loading BT", flush=True)
         bt = goes_ds.CMI_C13
         if hasattr(bt, "compute"):
             bt = bt.compute()
-        print(datetime.now(),'Loading SWD', flush=True)
+        print(datetime.now(), "Loading SWD", flush=True)
         swd = goes_ds.CMI_C13 - goes_ds.CMI_C15
         if hasattr(swd, "compute"):
             swd = swd.compute()
 
-        wh_all_missing = np.any([np.all(np.isnan(wvd), (1,2)),
-                                 np.all(np.isnan(bt), (1,2)),
-                                 np.all(np.isnan(swd), (1,2))],
-                                 0)
+        wh_all_missing = np.any(
+            [
+                np.all(np.isnan(wvd), (1, 2)),
+                np.all(np.isnan(bt), (1, 2)),
+                np.all(np.isnan(swd), (1, 2)),
+            ],
+            0,
+        )
         if np.any(wh_all_missing):
             warnings.warn("Missing data found at timesteps")
-            goes_ds = goes_ds.isel({'t':np.logical_not(wh_all_missing)})
+            goes_ds = goes_ds.isel({"t": np.logical_not(wh_all_missing)})
 
-            print(datetime.now(),'Loading WVD', flush=True)
+            print(datetime.now(), "Loading WVD", flush=True)
             wvd = goes_ds.CMI_C08 - goes_ds.CMI_C10
             if hasattr(wvd, "compute"):
                 wvd = wvd.compute()
-            print(datetime.now(),'Loading BT', flush=True)
+            print(datetime.now(), "Loading BT", flush=True)
             bt = goes_ds.CMI_C13
             if hasattr(bt, "compute"):
                 bt = bt.compute()
-            print(datetime.now(),'Loading SWD', flush=True)
+            print(datetime.now(), "Loading SWD", flush=True)
             swd = goes_ds.CMI_C13 - goes_ds.CMI_C15
             if hasattr(swd, "compute"):
                 swd = swd.compute()
@@ -129,7 +169,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
         # Now we have all the valid timesteps, check for gaps in the time series
         goes_timedelta = get_time_diff_from_coord(goes_ds.t)
 
-        if np.any([td>15.5 for td in goes_timedelta]):
+        if np.any([td > 15.5 for td in goes_timedelta]):
             raise ValueError("Time gaps in abi data greater than 15 minutes, aborting")
 
         wvd.name = "WVD"
@@ -149,43 +189,73 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
 
         dataset = create_new_goes_ds(goes_ds)
 
-    print(datetime.now(),'Calculating flow field', flush=True)
-    flow_kwargs = {'pyr_scale':0.5, 'levels':5, 'winsize':16, 'iterations':3,
-                   'poly_n':5, 'poly_sigma':1.1, 'flags':256}
+    print(datetime.now(), "Calculating flow field", flush=True)
+    flow_kwargs = {
+        "pyr_scale": 0.5,
+        "levels": 5,
+        "winsize": 16,
+        "iterations": 3,
+        "poly_n": 5,
+        "poly_sigma": 1.1,
+        "flags": 256,
+    }
 
     flow = Flow(bt, flow_kwargs=flow_kwargs, smoothing_passes=3)
 
-    print(datetime.now(),'Detecting growth markers', flush=True)
+    print(datetime.now(), "Detecting growth markers", flush=True)
     wvd_growth, growth_markers = detect_growth_markers(flow, wvd)
 
-    print('Growth above threshold: area =', np.sum(wvd_growth>=0.5), flush=True)
-    print('Detected markers: area =', np.sum(growth_markers.data!=0), flush=True)
-    print('Detected markers: n =', growth_markers.data.max(), flush=True)
+    print("Growth above threshold: area =", np.sum(wvd_growth >= 0.5), flush=True)
+    print("Detected markers: area =", np.sum(growth_markers.data != 0), flush=True)
+    print("Detected markers: n =", growth_markers.data.max(), flush=True)
 
-    print(datetime.now(), 'Detecting thick anvil region', flush=True)
-    inner_watershed = edge_watershed(flow, wvd-swd+np.maximum(wvd_growth,0)*5, growth_markers!=0, -5, -15, verbose=True)
-    inner_labels = filter_labels_by_length_and_mask(flow.label(inner_watershed),
-                                                    growth_markers.data!=0, 3)
-    print('Detected thick anvils: area =', np.sum(inner_labels!=0), flush=True)
-    print('Detected thick anvils: n =', inner_labels.max(), flush=True)
+    print(datetime.now(), "Detecting thick anvil region", flush=True)
+    inner_watershed = edge_watershed(
+        flow,
+        wvd - swd + np.maximum(wvd_growth, 0) * 5,
+        growth_markers != 0,
+        -5,
+        -15,
+        verbose=True,
+    )
+    inner_labels = filter_labels_by_length_and_mask(
+        flow.label(inner_watershed), growth_markers.data != 0, 3
+    )
+    print("Detected thick anvils: area =", np.sum(inner_labels != 0), flush=True)
+    print("Detected thick anvils: n =", inner_labels.max(), flush=True)
 
-    print(datetime.now(), 'Detecting thin anvil region', flush=True)
-    outer_watershed = edge_watershed(flow, wvd+swd+np.maximum(wvd_growth,0)*5, inner_labels, 0, -10, verbose=True)
-    print('Detected thin anvils: area =', np.sum(outer_watershed!=0), flush=True)
+    print(datetime.now(), "Detecting thin anvil region", flush=True)
+    outer_watershed = edge_watershed(
+        flow,
+        wvd + swd + np.maximum(wvd_growth, 0) * 5,
+        inner_labels,
+        0,
+        -10,
+        verbose=True,
+    )
+    print("Detected thin anvils: area =", np.sum(outer_watershed != 0), flush=True)
 
     # Detect regions of warm WVD
-    s_struct = ndi.generate_binary_structure(2,1)[np.newaxis]
-    wvd_labels = flow.label(ndi.binary_opening(wvd>=-5, structure=s_struct))
-    wvd_labels = filter_labels_by_length_and_mask(wvd_labels, wvd.data>=-5, 3)
-    print("warm WVD regions: n =",wvd_labels.max(), flush=True)
+    s_struct = ndi.generate_binary_structure(2, 1)[np.newaxis]
+    wvd_labels = flow.label(ndi.binary_opening(wvd >= -5, structure=s_struct))
+    wvd_labels = filter_labels_by_length_and_mask(wvd_labels, wvd.data >= -5, 3)
+    print("warm WVD regions: n =", wvd_labels.max(), flush=True)
 
     # Get statistics about various properties of each label
-    print(datetime.now(), 'Preparing output', flush=True)
+    print(datetime.now(), "Preparing output", flush=True)
 
     # Growth value
-    add_dataarray_to_ds(create_dataarray(wvd_growth, ('t','y','x'), "growth_rate",
-                                         long_name="detected cloud top cooling rate", units="K/min",
-                                         dtype=np.float32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            wvd_growth,
+            ("t", "y", "x"),
+            "growth_rate",
+            long_name="detected cloud top cooling rate",
+            units="K/min",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
 
     # GLM Flash counts
     # add_dataarray_to_ds(create_dataarray(glm_grid.data, ('t','y','x'), "glm_flashes",
@@ -193,75 +263,154 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
     #                                      dtype=np.int32), dataset)
 
     # Detected growth_regions
-    add_dataarray_to_ds(create_dataarray(growth_markers, ('t','y','x'), "core_label",
-                                         long_name="labels for detected cores", units="",
-                                         dtype=np.int32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            growth_markers,
+            ("t", "y", "x"),
+            "core_label",
+            long_name="labels for detected cores",
+            units="",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
-    dataset.coords["core"] = np.arange(1, growth_markers.max()+1, dtype=np.int32)
+    dataset.coords["core"] = np.arange(1, growth_markers.max() + 1, dtype=np.int32)
 
     get_label_stats(dataset.core_label, dataset)
 
     for field in (bt, wvd, swd, dataset.growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.core_label, field, dim='core')]
+        [
+            add_dataarray_to_ds(da, dataset)
+            for da in get_stats_for_labels(dataset.core_label, field, dim="core")
+        ]
 
     core_step_label = slice_label_da(dataset.core_label)
     add_dataarray_to_ds(core_step_label, dataset)
-    dataset.coords["core_step"] = np.arange(1, core_step_label.max()+1, dtype=np.int32)
+    dataset.coords["core_step"] = np.arange(
+        1, core_step_label.max() + 1, dtype=np.int32
+    )
 
     # Now get individual step
     for field in (bt, wvd, swd, dataset.growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.core_step_label, field, dim='core_step')]
+        [
+            add_dataarray_to_ds(da, dataset)
+            for da in get_stats_for_labels(
+                dataset.core_step_label, field, dim="core_step"
+            )
+        ]
 
     # Now we have stats of each field for each core and each core time step
     # Next get other data: weighted x,y,lat,lon locations for each step, t per step
-    tt, yy, xx = np.meshgrid(dataset.t, dataset.y, dataset.x, indexing='ij')
+    tt, yy, xx = np.meshgrid(dataset.t, dataset.y, dataset.x, indexing="ij")
 
-    core_step_x = apply_weighted_func_to_labels(core_step_label.data, xx,
-                                                np.maximum(dataset.growth_rate.data-0.25, 0.01),
-                                                lambda a,b: np.average(a, weights=b))
-    add_dataarray_to_ds(create_dataarray(core_step_x, ('core_step',), "core_step_x",
-                                         long_name="x location of core at time step",
-                                         dtype=np.float64), dataset)
+    core_step_x = apply_weighted_func_to_labels(
+        core_step_label.data,
+        xx,
+        np.maximum(dataset.growth_rate.data - 0.25, 0.01),
+        lambda a, b: np.average(a, weights=b),
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_step_x,
+            ("core_step",),
+            "core_step_x",
+            long_name="x location of core at time step",
+            dtype=np.float64,
+        ),
+        dataset,
+    )
 
-    core_step_y = apply_weighted_func_to_labels(core_step_label.data, yy,
-                                                np.maximum(dataset.growth_rate.data-0.25, 0.01),
-                                                lambda a,b: np.average(a, weights=b))
-    add_dataarray_to_ds(create_dataarray(core_step_y, ('core_step',), "core_step_y",
-                                         long_name="y location of core at time step",
-                                         dtype=np.float64), dataset)
+    core_step_y = apply_weighted_func_to_labels(
+        core_step_label.data,
+        yy,
+        np.maximum(dataset.growth_rate.data - 0.25, 0.01),
+        lambda a, b: np.average(a, weights=b),
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_step_y,
+            ("core_step",),
+            "core_step_y",
+            long_name="y location of core at time step",
+            dtype=np.float64,
+        ),
+        dataset,
+    )
 
-    core_step_t = apply_func_to_labels(core_step_label.data, tt,
-                                       np.nanmin)
-    add_dataarray_to_ds(create_dataarray(core_step_t, ('core_step',), "core_step_t",
-                                         long_name="time of core at step",
-                                         dtype="datetime64[ns]"), dataset)
+    core_step_t = apply_func_to_labels(core_step_label.data, tt, np.nanmin)
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_step_t,
+            ("core_step",),
+            "core_step_t",
+            long_name="time of core at step",
+            dtype="datetime64[ns]",
+        ),
+        dataset,
+    )
 
-    core_start_t = apply_func_to_labels(dataset.core_label.data, tt,
-                                       np.nanmin)
-    add_dataarray_to_ds(create_dataarray(core_start_t, ('core',), "core_start_t",
-                                         long_name="initial detection time of core",
-                                         dtype="datetime64[ns]"), dataset)
+    core_start_t = apply_func_to_labels(dataset.core_label.data, tt, np.nanmin)
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_start_t,
+            ("core",),
+            "core_start_t",
+            long_name="initial detection time of core",
+            dtype="datetime64[ns]",
+        ),
+        dataset,
+    )
 
-    core_end_t = apply_func_to_labels(dataset.core_label.data, tt,
-                                       np.nanmax)
-    add_dataarray_to_ds(create_dataarray(core_end_t, ('core',), "core_end_t",
-                                         long_name="final detection time of core",
-                                         dtype="datetime64[ns]"), dataset)
+    core_end_t = apply_func_to_labels(dataset.core_label.data, tt, np.nanmax)
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_end_t,
+            ("core",),
+            "core_end_t",
+            long_name="final detection time of core",
+            dtype="datetime64[ns]",
+        ),
+        dataset,
+    )
 
-    add_dataarray_to_ds(create_dataarray(core_end_t-core_start_t, ('core',), "core_lifetime",
-                                         long_name="total lifetime of core",
-                                         dtype="timedelta64[ns]"), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_end_t - core_start_t,
+            ("core",),
+            "core_lifetime",
+            long_name="total lifetime of core",
+            dtype="timedelta64[ns]",
+        ),
+        dataset,
+    )
 
     p = get_abi_proj(dataset)
-    core_step_lons, core_step_lats = p(core_step_x*dataset.goes_imager_projection.perspective_point_height,
-                                       core_step_y*dataset.goes_imager_projection.perspective_point_height,
-                                       inverse=True)
-    add_dataarray_to_ds(create_dataarray(core_step_lons, ('core_step',), "core_step_lon",
-                                         long_name="longitude of core at time step",
-                                         dtype=np.float32), dataset)
-    add_dataarray_to_ds(create_dataarray(core_step_lats, ('core_step',), "core_step_lat",
-                                         long_name="latitude of core at time step",
-                                         dtype=np.float32), dataset)
+    core_step_lons, core_step_lats = p(
+        core_step_x * dataset.goes_imager_projection.perspective_point_height,
+        core_step_y * dataset.goes_imager_projection.perspective_point_height,
+        inverse=True,
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_step_lons,
+            ("core_step",),
+            "core_step_lon",
+            long_name="longitude of core at time step",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_step_lats,
+            ("core_step",),
+            "core_step_lat",
+            long_name="latitude of core at time step",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
 
     # core_step_glm_count = apply_func_to_labels(core_step_label.data,
     #                                            dataset.glm_flashes.data, np.nansum)
@@ -275,104 +424,227 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
     #                                      long_name="total number of GLM flashes for core",
     #                                      dtype=np.int32), dataset)
     # Get area in 3d
-    aa = np.meshgrid(dataset.t, dataset.area, indexing='ij')[1].reshape(tt.shape)
+    aa = np.meshgrid(dataset.t, dataset.area, indexing="ij")[1].reshape(tt.shape)
 
     core_step_pixels = np.bincount(dataset.core_step_label.data.ravel())[1:]
-    add_dataarray_to_ds(create_dataarray(core_step_pixels, ('core_step',), "core_step_pixels",
-                                         long_name="number of pixels for core at time step",
-                                         dtype=np.int32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_step_pixels,
+            ("core_step",),
+            "core_step_pixels",
+            long_name="number of pixels for core at time step",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
     core_total_pixels = np.bincount(dataset.core_label.data.ravel())[1:]
-    add_dataarray_to_ds(create_dataarray(core_total_pixels, ('core',), "core_total_pixels",
-                                         long_name="total number of pixels for core",
-                                         dtype=np.int32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_total_pixels,
+            ("core",),
+            "core_total_pixels",
+            long_name="total number of pixels for core",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
     core_step_area = apply_func_to_labels(dataset.core_step_label.data, aa, np.nansum)
-    add_dataarray_to_ds(create_dataarray(core_step_area, ('core_step',), "core_step_area",
-                                         long_name="area of core at time step",
-                                         dtype=np.float32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_step_area,
+            ("core_step",),
+            "core_step_area",
+            long_name="area of core at time step",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
 
     core_total_area = apply_func_to_labels(dataset.core_label.data, aa, np.nansum)
-    add_dataarray_to_ds(create_dataarray(core_total_area, ('core',), "core_total_area",
-                                         long_name="total area of core",
-                                         dtype=np.float32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_total_area,
+            ("core",),
+            "core_total_area",
+            long_name="total area of core",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
 
-    core_index_for_step = apply_func_to_labels(dataset.core_step_label.data,
-                                               dataset.core_label.data, np.nanmax)
-    add_dataarray_to_ds(create_dataarray(core_index_for_step, ('core_step',), "core_index_for_step",
-                                         long_name="core index for each core time step",
-                                         dtype=np.int32), dataset)
+    core_index_for_step = apply_func_to_labels(
+        dataset.core_step_label.data, dataset.core_label.data, np.nanmax
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_index_for_step,
+            ("core_step",),
+            "core_index_for_step",
+            long_name="core index for each core time step",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
     # Now for thick anvils
-    add_dataarray_to_ds(create_dataarray(inner_labels, ('t','y','x'), "thick_anvil_label",
-                                         long_name="labels for detected thick anvil regions", units="",
-                                         dtype=np.int32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            inner_labels,
+            ("t", "y", "x"),
+            "thick_anvil_label",
+            long_name="labels for detected thick anvil regions",
+            units="",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
-    dataset.coords["anvil"] = np.arange(1, inner_labels.max()+1, dtype=np.int32)
+    dataset.coords["anvil"] = np.arange(1, inner_labels.max() + 1, dtype=np.int32)
 
     get_label_stats(dataset.thick_anvil_label, dataset)
 
     for field in (bt, wvd, swd, dataset.growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thick_anvil_label, field, dim='anvil')]
+        [
+            add_dataarray_to_ds(da, dataset)
+            for da in get_stats_for_labels(
+                dataset.thick_anvil_label, field, dim="anvil"
+            )
+        ]
 
     thick_anvil_step_label = slice_label_da(dataset.thick_anvil_label)
     add_dataarray_to_ds(thick_anvil_step_label, dataset)
-    dataset.coords["anvil_step"] = np.arange(1, thick_anvil_step_label.max()+1, dtype=np.int32)
+    dataset.coords["anvil_step"] = np.arange(
+        1, thick_anvil_step_label.max() + 1, dtype=np.int32
+    )
 
     # Now get individual step
     for field in (bt, wvd, swd, dataset.growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thick_anvil_step_label, field, dim='anvil_step')]
+        [
+            add_dataarray_to_ds(da, dataset)
+            for da in get_stats_for_labels(
+                dataset.thick_anvil_step_label, field, dim="anvil_step"
+            )
+        ]
 
     # Now we have stats of each field for each core and each core time step
     # Next get other data: weighted x,y,lat,lon locations for each step, t per step
-    tt, yy, xx = np.meshgrid(dataset.t, dataset.y, dataset.x, indexing='ij')
+    tt, yy, xx = np.meshgrid(dataset.t, dataset.y, dataset.x, indexing="ij")
 
-    thick_anvil_step_x = apply_weighted_func_to_labels(thick_anvil_step_label.data, xx,
-                                                np.maximum(wvd.data+15, 0.01),
-                                                lambda a,b: np.average(a, weights=b))
-    add_dataarray_to_ds(create_dataarray(thick_anvil_step_x, ('anvil_step',), "thick_anvil_step_x",
-                                         long_name="x location of thick_anvil at time step",
-                                         dtype=np.float64), dataset)
+    thick_anvil_step_x = apply_weighted_func_to_labels(
+        thick_anvil_step_label.data,
+        xx,
+        np.maximum(wvd.data + 15, 0.01),
+        lambda a, b: np.average(a, weights=b),
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_step_x,
+            ("anvil_step",),
+            "thick_anvil_step_x",
+            long_name="x location of thick_anvil at time step",
+            dtype=np.float64,
+        ),
+        dataset,
+    )
 
-    thick_anvil_step_y = apply_weighted_func_to_labels(thick_anvil_step_label.data, yy,
-                                                np.maximum(dataset.growth_rate.data-0.25, 0.01),
-                                                lambda a,b: np.average(a, weights=b))
-    add_dataarray_to_ds(create_dataarray(thick_anvil_step_y, ('anvil_step',), "thick_anvil_step_y",
-                                         long_name="y location of thick_anvil at time step",
-                                         dtype=np.float64), dataset)
+    thick_anvil_step_y = apply_weighted_func_to_labels(
+        thick_anvil_step_label.data,
+        yy,
+        np.maximum(dataset.growth_rate.data - 0.25, 0.01),
+        lambda a, b: np.average(a, weights=b),
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_step_y,
+            ("anvil_step",),
+            "thick_anvil_step_y",
+            long_name="y location of thick_anvil at time step",
+            dtype=np.float64,
+        ),
+        dataset,
+    )
 
-    thick_anvil_step_t = apply_func_to_labels(thick_anvil_step_label.data, tt,
-                                       np.nanmin)
-    add_dataarray_to_ds(create_dataarray(thick_anvil_step_t, ('anvil_step',), "thick_anvil_step_t",
-                                         long_name="time of thick_anvil at step",
-                                         dtype="datetime64[ns]"), dataset)
+    thick_anvil_step_t = apply_func_to_labels(
+        thick_anvil_step_label.data, tt, np.nanmin
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_step_t,
+            ("anvil_step",),
+            "thick_anvil_step_t",
+            long_name="time of thick_anvil at step",
+            dtype="datetime64[ns]",
+        ),
+        dataset,
+    )
 
-    thick_anvil_start_t = apply_func_to_labels(dataset.thick_anvil_label.data, tt,
-                                       np.nanmin)
-    add_dataarray_to_ds(create_dataarray(thick_anvil_start_t, ('anvil',), "thick_anvil_start_t",
-                                         long_name="initial detection time of thick_anvil",
-                                         dtype="datetime64[ns]"), dataset)
+    thick_anvil_start_t = apply_func_to_labels(
+        dataset.thick_anvil_label.data, tt, np.nanmin
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_start_t,
+            ("anvil",),
+            "thick_anvil_start_t",
+            long_name="initial detection time of thick_anvil",
+            dtype="datetime64[ns]",
+        ),
+        dataset,
+    )
 
-    thick_anvil_end_t = apply_func_to_labels(dataset.thick_anvil_label.data, tt,
-                                       np.nanmax)
-    add_dataarray_to_ds(create_dataarray(thick_anvil_end_t, ('anvil',), "thick_anvil_end_t",
-                                         long_name="final detection time of thick_anvil",
-                                         dtype="datetime64[ns]"), dataset)
+    thick_anvil_end_t = apply_func_to_labels(
+        dataset.thick_anvil_label.data, tt, np.nanmax
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_end_t,
+            ("anvil",),
+            "thick_anvil_end_t",
+            long_name="final detection time of thick_anvil",
+            dtype="datetime64[ns]",
+        ),
+        dataset,
+    )
 
-    add_dataarray_to_ds(create_dataarray(thick_anvil_end_t-thick_anvil_start_t, ('anvil',), "thick_anvil_lifetime",
-                                         long_name="total lifetime of thick_anvil",
-                                         dtype="timedelta64[ns]"), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_end_t - thick_anvil_start_t,
+            ("anvil",),
+            "thick_anvil_lifetime",
+            long_name="total lifetime of thick_anvil",
+            dtype="timedelta64[ns]",
+        ),
+        dataset,
+    )
 
     p = get_abi_proj(dataset)
-    thick_anvil_step_lons, thick_anvil_step_lats = p(thick_anvil_step_x*dataset.goes_imager_projection.perspective_point_height,
-                                       thick_anvil_step_y*dataset.goes_imager_projection.perspective_point_height,
-                                       inverse=True)
-    add_dataarray_to_ds(create_dataarray(thick_anvil_step_lons, ('anvil_step',), "thick_anvil_step_lon",
-                                         long_name="longitude of thick_anvil at time step",
-                                         dtype=np.float32), dataset)
-    add_dataarray_to_ds(create_dataarray(thick_anvil_step_lats, ('anvil_step',), "thick_anvil_step_lat",
-                                         long_name="latitude of thick_anvil at time step",
-                                         dtype=np.float32), dataset)
+    thick_anvil_step_lons, thick_anvil_step_lats = p(
+        thick_anvil_step_x * dataset.goes_imager_projection.perspective_point_height,
+        thick_anvil_step_y * dataset.goes_imager_projection.perspective_point_height,
+        inverse=True,
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_step_lons,
+            ("anvil_step",),
+            "thick_anvil_step_lon",
+            long_name="longitude of thick_anvil at time step",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_step_lats,
+            ("anvil_step",),
+            "thick_anvil_step_lat",
+            long_name="latitude of thick_anvil at time step",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
 
     # thick_anvil_step_glm_count = apply_func_to_labels(thick_anvil_step_label.data,
     #                                            dataset.glm_flashes.data, np.nansum)
@@ -386,118 +658,258 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
     #                                      long_name="total number of GLM flashes for thick_anvil",
     #                                      dtype=np.int32), dataset)
     # Get area in 3d
-    aa = np.meshgrid(dataset.t, dataset.area, indexing='ij')[1].reshape(tt.shape)
+    aa = np.meshgrid(dataset.t, dataset.area, indexing="ij")[1].reshape(tt.shape)
 
-    thick_anvil_step_pixels = np.bincount(dataset.thick_anvil_step_label.data.ravel())[1:]
-    add_dataarray_to_ds(create_dataarray(thick_anvil_step_pixels, ('anvil_step',), "thick_anvil_step_pixels",
-                                         long_name="number of pixels for thick_anvil at time step",
-                                         dtype=np.int32), dataset)
+    thick_anvil_step_pixels = np.bincount(dataset.thick_anvil_step_label.data.ravel())[
+        1:
+    ]
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_step_pixels,
+            ("anvil_step",),
+            "thick_anvil_step_pixels",
+            long_name="number of pixels for thick_anvil at time step",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
     thick_anvil_total_pixels = np.bincount(dataset.thick_anvil_label.data.ravel())[1:]
-    add_dataarray_to_ds(create_dataarray(thick_anvil_total_pixels, ('anvil',), "thick_anvil_total_pixels",
-                                         long_name="total number of pixels for thick_anvil",
-                                         dtype=np.int32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_total_pixels,
+            ("anvil",),
+            "thick_anvil_total_pixels",
+            long_name="total number of pixels for thick_anvil",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
-    thick_anvil_step_area = apply_func_to_labels(dataset.thick_anvil_step_label.data, aa, np.nansum)
-    add_dataarray_to_ds(create_dataarray(thick_anvil_step_area, ('anvil_step',), "thick_anvil_step_area",
-                                         long_name="area of thick_anvil at time step",
-                                         dtype=np.float32), dataset)
+    thick_anvil_step_area = apply_func_to_labels(
+        dataset.thick_anvil_step_label.data, aa, np.nansum
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_step_area,
+            ("anvil_step",),
+            "thick_anvil_step_area",
+            long_name="area of thick_anvil at time step",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
 
-    thick_anvil_total_area = apply_func_to_labels(dataset.thick_anvil_label.data, aa, np.nansum)
-    add_dataarray_to_ds(create_dataarray(thick_anvil_total_area, ('anvil',), "thick_anvil_total_area",
-                                         long_name="total area of thick_anvil",
-                                         dtype=np.float32), dataset)
+    thick_anvil_total_area = apply_func_to_labels(
+        dataset.thick_anvil_label.data, aa, np.nansum
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_total_area,
+            ("anvil",),
+            "thick_anvil_total_area",
+            long_name="total area of thick_anvil",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
 
-    thick_anvil_index_for_step = apply_func_to_labels(dataset.thick_anvil_step_label.data,
-                                               dataset.thick_anvil_label.data, np.nanmax)
-    add_dataarray_to_ds(create_dataarray(thick_anvil_index_for_step, ('anvil_step',), "thick_anvil_index_for_step",
-                                         long_name="thick_anvil index for each thick_anvil time step",
-                                         dtype=np.int32), dataset)
+    thick_anvil_index_for_step = apply_func_to_labels(
+        dataset.thick_anvil_step_label.data, dataset.thick_anvil_label.data, np.nanmax
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thick_anvil_index_for_step,
+            ("anvil_step",),
+            "thick_anvil_index_for_step",
+            long_name="thick_anvil index for each thick_anvil time step",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
-    anvil_index_for_core = apply_func_to_labels(dataset.core_label.data,
-                                               dataset.thick_anvil_label.data, np.nanmax)
-    add_dataarray_to_ds(create_dataarray(anvil_index_for_core, ('core',), "anvil_index_for_core",
-                                         long_name="anvil index for each core",
-                                         dtype=np.int32), dataset)
+    anvil_index_for_core = apply_func_to_labels(
+        dataset.core_label.data, dataset.thick_anvil_label.data, np.nanmax
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            anvil_index_for_core,
+            ("core",),
+            "anvil_index_for_core",
+            long_name="anvil index for each core",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
     if np.any(anvil_index_for_core):
         cores_per_anvil = np.bincount(anvil_index_for_core)[1:]
     else:
         cores_per_anvil = np.array([], dtype=int)
 
-    add_dataarray_to_ds(create_dataarray(cores_per_anvil, ('anvil',), "cores_per_anvil",
-                                         long_name="number of cores per detected anvil region",
-                                         dtype=np.int32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            cores_per_anvil,
+            ("anvil",),
+            "cores_per_anvil",
+            long_name="number of cores per detected anvil region",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
     # Now for thin anvils
-    add_dataarray_to_ds(create_dataarray(outer_watershed, ('t','y','x'), "thin_anvil_label",
-                                         long_name="labels for detected thick anvil regions", units="",
-                                         dtype=np.int32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            outer_watershed,
+            ("t", "y", "x"),
+            "thin_anvil_label",
+            long_name="labels for detected thick anvil regions",
+            units="",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
     # dataset.coords["anvil"] = np.arange(1, inner_labels.max()+1, dtype=np.int32)
 
     get_label_stats(dataset.thin_anvil_label, dataset)
 
     for field in (bt, wvd, swd, dataset.growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thin_anvil_label, field, dim='anvil')]
+        [
+            add_dataarray_to_ds(da, dataset)
+            for da in get_stats_for_labels(dataset.thin_anvil_label, field, dim="anvil")
+        ]
 
     thin_anvil_step_label = slice_label_da(dataset.thin_anvil_label)
     add_dataarray_to_ds(thin_anvil_step_label, dataset)
-    dataset.coords["thin_anvil_step"] = np.arange(1, thin_anvil_step_label.max()+1, dtype=np.int32)
+    dataset.coords["thin_anvil_step"] = np.arange(
+        1, thin_anvil_step_label.max() + 1, dtype=np.int32
+    )
 
     # Now get individual step
     for field in (bt, wvd, swd, dataset.growth_rate):
-        [add_dataarray_to_ds(da, dataset) for da in get_stats_for_labels(dataset.thin_anvil_step_label, field, dim='thin_anvil_step')]
+        [
+            add_dataarray_to_ds(da, dataset)
+            for da in get_stats_for_labels(
+                dataset.thin_anvil_step_label, field, dim="thin_anvil_step"
+            )
+        ]
 
     # Now we have stats of each field for each core and each core time step
     # Next get other data: weighted x,y,lat,lon locations for each step, t per step
-    tt, yy, xx = np.meshgrid(dataset.t, dataset.y, dataset.x, indexing='ij')
+    tt, yy, xx = np.meshgrid(dataset.t, dataset.y, dataset.x, indexing="ij")
 
-    thin_anvil_step_x = apply_weighted_func_to_labels(thin_anvil_step_label.data, xx,
-                                                np.maximum(wvd.data+15, 0.01),
-                                                lambda a,b: np.average(a, weights=b))
-    add_dataarray_to_ds(create_dataarray(thin_anvil_step_x, ('thin_anvil_step',), "thin_anvil_step_x",
-                                         long_name="x location of thin_anvil at time step",
-                                         dtype=np.float64), dataset)
+    thin_anvil_step_x = apply_weighted_func_to_labels(
+        thin_anvil_step_label.data,
+        xx,
+        np.maximum(wvd.data + 15, 0.01),
+        lambda a, b: np.average(a, weights=b),
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_step_x,
+            ("thin_anvil_step",),
+            "thin_anvil_step_x",
+            long_name="x location of thin_anvil at time step",
+            dtype=np.float64,
+        ),
+        dataset,
+    )
 
-    thin_anvil_step_y = apply_weighted_func_to_labels(thin_anvil_step_label.data, yy,
-                                                np.maximum(dataset.growth_rate.data-0.25, 0.01),
-                                                lambda a,b: np.average(a, weights=b))
-    add_dataarray_to_ds(create_dataarray(thin_anvil_step_y, ('thin_anvil_step',), "thin_anvil_step_y",
-                                         long_name="y location of thin_anvil at time step",
-                                         dtype=np.float64), dataset)
+    thin_anvil_step_y = apply_weighted_func_to_labels(
+        thin_anvil_step_label.data,
+        yy,
+        np.maximum(dataset.growth_rate.data - 0.25, 0.01),
+        lambda a, b: np.average(a, weights=b),
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_step_y,
+            ("thin_anvil_step",),
+            "thin_anvil_step_y",
+            long_name="y location of thin_anvil at time step",
+            dtype=np.float64,
+        ),
+        dataset,
+    )
 
-    thin_anvil_step_t = apply_func_to_labels(thin_anvil_step_label.data, tt,
-                                       np.nanmin)
-    add_dataarray_to_ds(create_dataarray(thin_anvil_step_t, ('thin_anvil_step',), "thin_anvil_step_t",
-                                         long_name="time of thin_anvil at step",
-                                         dtype="datetime64[ns]"), dataset)
+    thin_anvil_step_t = apply_func_to_labels(thin_anvil_step_label.data, tt, np.nanmin)
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_step_t,
+            ("thin_anvil_step",),
+            "thin_anvil_step_t",
+            long_name="time of thin_anvil at step",
+            dtype="datetime64[ns]",
+        ),
+        dataset,
+    )
 
-    thin_anvil_start_t = apply_func_to_labels(dataset.thin_anvil_label.data, tt,
-                                       np.nanmin)
-    add_dataarray_to_ds(create_dataarray(thin_anvil_start_t, ('anvil',), "thin_anvil_start_t",
-                                         long_name="initial detection time of thin_anvil",
-                                         dtype="datetime64[ns]"), dataset)
+    thin_anvil_start_t = apply_func_to_labels(
+        dataset.thin_anvil_label.data, tt, np.nanmin
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_start_t,
+            ("anvil",),
+            "thin_anvil_start_t",
+            long_name="initial detection time of thin_anvil",
+            dtype="datetime64[ns]",
+        ),
+        dataset,
+    )
 
-    thin_anvil_end_t = apply_func_to_labels(dataset.thin_anvil_label.data, tt,
-                                       np.nanmax)
-    add_dataarray_to_ds(create_dataarray(thin_anvil_end_t, ('anvil',), "thin_anvil_end_t",
-                                         long_name="final detection time of thin_anvil",
-                                         dtype="datetime64[ns]"), dataset)
+    thin_anvil_end_t = apply_func_to_labels(
+        dataset.thin_anvil_label.data, tt, np.nanmax
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_end_t,
+            ("anvil",),
+            "thin_anvil_end_t",
+            long_name="final detection time of thin_anvil",
+            dtype="datetime64[ns]",
+        ),
+        dataset,
+    )
 
-    add_dataarray_to_ds(create_dataarray(thin_anvil_end_t-thin_anvil_start_t, ('anvil',), "thin_anvil_lifetime",
-                                         long_name="total lifetime of thin_anvil",
-                                         dtype="timedelta64[ns]"), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_end_t - thin_anvil_start_t,
+            ("anvil",),
+            "thin_anvil_lifetime",
+            long_name="total lifetime of thin_anvil",
+            dtype="timedelta64[ns]",
+        ),
+        dataset,
+    )
 
     p = get_abi_proj(dataset)
-    thin_anvil_step_lons, thin_anvil_step_lats = p(thin_anvil_step_x*dataset.goes_imager_projection.perspective_point_height,
-                                       thin_anvil_step_y*dataset.goes_imager_projection.perspective_point_height,
-                                       inverse=True)
-    add_dataarray_to_ds(create_dataarray(thin_anvil_step_lons, ('thin_anvil_step',), "thin_anvil_step_lon",
-                                         long_name="longitude of thin_anvil at time step",
-                                         dtype=np.float32), dataset)
-    add_dataarray_to_ds(create_dataarray(thin_anvil_step_lats, ('thin_anvil_step',), "thin_anvil_step_lat",
-                                         long_name="latitude of thin_anvil at time step",
-                                         dtype=np.float32), dataset)
+    thin_anvil_step_lons, thin_anvil_step_lats = p(
+        thin_anvil_step_x * dataset.goes_imager_projection.perspective_point_height,
+        thin_anvil_step_y * dataset.goes_imager_projection.perspective_point_height,
+        inverse=True,
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_step_lons,
+            ("thin_anvil_step",),
+            "thin_anvil_step_lon",
+            long_name="longitude of thin_anvil at time step",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_step_lats,
+            ("thin_anvil_step",),
+            "thin_anvil_step_lat",
+            long_name="latitude of thin_anvil at time step",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
 
     # thin_anvil_step_glm_count = apply_func_to_labels(thin_anvil_step_label.data,
     #                                            dataset.glm_flashes.data, np.nansum)
@@ -511,37 +923,85 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
     #                                      long_name="total number of GLM flashes for thin_anvil",
     #                                      dtype=np.int32), dataset)
     # Get area in 3d
-    aa = np.meshgrid(dataset.t, dataset.area, indexing='ij')[1].reshape(tt.shape)
+    aa = np.meshgrid(dataset.t, dataset.area, indexing="ij")[1].reshape(tt.shape)
 
     thin_anvil_step_pixels = np.bincount(dataset.thin_anvil_step_label.data.ravel())[1:]
-    add_dataarray_to_ds(create_dataarray(thin_anvil_step_pixels, ('thin_anvil_step',), "thin_anvil_step_pixels",
-                                         long_name="number of pixels for thin_anvil at time step",
-                                         dtype=np.int32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_step_pixels,
+            ("thin_anvil_step",),
+            "thin_anvil_step_pixels",
+            long_name="number of pixels for thin_anvil at time step",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
     thin_anvil_total_pixels = np.bincount(dataset.thin_anvil_label.data.ravel())[1:]
-    add_dataarray_to_ds(create_dataarray(thin_anvil_total_pixels, ('anvil',), "thin_anvil_total_pixels",
-                                         long_name="total number of pixels for thin_anvil",
-                                         dtype=np.int32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_total_pixels,
+            ("anvil",),
+            "thin_anvil_total_pixels",
+            long_name="total number of pixels for thin_anvil",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
-    thin_anvil_step_area = apply_func_to_labels(dataset.thin_anvil_step_label.data, aa, np.nansum)
-    add_dataarray_to_ds(create_dataarray(thin_anvil_step_area, ('thin_anvil_step',), "thin_anvil_step_area",
-                                         long_name="area of thin_anvil at time step",
-                                         dtype=np.float32), dataset)
+    thin_anvil_step_area = apply_func_to_labels(
+        dataset.thin_anvil_step_label.data, aa, np.nansum
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_step_area,
+            ("thin_anvil_step",),
+            "thin_anvil_step_area",
+            long_name="area of thin_anvil at time step",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
 
-    thin_anvil_total_area = apply_func_to_labels(dataset.thin_anvil_label.data, aa, np.nansum)
-    add_dataarray_to_ds(create_dataarray(thin_anvil_total_area, ('anvil',), "thin_anvil_total_area",
-                                         long_name="total area of thin_anvil",
-                                         dtype=np.float32), dataset)
+    thin_anvil_total_area = apply_func_to_labels(
+        dataset.thin_anvil_label.data, aa, np.nansum
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_total_area,
+            ("anvil",),
+            "thin_anvil_total_area",
+            long_name="total area of thin_anvil",
+            dtype=np.float32,
+        ),
+        dataset,
+    )
 
-    thin_anvil_index_for_step = apply_func_to_labels(dataset.thin_anvil_step_label.data,
-                                               dataset.thin_anvil_label.data, np.nanmax)
-    add_dataarray_to_ds(create_dataarray(thin_anvil_index_for_step, ('thin_anvil_step',), "thin_anvil_index_for_step",
-                                         long_name="thin_anvil index for each thin_anvil time step",
-                                         dtype=np.int32), dataset)
+    thin_anvil_index_for_step = apply_func_to_labels(
+        dataset.thin_anvil_step_label.data, dataset.thin_anvil_label.data, np.nanmax
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            thin_anvil_index_for_step,
+            ("thin_anvil_step",),
+            "thin_anvil_index_for_step",
+            long_name="thin_anvil index for each thin_anvil time step",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
-    add_dataarray_to_ds(create_dataarray(wvd_labels, ('t','y','x'), "wvd_label",
-                                         long_name="labels for warm wvd regions", units="",
-                                         dtype=np.int32), dataset)
+    add_dataarray_to_ds(
+        create_dataarray(
+            wvd_labels,
+            ("t", "y", "x"),
+            "wvd_label",
+            long_name="labels for warm wvd regions",
+            units="",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
 
     # add_dataarray_to_ds(create_dataarray(np.sum(glm_grid.data), tuple(), "glm_flash_count",
     #                                      long_name="total number of GLM flashes",
@@ -609,19 +1069,24 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path):
     #                                      long_name="total number of cores",
     #                                      dtype=np.int32), dataset)
 
-
-    print(datetime.now(), 'Saving to %s' % (save_path), flush=True)
+    print(datetime.now(), "Saving to %s" % (save_path), flush=True)
     dataset.to_netcdf(save_path)
 
-if __name__=="__main__":
-    print(datetime.now(), 'Commencing DCC detection', flush=True)
 
-    print('Start date:', start_date)
-    print('End date:', end_date)
-    print('x0,x1,y0,y1:', x0, x1, y0 ,y1)
-    print('Output save path:', save_path)
-    print('GOES data path:', goes_data_path)
+if __name__ == "__main__":
+    print(datetime.now(), "Commencing DCC detection", flush=True)
+
+    print("Start date:", start_date)
+    print("End date:", end_date)
+    print("x0,x1,y0,y1:", x0, x1, y0, y1)
+    print("Output save path:", save_path)
+    print("GOES data path:", goes_data_path)
 
     main(start_date, end_date, x0, x1, y0, y1, save_path, goes_data_path)
 
-    print(datetime.now(), 'Finished successfully, time elapsed:', datetime.now()-start_time, flush=True)
+    print(
+        datetime.now(),
+        "Finished successfully, time elapsed:",
+        datetime.now() - start_time,
+        flush=True,
+    )

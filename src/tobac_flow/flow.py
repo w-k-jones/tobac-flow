@@ -10,11 +10,9 @@ from tobac_flow.label import flow_label
 from tobac_flow.sobel import sobel
 from tobac_flow.watershed import watershed
 
+
 def create_flow(
-    data: np.ndarray,
-    model: str = "DIS",
-    vr_steps: int = 0,
-    smoothing_passes: int = 0
+    data: np.ndarray, model: str = "DIS", vr_steps: int = 0, smoothing_passes: int = 0
 ) -> "Flow":
     """
     Calculates forward and backward optical flow vectors for a given set of data
@@ -38,33 +36,32 @@ def create_flow(
         A Flow object with optical flow vectors calculated from the input data
     """
     forward_flow, backward_flow = calculate_flow(
-        data,
-        model=model,
-        vr_steps=vr_steps,
-        smoothing_passes=smoothing_passes
+        data, model=model, vr_steps=vr_steps, smoothing_passes=smoothing_passes
     )
 
     flow = Flow(forward_flow, backward_flow)
 
     return flow
 
+
 class Flow:
     """
     Class to perform semi-lagrangian operations using optical flow
     """
-    def __init__(
-        self,
-        forward_flow: np.ndarray,
-        backward_flow: np.ndarray
-    ) -> None:
+
+    def __init__(self, forward_flow: np.ndarray, backward_flow: np.ndarray) -> None:
         """
         Initialise the flow object with a data array and calculate the optical
             flow vectors for that array
         """
         if forward_flow.shape != backward_flow.shape:
-            raise ValueError("Forward and backward flow vector arrays must have the same shape")
+            raise ValueError(
+                "Forward and backward flow vector arrays must have the same shape"
+            )
         if forward_flow.shape[-1] != 2:
-            raise ValueError("Flow vectors must have a size of 2 in the trailing dimension")
+            raise ValueError(
+                "Flow vectors must have a size of 2 in the trailing dimension"
+            )
         self.shape = forward_flow.shape[:-1]
         self.forward_flow = forward_flow
         self.backward_flow = backward_flow
@@ -85,11 +82,11 @@ class Flow:
     def convolve(
         self,
         data: np.ndarray,
-        structure: np.ndarray = ndi.generate_binary_structure(3,1),
+        structure: np.ndarray = ndi.generate_binary_structure(3, 1),
         method: str = "linear",
         fill_value: float = np.nan,
         dtype: type = np.float32,
-        func: Callable | None = None
+        func: Callable | None = None,
     ) -> np.ndarray:
         """
         Convolve a sequence of images using optical flow vectors to offset adjacent
@@ -119,7 +116,9 @@ class Flow:
         res : numpy.ndarray
             The convolved data according the the provided structure
         """
-        assert data.shape == self.shape, "Data input must have the same shape as the Flow object"
+        assert (
+            data.shape == self.shape
+        ), "Data input must have the same shape as the Flow object"
 
         output = convolve(
             data,
@@ -129,7 +128,7 @@ class Flow:
             method=method,
             dtype=dtype,
             fill_value=fill_value,
-            func=func
+            func=func,
         )
 
         return output
@@ -151,29 +150,24 @@ class Flow:
         diff : numpy.ndarray
             The gradient of the data along the leading dimension
         """
-        diff_struct = np.zeros([3,3,3])
-        diff_struct[:,1,1] = 1
-        diff_func = lambda x:np.nansum(
-            [x[2]-x[1], x[1]-x[0]], axis=0) \
-            * 1 / np.maximum(
-                np.sum([np.isfinite(x[2]), np.isfinite(x[0])], 0), 1
-            )
-        diff = self.convolve(
-            data,
-            structure=diff_struct,
-            func=diff_func,
-            dtype=dtype
+        diff_struct = np.zeros([3, 3, 3])
+        diff_struct[:, 1, 1] = 1
+        diff_func = (
+            lambda x: np.nansum([x[2] - x[1], x[1] - x[0]], axis=0)
+            * 1
+            / np.maximum(np.sum([np.isfinite(x[2]), np.isfinite(x[0])], 0), 1)
         )
+        diff = self.convolve(data, structure=diff_struct, func=diff_func, dtype=dtype)
 
         return diff
 
     def sobel(
         self,
         data: np.ndarray,
-        method: str = 'linear',
+        method: str = "linear",
         dtype: type = None,
         fill_value: float = np.nan,
-        direction: str | None = None
+        direction: str | None = None,
     ) -> np.ndarray:
         """
         Sobel edge detection algorithm in a semi-Lagrangian space
@@ -205,7 +199,7 @@ class Flow:
             method=method,
             dtype=dtype,
             fill_value=fill_value,
-            direction=direction
+            direction=direction,
         )
 
         return res
@@ -215,7 +209,7 @@ class Flow:
         field: np.ndarray,
         markers: np.ndarray[int],
         mask: np.ndarray[bool] | None = None,
-        structure: np.ndarray[bool] = ndi.generate_binary_structure(3,1)
+        structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
     ) -> np.ndarray[int]:
         """
         Watershed segmentation of a sequence of images in a Semi-Lagrangian
@@ -249,7 +243,7 @@ class Flow:
             field,
             markers,
             mask=mask,
-            structure=structure
+            structure=structure,
         )
 
         return output
@@ -257,10 +251,10 @@ class Flow:
     def label(
         self,
         data: np.ndarray[bool],
-        structure: np.ndarray[bool] = ndi.generate_binary_structure(3,1),
+        structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
         dtype: type = np.int32,
         overlap: float = 0,
-        subsegment_shrink: float = 0
+        subsegment_shrink: float = 0,
     ) -> np.ndarray[int]:
         """
         Label 3d connected objects in a semi-Lagrangian reference frame
@@ -298,39 +292,41 @@ class Flow:
             structure=structure,
             dtype=dtype,
             overlap=overlap,
-            subsegment_shrink=subsegment_shrink
+            subsegment_shrink=subsegment_shrink,
         )
 
         return labels
+
 
 """
 Dicts to convert keyword inputs to opencv flags for flow keywords
 TODO: consider enum?
 """
-flow_flags = {'default':0, 'gaussian':cv2.OPTFLOW_FARNEBACK_GAUSSIAN}
+flow_flags = {"default": 0, "gaussian": cv2.OPTFLOW_FARNEBACK_GAUSSIAN}
 
 """
 Dicts to convert keyword inputs to opencv flags for remap keywords
 """
 border_modes = {
-    'constant':cv2.BORDER_CONSTANT,
-    'nearest':cv2.BORDER_REPLICATE,
-    'reflect':cv2.BORDER_REFLECT,
-    'mirror':cv2.BORDER_REFLECT_101,
-    'wrap':cv2.BORDER_WRAP,
-    'isolated':cv2.BORDER_ISOLATED,
-    'transparent':cv2.BORDER_TRANSPARENT
+    "constant": cv2.BORDER_CONSTANT,
+    "nearest": cv2.BORDER_REPLICATE,
+    "reflect": cv2.BORDER_REFLECT,
+    "mirror": cv2.BORDER_REFLECT_101,
+    "wrap": cv2.BORDER_WRAP,
+    "isolated": cv2.BORDER_ISOLATED,
+    "transparent": cv2.BORDER_TRANSPARENT,
 }
 
 interp_modes = {
-    'nearest':cv2.INTER_NEAREST,
-    'linear':cv2.INTER_LINEAR,
-    'cubic':cv2.INTER_CUBIC,
-    'lanczos':cv2.INTER_LANCZOS4
+    "nearest": cv2.INTER_NEAREST,
+    "linear": cv2.INTER_LINEAR,
+    "cubic": cv2.INTER_CUBIC,
+    "lanczos": cv2.INTER_LANCZOS4,
 }
 
 # Let's create a new optical_flow derivation function
 vr_model = cv2.VariationalRefinement.create()
+
 
 def select_of_model(model: str) -> cv2.DenseOpticalFlow:
     """
@@ -362,19 +358,24 @@ def select_of_model(model: str) -> cv2.DenseOpticalFlow:
         of_model.setUseSpatialPropagation(True)
     elif model == "DenseRLOF":
         of_model = cv2.optflow.createOptFlow_DenseRLOF()
-        raise NotImplementedError("DenseRLOF requires multi-channel input which is currently not implemented")
+        raise NotImplementedError(
+            "DenseRLOF requires multi-channel input which is currently not implemented"
+        )
     elif model == "DualTVL1":
         of_model = cv2.optflow.createOptFlow_DualTVL1()
     else:
-        raise ValueError("'model' parameter must be one of: 'Farneback', 'DeepFlow', 'PCA', 'SimpleFlow', 'SparseToDense', 'DIS', 'DenseRLOF', 'DualTVL1'")
+        raise ValueError(
+            "'model' parameter must be one of: 'Farneback', 'DeepFlow', 'PCA', 'SimpleFlow', 'SparseToDense', 'DIS', 'DenseRLOF', 'DualTVL1'"
+        )
 
     return of_model
+
 
 def calculate_flow(
     data: np.ndarray | xr.DataArray,
     model: str = "DIS",
     vr_steps: int = 0,
-    smoothing_passes: int = 0
+    smoothing_passes: int = 0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Calculates forward and backward optical flow vectors for a given set of data
@@ -407,21 +408,21 @@ def calculate_flow(
     vmax = np.nanmax(data)
     vmin = np.nanmin(data)
 
-    forward_flow = np.full(data.shape+(2,), np.nan, dtype=np.float32)
-    backward_flow = np.full(data.shape+(2,), np.nan, dtype=np.float32)
+    forward_flow = np.full(data.shape + (2,), np.nan, dtype=np.float32)
+    backward_flow = np.full(data.shape + (2,), np.nan, dtype=np.float32)
 
     of_model = select_of_model(model)
 
-    for i in range(data.shape[0]-1):
+    for i in range(data.shape[0] - 1):
         prev_frame = to_8bit(data[i], vmin, vmax)
-        next_frame = to_8bit(data[i+1], vmin, vmax)
+        next_frame = to_8bit(data[i + 1], vmin, vmax)
 
-        forward_flow[i], backward_flow[i+1] = calculate_flow_frame(
+        forward_flow[i], backward_flow[i + 1] = calculate_flow_frame(
             prev_frame,
             next_frame,
             of_model,
             vr_steps=vr_steps,
-            smoothing_steps=smoothing_passes
+            smoothing_steps=smoothing_passes,
         )
 
     forward_flow[-1] = -backward_flow[-1]
@@ -429,11 +430,8 @@ def calculate_flow(
 
     return forward_flow, backward_flow
 
-def to_8bit(
-    array: np.ndarray,
-    vmin: float = None,
-    vmax:float = None
-) -> np.ndarray:
+
+def to_8bit(array: np.ndarray, vmin: float = None, vmax: float = None) -> np.ndarray:
     """
     Converts an array to an 8-bit range between 0 and 255
     """
@@ -441,12 +439,13 @@ def to_8bit(
         vmin = np.nanmin(array)
     if vmax is None:
         vmax = np.nanmax(array)
-    if vmin==vmax:
+    if vmin == vmax:
         factor = 0
     else:
-        factor = 255 / (vmax-vmin)
-    array_out = ((array-vmin) * factor).astype('uint8')
+        factor = 255 / (vmax - vmin)
+    array_out = ((array - vmin) * factor).astype("uint8")
     return array_out
+
 
 def warp_flow(img: np.ndarray, flow: np.ndarray) -> np.ndarray:
     """
@@ -454,19 +453,20 @@ def warp_flow(img: np.ndarray, flow: np.ndarray) -> np.ndarray:
     """
     h, w = flow.shape[:2]
     locs = flow.copy()
-    locs[:,:,0] += np.arange(w)
-    locs[:,:,1] += np.arange(h)[:,np.newaxis]
+    locs[:, :, 0] += np.arange(w)
+    locs[:, :, 1] += np.arange(h)[:, np.newaxis]
     res = cv2.remap(
         img, locs, None, cv2.INTER_LINEAR, None, cv2.BORDER_CONSTANT, np.nan
     )
     return res
+
 
 def calculate_flow_frame(
     prev_frame: np.ndarray[np.uint8],
     next_frame: np.ndarray[np.uint8],
     of_model: cv2.DenseOpticalFlow,
     vr_steps: int = 0,
-    smoothing_steps: int = 0
+    smoothing_steps: int = 0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Calculate the forward and backward optical flow vectors between two
@@ -484,11 +484,10 @@ def calculate_flow_frame(
 
     if smoothing_steps > 0:
         for i in range(smoothing_steps):
-            forward_flow, backward_flow = smooth_flow_step(
-                forward_flow, backward_flow
-            )
+            forward_flow, backward_flow = smooth_flow_step(forward_flow, backward_flow)
 
     return forward_flow, backward_flow
+
 
 def smooth_flow_step(
     forward_flow: np.ndarray, backward_flow: np.ndarray
@@ -505,27 +504,27 @@ def smooth_flow_step(
                 forward_flow,
                 np.stack(
                     [
-                        -warp_flow(backward_flow[...,0], forward_flow),
-                        -warp_flow(backward_flow[...,1], forward_flow)
+                        -warp_flow(backward_flow[..., 0], forward_flow),
+                        -warp_flow(backward_flow[..., 1], forward_flow),
                     ],
-                    -1
-                )
+                    -1,
+                ),
             ],
-            0
+            0,
         ),
         np.nanmean(
             [
                 backward_flow,
                 np.stack(
                     [
-                        -warp_flow(forward_flow[...,0], backward_flow),
-                        -warp_flow(forward_flow[...,1], backward_flow)
+                        -warp_flow(forward_flow[..., 0], backward_flow),
+                        -warp_flow(forward_flow[..., 1], backward_flow),
                     ],
-                    -1
-                )
+                    -1,
+                ),
             ],
-            0
-        )
+            0,
+        ),
     )
 
     return forward_flow, backward_flow

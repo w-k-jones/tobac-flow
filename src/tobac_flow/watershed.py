@@ -3,12 +3,15 @@ Watershed segmentation operations in a semi-Lagrangian framework.
 """
 import numpy as np
 import scipy.ndimage as ndi
-from skimage.morphology._util import (_validate_connectivity,
-    _offsets_to_raveled_neighbors)
+from skimage.morphology._util import (
+    _validate_connectivity,
+    _offsets_to_raveled_neighbors,
+)
 from skimage.util import crop, regular_seeds
 from skimage.segmentation._watershed import _validate_inputs
 
 from tobac_flow._watershed import watershed_raveled
+
 
 def watershed(
     forward_flow: np.ndarray,
@@ -16,7 +19,7 @@ def watershed(
     field: np.ndarray,
     markers: np.ndarray[int],
     mask: np.ndarray[bool] = None,
-    structure: np.ndarray[bool] = ndi.generate_binary_structure(3,1)
+    structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
 ) -> np.ndarray[int]:
     """
     Watershed segmentation of a sequence of images in a Semi-Lagrangian
@@ -54,19 +57,15 @@ def watershed(
     """
     skimage_markers = markers.copy().astype(np.intp)
     skimage_markers[mask] = -1
-    connectivity=1
-    offset=None
-    mask=None
-    compactness=0
-    watershed_line=False
+    connectivity = 1
+    offset = None
+    mask = None
+    compactness = 0
+    watershed_line = False
 
-    image, markers, mask = _validate_inputs(
-        field, skimage_markers, mask, connectivity
-    )
+    image, markers, mask = _validate_inputs(field, skimage_markers, mask, connectivity)
 
-    connectivity, offset = _validate_connectivity(
-        image.ndim, connectivity, offset
-    )
+    connectivity, offset = _validate_connectivity(image.ndim, connectivity, offset)
 
     # pad the image, markers, and mask so that we can use the mask to
     # keep from running off the edges
@@ -75,24 +74,24 @@ def watershed(
     pad_offset = offset.copy()
 
     y_flow_maximum = np.maximum(
-        np.max(np.round(np.abs(forward_flow[...,1]))),
-        np.max(np.round(np.abs(backward_flow[...,1])))
+        np.max(np.round(np.abs(forward_flow[..., 1]))),
+        np.max(np.round(np.abs(backward_flow[..., 1]))),
     ).astype(np.intp)
 
     pad_offset[1] += y_flow_maximum
 
     x_flow_maximum = np.maximum(
-        np.max(np.round(np.abs(forward_flow[...,0]))),
-        np.max(np.round(np.abs(backward_flow[...,0])))
+        np.max(np.round(np.abs(forward_flow[..., 0]))),
+        np.max(np.round(np.abs(backward_flow[..., 0]))),
     ).astype(np.intp)
 
     pad_offset[2] += x_flow_maximum
 
     pad_width = [(p, p) for p in pad_offset]
 
-    image = np.pad(image, pad_width, mode='constant')
-    mask = np.pad(mask, pad_width, mode='constant').ravel()
-    output = np.pad(markers, pad_width, mode='constant')
+    image = np.pad(image, pad_width, mode="constant")
+    mask = np.pad(mask, pad_width, mode="constant").ravel()
+    output = np.pad(markers, pad_width, mode="constant")
     flat_neighborhood = _offsets_to_raveled_neighbors(
         image.shape, connectivity, center=offset
     )
@@ -102,32 +101,32 @@ def watershed(
     # Calculate ravelled offsets for flow field
     forward_offset = (
         np.pad(
-            np.round(forward_flow[...,0]).astype(np.intp),
-            pad_width, mode='constant'
-        ).ravel() * image_strides[2]
+            np.round(forward_flow[..., 0]).astype(np.intp), pad_width, mode="constant"
+        ).ravel()
+        * image_strides[2]
         + np.pad(
-            np.round(forward_flow[...,1]).astype(np.intp),
-            pad_width, mode='constant'
-        ).ravel() * image_strides[1]
+            np.round(forward_flow[..., 1]).astype(np.intp), pad_width, mode="constant"
+        ).ravel()
+        * image_strides[1]
     )
 
     backward_offset = (
         np.pad(
-            np.round(backward_flow[...,0]).astype(np.intp),
-            pad_width, mode='constant'
-        ).ravel() * image_strides[2]
+            np.round(backward_flow[..., 0]).astype(np.intp), pad_width, mode="constant"
+        ).ravel()
+        * image_strides[2]
         + np.pad(
-            np.round(backward_flow[...,1]).astype(np.intp),
-            pad_width, mode='constant'
-        ).ravel() * image_strides[1]
+            np.round(backward_flow[..., 1]).astype(np.intp), pad_width, mode="constant"
+        ).ravel()
+        * image_strides[1]
     )
 
     forward_offset_locations = (
-        np.round(flat_neighborhood/image_strides[0])==1
+        np.round(flat_neighborhood / image_strides[0]) == 1
     ).astype(np.intp)
 
     backward_offset_locations = (
-        np.round(flat_neighborhood/image_strides[0])==-1
+        np.round(flat_neighborhood / image_strides[0]) == -1
     ).astype(np.intp)
 
     watershed_raveled(
@@ -142,11 +141,11 @@ def watershed(
         image_strides,
         compactness,
         output.ravel(),
-        watershed_line
+        watershed_line,
     )
 
     output = crop(output, pad_width, copy=True)
 
-    output[output==-1] = 0
+    output[output == -1] = 0
 
     return output

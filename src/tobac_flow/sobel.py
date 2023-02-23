@@ -3,6 +3,7 @@ import scipy.ndimage as ndi
 
 from .convolve import convolve
 
+
 def _sobel_matrix(ndims):
     """
     Calculate the sobel coefficient matrix for a given number of dimensions
@@ -19,42 +20,81 @@ def _sobel_matrix(ndims):
             Result is an array with ndims dimensions and a length of 3 in each
             dimension
     """
-    sobel_matrix = np.array([-1,0,1])
-    for i in range(ndims-1):
-        sobel_matrix = np.multiply.outer(np.array([1,2,1]), sobel_matrix)
+    sobel_matrix = np.array([-1, 0, 1])
+    for i in range(ndims - 1):
+        sobel_matrix = np.multiply.outer(np.array([1, 2, 1]), sobel_matrix)
     return sobel_matrix
+
 
 sobel_matrix = _sobel_matrix(3)
 
-def _sobel_func_uphill(x):
-    x = np.fmax(x-x[13],0)
-    out_array = np.nansum(x * sobel_matrix.ravel()[:,np.newaxis,np.newaxis], 0)**2
-    out_array += np.nansum(x * sobel_matrix.transpose([1,2,0]).ravel()[:,np.newaxis,np.newaxis], 0)**2
-    out_array += np.nansum(x * sobel_matrix.transpose([2,0,1]).ravel()[:,np.newaxis,np.newaxis], 0)**2
 
-    return out_array ** 0.5
+def _sobel_func_uphill(x):
+    x = np.fmax(x - x[13], 0)
+    out_array = np.nansum(x * sobel_matrix.ravel()[:, np.newaxis, np.newaxis], 0) ** 2
+    out_array += (
+        np.nansum(
+            x * sobel_matrix.transpose([1, 2, 0]).ravel()[:, np.newaxis, np.newaxis], 0
+        )
+        ** 2
+    )
+    out_array += (
+        np.nansum(
+            x * sobel_matrix.transpose([2, 0, 1]).ravel()[:, np.newaxis, np.newaxis], 0
+        )
+        ** 2
+    )
+
+    return out_array**0.5
+
 
 def _sobel_func_downhill(x):
-    x = np.fmin(x-x[13],0)
-    out_array = np.nansum(x * sobel_matrix.ravel()[:,np.newaxis,np.newaxis], 0)**2
-    out_array += np.nansum(x * sobel_matrix.transpose([1,2,0]).ravel()[:,np.newaxis,np.newaxis], 0)**2
-    out_array += np.nansum(x * sobel_matrix.transpose([2,0,1]).ravel()[:,np.newaxis,np.newaxis], 0)**2
+    x = np.fmin(x - x[13], 0)
+    out_array = np.nansum(x * sobel_matrix.ravel()[:, np.newaxis, np.newaxis], 0) ** 2
+    out_array += (
+        np.nansum(
+            x * sobel_matrix.transpose([1, 2, 0]).ravel()[:, np.newaxis, np.newaxis], 0
+        )
+        ** 2
+    )
+    out_array += (
+        np.nansum(
+            x * sobel_matrix.transpose([2, 0, 1]).ravel()[:, np.newaxis, np.newaxis], 0
+        )
+        ** 2
+    )
 
-    return out_array ** 0.5
+    return out_array**0.5
+
 
 def _sobel_func(x):
     x -= x[13]
-    out_array = np.nansum(x * sobel_matrix.ravel()[:,np.newaxis,np.newaxis], 0)**2
-    out_array += np.nansum(x * sobel_matrix.transpose([1,2,0]).ravel()[:,np.newaxis,np.newaxis], 0)**2
-    out_array += np.nansum(x * sobel_matrix.transpose([2,0,1]).ravel()[:,np.newaxis,np.newaxis], 0)**2
+    out_array = np.nansum(x * sobel_matrix.ravel()[:, np.newaxis, np.newaxis], 0) ** 2
+    out_array += (
+        np.nansum(
+            x * sobel_matrix.transpose([1, 2, 0]).ravel()[:, np.newaxis, np.newaxis], 0
+        )
+        ** 2
+    )
+    out_array += (
+        np.nansum(
+            x * sobel_matrix.transpose([2, 0, 1]).ravel()[:, np.newaxis, np.newaxis], 0
+        )
+        ** 2
+    )
 
-    return out_array ** 0.5
+    return out_array**0.5
 
-def sobel(data, forward_flow, backward_flow,
-          method="linear",
-          dtype=np.float32,
-          fill_value=np.nan,
-          direction=None):
+
+def sobel(
+    data,
+    forward_flow,
+    backward_flow,
+    method="linear",
+    dtype=np.float32,
+    fill_value=np.nan,
+    direction=None,
+):
     """
     Sobel edge detection algorithm in a semi-Lagrangian space
 
@@ -82,18 +122,22 @@ def sobel(data, forward_flow, backward_flow,
     res : numpy.ndarray
         The magnitude of the edges detected using the sobel method
     """
-    if direction == 'uphill':
+    if direction == "uphill":
         func = _sobel_func_uphill
-    elif direction == 'downhill':
+    elif direction == "downhill":
         func = _sobel_func_downhill
     else:
         func = _sobel_func
 
-    res = convolve(data, forward_flow, backward_flow,
-                   structure=ndi.generate_binary_structure(3,3),
-                   method=method,
-                   dtype=dtype,
-                   fill_value=fill_value,
-                   func=func)
+    res = convolve(
+        data,
+        forward_flow,
+        backward_flow,
+        structure=ndi.generate_binary_structure(3, 3),
+        method=method,
+        dtype=dtype,
+        fill_value=fill_value,
+        func=func,
+    )
 
     return res
