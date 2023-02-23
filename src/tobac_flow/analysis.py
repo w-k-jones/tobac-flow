@@ -90,9 +90,9 @@ def labeled_comprehension(
         field: np.ndarray,
         labels: np.ndarray[int],
         func: Callable,
-        index: bool = False,
+        index: list[int] | None = None,
         dtype: type | None = None,
-        default: float | None= None,
+        default: float | None = None,
         pass_positions: bool = False
     ) -> np.ndarray:
     """
@@ -135,7 +135,9 @@ def labeled_comprehension(
     return comp
 
 def apply_func_to_labels(
-        labels: np.ndarray[int], field: np.ndarray, func: Callable
+        labels: np.ndarray[int], 
+        field: np.ndarray, 
+        func: Callable
     ) -> np.ndarray:
     """
     Apply a given function to the regions of an array given by an array of

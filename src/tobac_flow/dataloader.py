@@ -7,10 +7,10 @@ from dateutil.parser import parse as parse_date
 from glob import glob
 import warnings
 
-from . import io
-from .dataset import (get_datetime_from_coord, create_dataarray,
+from tobac_flow import io
+from tobac_flow.dataset import (get_datetime_from_coord, create_dataarray,
                       add_dataarray_to_ds)
-from .abi import get_abi_lat_lon, get_abi_pixel_area
+from tobac_flow.abi import get_abi_lat_lon, get_abi_pixel_area
 
 def goes_dataloader(start_date, end_date, n_pad_files=1,
                     x0=None, x1=None, y0=None, y1=None,

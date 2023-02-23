@@ -63,6 +63,8 @@ class Flow:
         """
         if forward_flow.shape != backward_flow.shape:
             raise ValueError("Forward and backward flow vector arrays must have the same shape")
+        if forward_flow.shape[-1] != 2:
+            raise ValueError("Flow vectors must have a size of 2 in the trailing dimension")
         self.shape = forward_flow.shape[:-1]
         self.forward_flow = forward_flow
         self.backward_flow = backward_flow

@@ -6,7 +6,7 @@ from scipy import ndimage as ndi
 from scipy import stats
 
 from tobac_flow import io, abi
-from tobac_flow.flow import Flow
+from tobac_flow.flow import create_flow
 from tobac_flow.dataloader import goes_dataloader
 from tobac_flow.dataset import (
     get_time_diff_from_coord, add_dataarray_to_ds, create_dataarray
@@ -68,28 +68,22 @@ if not os.path.isdir(goes_data_path):
     except (FileExistsError, OSError):
         pass
 
-def main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_path):
+def main() -> None:
 
     print(datetime.now(),'Loading ABI data', flush=True)
     print('Loading goes data from:',goes_data_path, flush=True)
 
-    bt, wvd, swd, dataset = goes_dataloader(start_date, end_date,
-                                            n_pad_files=t_offset+1,
-                                            x0=x0, x1=x1, y0=y0, y1=y1,
-                                            return_new_ds=True,
-                                            satellite=satellite,
-                                            product='MCMIP',
-                                            view='C',
-                                            mode=[3,4,6],
-                                            save_dir=goes_data_path,
-                                            replicate_path=True,
-                                            check_download=True,
-                                            n_attempts=1,
-                                            download_missing=True)
+    bt, wvd, swd, dataset = goes_dataloader(
+        start_date, end_date, n_pad_files=t_offset+1,
+        x0=x0, x1=x1, y0=y0, y1=y1, return_new_ds=True,
+        satellite=satellite, product='MCMIP', view='C', mode=[3,4,6],
+        save_dir=goes_data_path, replicate_path=True,
+        check_download=True, n_attempts=1, download_missing=True
+    )
 
     print(datetime.now(),'Calculating flow field', flush=True)
 
-    flow = Flow(bt, model="DIS", vr_steps=1, smoothing_passes=1)
+    flow = create_flow(bt, model="DIS", vr_steps=1, smoothing_passes=1)
 
     print(datetime.now(),'Detecting growth markers', flush=True)
 
@@ -1019,6 +1013,6 @@ if __name__=="__main__":
     print('Output save path:', save_path)
     print('GOES data path:', goes_data_path)
 
-    main(start_date, end_date, satellite, x0, x1, y0, y1, save_path, goes_data_path)
+    main()
 
     print(datetime.now(), 'Finished successfully, time elapsed:', datetime.now()-start_time, flush=True)
