@@ -5,11 +5,9 @@ from dateutil.parser import parse as parse_date
 from scipy import ndimage as ndi
 from scipy import stats
 
-from tobac_flow import io, abi
 from tobac_flow.flow import create_flow
 from tobac_flow.dataloader import goes_dataloader
 from tobac_flow.dataset import (
-    get_time_diff_from_coord,
     add_dataarray_to_ds,
     create_dataarray,
 )
