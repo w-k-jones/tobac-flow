@@ -7,6 +7,7 @@ from tobac_flow.abi import get_abi_lat_lon, get_abi_pixel_area
 from tobac_flow.label import slice_labels
 from tobac_flow.utils import labeled_comprehension, apply_weighted_func_to_labels
 
+
 def get_coord_bin_edges(coord):
     # Now set up the bin edges for the goes dataset coordinates. Note we multiply by height to convert into the Proj coords
     bins = np.zeros(coord.size + 1)
@@ -260,6 +261,7 @@ def create_new_goes_ds(goes_ds):
     )
     return new_ds
 
+
 def add_step_labels(dataset: xr.Dataset) -> None:
     core_step_labels = slice_labels(dataset.core_label.data)
 
@@ -306,6 +308,7 @@ def add_step_labels(dataset: xr.Dataset) -> None:
         dataset,
     )
 
+
 def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
     cores = np.unique(dataset.core_label.data).astype(np.int32)
     if cores[0] == 0 and cores.size > 1:
@@ -322,13 +325,16 @@ def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
     thin_anvil_steps = np.unique(dataset.thin_anvil_step_label.data).astype(np.int32)
     if thin_anvil_steps[0] == 0 and thin_anvil_steps.size > 1:
         thin_anvil_steps = thin_anvil_steps[1:]
-    return dataset.assign_coords({
-        "core":cores, 
-        "core_step":core_steps, 
-        "anvil":anvils,
-        "thick_anvil_step":thick_anvil_steps,
-        "thin_anvil_step":thin_anvil_steps, 
-    })
+    return dataset.assign_coords(
+        {
+            "core": cores,
+            "core_step": core_steps,
+            "anvil": anvils,
+            "thick_anvil_step": thick_anvil_steps,
+            "thin_anvil_step": thin_anvil_steps,
+        }
+    )
+
 
 def link_step_labels(dataset: xr.Dataset) -> None:
     # Add linking indices between each label
@@ -425,6 +431,7 @@ def link_step_labels(dataset: xr.Dataset) -> None:
         dataset,
     )
 
+
 def flag_edge_labels(dataset, start_date, end_date):
     # Add edge flags for cores
     core_edge_labels = np.unique(
@@ -515,7 +522,9 @@ def flag_edge_labels(dataset, start_date, end_date):
     else:
         thick_anvil_edge_label_flag[thick_anvil_edge_labels - 1] = True
 
-    thick_anvil_start_labels = np.unique(dataset.thick_anvil_label.sel(t=slice(None, start_date)))
+    thick_anvil_start_labels = np.unique(
+        dataset.thick_anvil_label.sel(t=slice(None, start_date))
+    )
 
     thick_anvil_start_label_flag = np.zeros_like(dataset.anvil, bool)
 
@@ -524,7 +533,9 @@ def flag_edge_labels(dataset, start_date, end_date):
     else:
         thick_anvil_start_label_flag[thick_anvil_start_labels - 1] = True
 
-    thick_anvil_end_labels = np.unique(dataset.thick_anvil_label.sel(t=slice(end_date, None)))
+    thick_anvil_end_labels = np.unique(
+        dataset.thick_anvil_label.sel(t=slice(end_date, None))
+    )
 
     thick_anvil_end_label_flag = np.zeros_like(dataset.anvil, bool)
 
@@ -585,7 +596,9 @@ def flag_edge_labels(dataset, start_date, end_date):
     else:
         thin_anvil_edge_label_flag[thin_anvil_edge_labels - 1] = True
 
-    thin_anvil_start_labels = np.unique(dataset.thin_anvil_label.sel(t=slice(None, start_date)))
+    thin_anvil_start_labels = np.unique(
+        dataset.thin_anvil_label.sel(t=slice(None, start_date))
+    )
 
     thin_anvil_start_label_flag = np.zeros_like(dataset.anvil, bool)
 
@@ -594,7 +607,9 @@ def flag_edge_labels(dataset, start_date, end_date):
     else:
         thin_anvil_start_label_flag[thin_anvil_start_labels - 1] = True
 
-    thin_anvil_end_labels = np.unique(dataset.thin_anvil_label.sel(t=slice(end_date, None)))
+    thin_anvil_end_labels = np.unique(
+        dataset.thin_anvil_label.sel(t=slice(end_date, None))
+    )
 
     thin_anvil_end_label_flag = np.zeros_like(dataset.anvil, bool)
 
@@ -635,6 +650,7 @@ def flag_edge_labels(dataset, start_date, end_date):
         ),
         dataset,
     )
+
 
 def flag_nan_adjacent_labels(dataset: xr.Dataset, da: xr.DataArray) -> None:
     core_nan_flag = np.zeros_like(dataset.core, bool)
@@ -696,6 +712,7 @@ def flag_nan_adjacent_labels(dataset: xr.Dataset, da: xr.DataArray) -> None:
         ),
         dataset,
     )
+
 
 def calculate_label_properties(dataset: xr.Dataset) -> None:
     # Pixel count and area
@@ -1547,5 +1564,3 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         ),
         dataset,
     )
-
-

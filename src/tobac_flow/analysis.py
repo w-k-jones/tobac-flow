@@ -1,6 +1,10 @@
 import numpy as np
 from scipy import ndimage as ndi
-from tobac_flow.dataset import add_dataarray_to_ds, create_dataarray, n_unique_along_axis
+from tobac_flow.dataset import (
+    add_dataarray_to_ds,
+    create_dataarray,
+    n_unique_along_axis,
+)
 from tobac_flow.utils import apply_func_to_labels, apply_weighted_func_to_labels
 
 

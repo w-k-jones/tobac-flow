@@ -6,23 +6,29 @@ from datetime import datetime
 from dateutil.parser import parse as parse_date
 from typing import Callable
 
+
 def get_dates_from_filename(filename: str | pathlib.Path) -> tuple[datetime, datetime]:
     if isinstance(filename, str):
-        start_date = parse_date(filename.split("/")[-1].split("_S")[-1][:15], fuzzy=True)
+        start_date = parse_date(
+            filename.split("/")[-1].split("_S")[-1][:15], fuzzy=True
+        )
         end_date = parse_date(filename.split("/")[-1].split("_E")[-1][:15], fuzzy=True)
     elif isinstance(filename, pathlib.Path):
         start_date = parse_date(filename.name.split("_S")[-1][:15], fuzzy=True)
         end_date = parse_date(filename.name.split("_E")[-1][:15], fuzzy=True)
     else:
         raise ValueError("filename parameter must be either a string or a Path object")
-    
+
     return start_date, end_date
+
 
 def trim_file_start(dataset: xr.Dataset, filename: str | pathlib.Path) -> xr.Dataset:
     return dataset.sel(t=slice(get_dates_from_filename(filename)[0], None))
 
+
 def trim_file_end(dataset: xr.Dataset, filename: str | pathlib.Path) -> xr.Dataset:
     return dataset.sel(t=slice(None, get_dates_from_filename(filename)[1]))
+
 
 def labeled_comprehension(
     field: np.ndarray,
@@ -65,13 +71,14 @@ def labeled_comprehension(
         dtype = field.dtype
 
     if not index:
-        index = np.unique(labels[labels!=0])
+        index = np.unique(labels[labels != 0])
 
     comp = ndi.labeled_comprehension(
         field, labels, index, func, dtype, default, pass_positions
     )
 
     return comp
+
 
 def apply_func_to_labels(
     labels: np.ndarray[int], field: np.ndarray, func: Callable
@@ -93,6 +100,7 @@ def apply_func_to_labels(
             for i in range(bins.size - 1)
         ]
     )
+
 
 def apply_weighted_func_to_labels(
     labels: np.ndarray[int], field: np.ndarray, weights: np.ndarray, func: Callable

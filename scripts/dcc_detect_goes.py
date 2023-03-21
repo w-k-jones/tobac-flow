@@ -10,19 +10,19 @@ from tobac_flow.dataloader import goes_dataloader
 from tobac_flow.dataset import (
     add_dataarray_to_ds,
     add_label_coords,
-    create_dataarray, 
-    add_step_labels, 
-    add_label_coords, 
+    create_dataarray,
+    add_step_labels,
+    add_label_coords,
     flag_edge_labels,
-    flag_nan_adjacent_labels, 
-    link_step_labels, 
-    calculate_label_properties, 
+    flag_nan_adjacent_labels,
+    link_step_labels,
+    calculate_label_properties,
 )
 from tobac_flow.analysis import (
     get_label_stats,
     weighted_statistics_on_labels,
     find_object_lengths,
-    remap_labels, 
+    remap_labels,
     mask_labels,
 )
 from tobac_flow.utils import labeled_comprehension
@@ -55,9 +55,21 @@ parser.add_argument(
     default=True,
     type=bool,
 )
-parser.add_argument("--save_bt", help="Save brightness temperature field to output file", action='store_true')
-parser.add_argument("--save_field_props", help="Save statistics of field properties to output file", action='store_true')
-parser.add_argument("--save_spatial_props", help="Save statistics of label spatial properties to output file", action='store_true')
+parser.add_argument(
+    "--save_bt",
+    help="Save brightness temperature field to output file",
+    action="store_true",
+)
+parser.add_argument(
+    "--save_field_props",
+    help="Save statistics of field properties to output file",
+    action="store_true",
+)
+parser.add_argument(
+    "--save_spatial_props",
+    help="Save statistics of label spatial properties to output file",
+    action="store_true",
+)
 
 
 args = parser.parse_args()
@@ -323,7 +335,7 @@ def main() -> None:
             dtype=np.int32,
         ).sel(t=dataset.t),
         dataset,
-    )   
+    )
 
     # Thick anvil
     add_dataarray_to_ds(
@@ -376,7 +388,7 @@ def main() -> None:
         ),
         dataset,
     )
-    
+
     calculate_label_properties(dataset)
 
     if args.save_spatial_props:
@@ -387,9 +399,9 @@ def main() -> None:
     if args.save_bt:
         add_dataarray_to_ds(
             bt.sel(t=dataset.t),
-        dataset,
-    )
-    
+            dataset,
+        )
+
     if args.save_field_props:
         # Add BT, WVD, SWD stats
         weights = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
@@ -466,8 +478,6 @@ def main() -> None:
                     dtype=np.float32,
                 )
             ]
-
-    
 
     print(datetime.now(), "Saving to %s" % (save_path), flush=True)
     # Add compression encoding
