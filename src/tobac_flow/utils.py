@@ -46,7 +46,7 @@ def labeled_comprehension(
         The function to apply to each labelled region
     index : list, optional (default : None)
         The label values to apply the comprehension over. Default value of None
-            will apply the comprehension to all labels
+            will apply the comprehension to all non-zero labels
     dtype : type, optional (default : None)
         The dtype of the output. Defaults to that of the input field
     default : scalar, optional (default : None)
@@ -65,10 +65,55 @@ def labeled_comprehension(
         dtype = field.dtype
 
     if not index:
-        index = range(1, int(np.nanmax(labels)) + 1)
+        index = np.unique(labels[labels!=0])
 
     comp = ndi.labeled_comprehension(
         field, labels, index, func, dtype, default, pass_positions
     )
 
     return comp
+
+def apply_func_to_labels(
+    labels: np.ndarray[int], field: np.ndarray, func: Callable
+) -> np.ndarray:
+    """
+    Apply a given function to the regions of an array given by an array of
+        labels. Functions similar to ndi.labeled_comprehension, but may be more
+        adaptable in some circumstances
+    """
+    if labels.shape != field.shape:
+        raise ValueError("Input labels and field do not have the same shape")
+    bins = np.cumsum(np.bincount(labels.ravel()))
+    args = np.argsort(labels.ravel())
+    return np.array(
+        [
+            func(field.ravel()[args[bins[i] : bins[i + 1]]])
+            if bins[i + 1] > bins[i]
+            else None
+            for i in range(bins.size - 1)
+        ]
+    )
+
+def apply_weighted_func_to_labels(
+    labels: np.ndarray[int], field: np.ndarray, weights: np.ndarray, func: Callable
+) -> np.ndarray:
+    """
+    Apply a given weighted function to the regions of an array given by an array
+        of labels. The weights provided by the weights array in the labelled
+        region will also be provided to the function.
+    """
+    if labels.shape != field.shape:
+        raise ValueError("Input labels and field do not have the same shape")
+    bins = np.cumsum(np.bincount(labels.ravel()))
+    args = np.argsort(labels.ravel())
+    return np.array(
+        [
+            func(
+                field.ravel()[args[bins[i] : bins[i + 1]]],
+                weights.ravel()[args[bins[i] : bins[i + 1]]],
+            )
+            if bins[i + 1] > bins[i]
+            else None
+            for i in range(bins.size - 1)
+        ]
+    )
