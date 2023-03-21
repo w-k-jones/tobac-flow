@@ -55,6 +55,10 @@ parser.add_argument(
     default=True,
     type=bool,
 )
+parser.add_argument("--save_bt", help="Save brightness temperature field to output file", action='store_true')
+parser.add_argument("--save_field_props", help="Save statistics of field properties to output file", action='store_true')
+parser.add_argument("--save_spatial_props", help="Save statistics of label spatial properties to output file", action='store_true')
+
 
 args = parser.parse_args()
 start_date = parse_date(args.date, fuzzy=True)
@@ -375,85 +379,93 @@ def main() -> None:
     
     calculate_label_properties(dataset)
 
-    get_label_stats(dataset.core_label, dataset)
-    get_label_stats(dataset.thick_anvil_label, dataset)
-    get_label_stats(dataset.thin_anvil_label, dataset)
+    if args.save_spatial_props:
+        get_label_stats(dataset.core_label, dataset)
+        get_label_stats(dataset.thick_anvil_label, dataset)
+        get_label_stats(dataset.thin_anvil_label, dataset)
 
-    # Add BT, WVD, SWD stats
-    weights = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
+    if args.save_bt:
+        add_dataarray_to_ds(
+            bt.sel(t=dataset.t),
+        dataset,
+    )
+    
+    if args.save_field_props:
+        # Add BT, WVD, SWD stats
+        weights = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
 
-    for field in (bt.sel(t=dataset.t), wvd.sel(t=dataset.t), swd.sel(t=dataset.t)):
-        [
-            add_dataarray_to_ds(da, dataset)
-            for da in weighted_statistics_on_labels(
-                dataset.core_label,
-                field.compute(),
-                weights,
-                name="core",
-                dim="core",
-                dtype=np.float32,
-            )
-        ]
+        for field in (bt.sel(t=dataset.t), wvd.sel(t=dataset.t), swd.sel(t=dataset.t)):
+            [
+                add_dataarray_to_ds(da, dataset)
+                for da in weighted_statistics_on_labels(
+                    dataset.core_label,
+                    field.compute(),
+                    weights,
+                    name="core",
+                    dim="core",
+                    dtype=np.float32,
+                )
+            ]
 
-        [
-            add_dataarray_to_ds(da, dataset)
-            for da in weighted_statistics_on_labels(
-                dataset.thick_anvil_label,
-                field.compute(),
-                weights,
-                name="thick_anvil",
-                dim="anvil",
-                dtype=np.float32,
-            )
-        ]
+            [
+                add_dataarray_to_ds(da, dataset)
+                for da in weighted_statistics_on_labels(
+                    dataset.thick_anvil_label,
+                    field.compute(),
+                    weights,
+                    name="thick_anvil",
+                    dim="anvil",
+                    dtype=np.float32,
+                )
+            ]
 
-        [
-            add_dataarray_to_ds(da, dataset)
-            for da in weighted_statistics_on_labels(
-                dataset.thin_anvil_label,
-                field.compute(),
-                weights,
-                name="thin_anvil",
-                dim="anvil",
-                dtype=np.float32,
-            )
-        ]
+            [
+                add_dataarray_to_ds(da, dataset)
+                for da in weighted_statistics_on_labels(
+                    dataset.thin_anvil_label,
+                    field.compute(),
+                    weights,
+                    name="thin_anvil",
+                    dim="anvil",
+                    dtype=np.float32,
+                )
+            ]
 
-        [
-            add_dataarray_to_ds(da, dataset)
-            for da in weighted_statistics_on_labels(
-                dataset.core_step_label,
-                field.compute(),
-                weights,
-                name="core_step",
-                dim="core_step",
-                dtype=np.float32,
-            )
-        ]
+            [
+                add_dataarray_to_ds(da, dataset)
+                for da in weighted_statistics_on_labels(
+                    dataset.core_step_label,
+                    field.compute(),
+                    weights,
+                    name="core_step",
+                    dim="core_step",
+                    dtype=np.float32,
+                )
+            ]
 
-        [
-            add_dataarray_to_ds(da, dataset)
-            for da in weighted_statistics_on_labels(
-                dataset.thick_anvil_step_label,
-                field.compute(),
-                weights,
-                name="thick_anvil_step",
-                dim="thick_anvil_step",
-                dtype=np.float32,
-            )
-        ]
+            [
+                add_dataarray_to_ds(da, dataset)
+                for da in weighted_statistics_on_labels(
+                    dataset.thick_anvil_step_label,
+                    field.compute(),
+                    weights,
+                    name="thick_anvil_step",
+                    dim="thick_anvil_step",
+                    dtype=np.float32,
+                )
+            ]
 
-        [
-            add_dataarray_to_ds(da, dataset)
-            for da in weighted_statistics_on_labels(
-                dataset.thin_anvil_step_label,
-                field.compute(),
-                weights,
-                name="thin_anvil_step",
-                dim="thin_anvil_step",
-                dtype=np.float32,
-            )
-        ]
+            [
+                add_dataarray_to_ds(da, dataset)
+                for da in weighted_statistics_on_labels(
+                    dataset.thin_anvil_step_label,
+                    field.compute(),
+                    weights,
+                    name="thin_anvil_step",
+                    dim="thin_anvil_step",
+                    dtype=np.float32,
+                )
+            ]
 
     
 
