@@ -4,7 +4,13 @@ import pathlib
 from typing import Callable
 
 from tobac_flow.utils import get_dates_from_filename
-from tobac_flow.dataset import flag_edge_labels, flag_nan_adjacent_labels, add_step_labels, add_label_coords, link_step_labels
+from tobac_flow.dataset import (
+    flag_edge_labels,
+    flag_nan_adjacent_labels,
+    add_step_labels,
+    add_label_coords,
+    link_step_labels,
+)
 
 # Functions to link overlapping labels
 def recursive_linker(
@@ -244,9 +250,16 @@ def link_dcc_anvils(dcc_ds1, dcc_ds2, overlap=0):
 
 
 from typing import Callable
-class File_Linker():
-    def __init__(self, files: list[pathlib.Path | str], output_func: Callable, 
-                 output_path: str | pathlib.Path | None = None, overlap: float = 0.5) -> None:
+
+
+class File_Linker:
+    def __init__(
+        self,
+        files: list[pathlib.Path | str],
+        output_func: Callable,
+        output_path: str | pathlib.Path | None = None,
+        overlap: float = 0.5,
+    ) -> None:
         self.files = [pathlib.Path(filename) for filename in files]
         for filename in self.files:
             if not filename.exists:
@@ -263,38 +276,46 @@ class File_Linker():
         self.current_max_core_step_label = 0
         self.current_max_thick_anvil_step_label = 0
         self.current_max_thin_anvil_step_label = 0
-        
+
         self.current_filename = self.files.pop(0)
-        #self.start_date = get_dates_from_filename(self.current_filename)[0]
-        self.current_ds = xr.open_dataset(self.current_filename)#.sel(t=slice(self.start_date, None))
-    
+        # self.start_date = get_dates_from_filename(self.current_filename)[0]
+        self.current_ds = xr.open_dataset(
+            self.current_filename
+        )  # .sel(t=slice(self.start_date, None))
+
     def process_next_file(self) -> None:
         self.next_filename = self.files.pop(0)
         self.start_date, self.end_date = get_dates_from_filename(self.current_filename)
         self.next_ds = xr.open_dataset(self.next_filename)
         self.relabel_next_ds()
-        
+
         # Check if there is some overlap
-        self.t_overlap = sorted(list(set(self.current_ds.t.data) & set(self.next_ds.t.data)))
+        self.t_overlap = sorted(
+            list(set(self.current_ds.t.data) & set(self.next_ds.t.data))
+        )
         if len(self.t_overlap) > 2:
             self.relabel_cores()
             self.relabel_anvils()
-            
+
         self.output_current_ds()
         self.current_ds = self.next_ds
         self.current_filename = self.next_filename
-    
+
     def process_files(self) -> None:
         while len(self.files) > 0:
             self.process_next_file()
         self.start_date, self.end_date = get_dates_from_filename(self.current_filename)
         self.output_current_ds()
-        
+
     def output_current_ds(self) -> None:
         if "BT" in self.current_ds.data_vars:
-            self.current_ds = self.current_ds.get(["core_label", "thick_anvil_label", "thin_anvil_label", "BT"])
+            self.current_ds = self.current_ds.get(
+                ["core_label", "thick_anvil_label", "thin_anvil_label", "BT"]
+            )
         else:
-            self.current_ds = self.current_ds.get(["core_label", "thick_anvil_label", "thin_anvil_label"])
+            self.current_ds = self.current_ds.get(
+                ["core_label", "thick_anvil_label", "thin_anvil_label"]
+            )
         cores = np.unique(self.current_ds.core_label.data).astype(np.int32)
         if cores[0] == 0 and cores.size > 1:
             cores = cores[1:]
@@ -313,43 +334,57 @@ class File_Linker():
             flag_nan_adjacent_labels(self.current_ds, self.current_ds.BT)
         # Select only between current start and end date
         self.current_ds = self.current_ds.sel(t=slice(self.start_date, self.end_date))
-        
+
         cores = np.unique(self.current_ds.core_label.data).astype(np.int32)
         if cores[0] == 0 and cores.size > 1:
             cores = cores[1:]
         anvils = np.unique(self.current_ds.thick_anvil_label.data).astype(np.int32)
         if anvils[0] == 0 and anvils.size > 1:
             anvils = anvils[1:]
-        
-        self.current_ds = self.current_ds.sel({"core":cores, "anvil":anvils})
-        
-        #Add step labels and coords
+
+        self.current_ds = self.current_ds.sel({"core": cores, "anvil": anvils})
+
+        # Add step labels and coords
         add_step_labels(self.current_ds)
         # Increase step label values according the previous max
-        self.current_ds.core_step_label.data[self.current_ds.core_step_label.data!=0] += self.current_max_core_step_label
-        self.current_ds.thick_anvil_step_label.data[self.current_ds.thick_anvil_step_label.data!=0] += self.current_max_thick_anvil_step_label
-        self.current_ds.thin_anvil_step_label.data[self.current_ds.thin_anvil_step_label.data!=0] += self.current_max_thin_anvil_step_label
-        
+        self.current_ds.core_step_label.data[
+            self.current_ds.core_step_label.data != 0
+        ] += self.current_max_core_step_label
+        self.current_ds.thick_anvil_step_label.data[
+            self.current_ds.thick_anvil_step_label.data != 0
+        ] += self.current_max_thick_anvil_step_label
+        self.current_ds.thin_anvil_step_label.data[
+            self.current_ds.thin_anvil_step_label.data != 0
+        ] += self.current_max_thin_anvil_step_label
+
         self.current_ds = add_label_coords(self.current_ds)
-        
+
         self.current_max_core_step_label = np.max(self.current_ds.core_step.data)
-        self.current_max_thick_anvil_step_label = np.max(self.current_ds.thick_anvil_step.data)
-        self.current_max_thin_anvil_step_label = np.max(self.current_ds.thin_anvil_step.data)
-        
+        self.current_max_thick_anvil_step_label = np.max(
+            self.current_ds.thick_anvil_step.data
+        )
+        self.current_max_thin_anvil_step_label = np.max(
+            self.current_ds.thin_anvil_step.data
+        )
+
         link_step_labels(self.current_ds)
-        
-        #do something else...
+
+        # do something else...
         self.output_func(self.current_ds)
-        
+
         if self.output_path is None:
-            new_filename = self.current_filename.parent / (self.current_filename.stem + "_linked.nc")
+            new_filename = self.current_filename.parent / (
+                self.current_filename.stem + "_linked.nc"
+            )
         else:
-            new_filename = self.output_path / (self.current_filename.stem + "_linked.nc")
-        
+            new_filename = self.output_path / (
+                self.current_filename.stem + "_linked.nc"
+            )
+
         self.current_ds.to_netcdf(new_filename)
-        
+
         self.current_ds.close()
-    
+
     def generate_label_map(
         self, unique_labels: np.ndarray, links1: list, links2: list, previous_max: int
     ) -> np.ndarray:
@@ -357,11 +392,11 @@ class File_Linker():
         Generate a label map of contiguous, linked labels for the given unique label list
         """
         max_label = unique_labels.max()
-        
-        label_map = np.zeros(max_label+1, dtype=int)
-        
+
+        label_map = np.zeros(max_label + 1, dtype=int)
+
         label_map[unique_labels] = unique_labels
-        
+
         # Now reassign labels based on links
         for current_cores, next_cores in zip(links1, links2):
             new_label = current_cores[0]
@@ -371,55 +406,77 @@ class File_Linker():
             if len(next_cores) > 0:
                 for core in next_cores:
                     label_map[core] = new_label
-        
+
         # Reassign to contiguous integers
         unique_labels = np.unique(label_map)
-        
+
         # First maintain existing labels
-        existing_labels = unique_labels[unique_labels<=previous_max]
+        existing_labels = unique_labels[unique_labels <= previous_max]
         label_map[existing_labels] = existing_labels
-        
+
         # Then add new labels
-        new_labels = unique_labels[unique_labels>previous_max]
+        new_labels = unique_labels[unique_labels > previous_max]
         label_map[new_labels] = np.arange(new_labels.size) + previous_max + 1
-        
+
         return label_map
-    
+
     def core_label_map(self) -> np.ndarray:
         """
         Get a label map that maps the cores in the current_ds and next_ds to their new, linked values
         """
         _, _, core_links1, core_links2 = link_dcc_cores(
-            self.current_ds.sel(t=slice(self.start_date, None)), self.next_ds, overlap=self.overlap)
-        
-        unique_labels = np.asarray(sorted(list(set(np.unique(self.current_ds.core_label.data)) 
-                                               | set(np.unique(self.next_ds.core_label.data)))))
-        
-        label_map = self.generate_label_map(unique_labels, core_links1, core_links2, self.current_max_core_label)
+            self.current_ds.sel(t=slice(self.start_date, None)),
+            self.next_ds,
+            overlap=self.overlap,
+        )
+
+        unique_labels = np.asarray(
+            sorted(
+                list(
+                    set(np.unique(self.current_ds.core_label.data))
+                    | set(np.unique(self.next_ds.core_label.data))
+                )
+            )
+        )
+
+        label_map = self.generate_label_map(
+            unique_labels, core_links1, core_links2, self.current_max_core_label
+        )
         return label_map
-    
+
     def anvil_label_map(self) -> np.ndarray:
         """
         Get a label map that maps the anvils in the current_ds and next_ds to their new, linked values
         """
         _, _, anvil_links1, anvil_links2 = link_dcc_anvils(
-            self.current_ds.sel(t=slice(self.start_date, None)), self.next_ds, overlap=self.overlap)
-        
-        unique_labels = np.asarray(sorted(list(set(np.unique(self.current_ds.thick_anvil_label.data)) 
-                                               | set(np.unique(self.next_ds.thick_anvil_label.data))
-                                               | set(np.unique(self.current_ds.thin_anvil_label.data)) 
-                                               | set(np.unique(self.next_ds.thin_anvil_label.data)))))
-        
-        label_map = self.generate_label_map(unique_labels, anvil_links1, anvil_links2, self.current_max_anvil_label)
+            self.current_ds.sel(t=slice(self.start_date, None)),
+            self.next_ds,
+            overlap=self.overlap,
+        )
+
+        unique_labels = np.asarray(
+            sorted(
+                list(
+                    set(np.unique(self.current_ds.thick_anvil_label.data))
+                    | set(np.unique(self.next_ds.thick_anvil_label.data))
+                    | set(np.unique(self.current_ds.thin_anvil_label.data))
+                    | set(np.unique(self.next_ds.thin_anvil_label.data))
+                )
+            )
+        )
+
+        label_map = self.generate_label_map(
+            unique_labels, anvil_links1, anvil_links2, self.current_max_anvil_label
+        )
         return label_map
-    
+
     def relabel_cores(self) -> None:
         self.combine_labels(self.current_ds.core_label, self.next_ds.core_label)
-        
+
         label_map = self.core_label_map()
-        
+
         self.remap_core_labels(label_map)
-    
+
     def remap_core_labels(self, label_map) -> None:
         """
         Relabel cores of current and next ds to contiguous integers, while maintaining the same
@@ -428,82 +485,133 @@ class File_Linker():
         # Relabel cores
         self.current_ds.core_label.data = label_map[self.current_ds.core_label.data]
         new_cores = np.unique(label_map[self.current_ds.core.data])
-        self.current_ds = self.current_ds.isel({"core":np.arange(new_cores.size)}).assign_coords({"core":new_cores})
-        self.current_ds.core_step_core_index.data = label_map[self.current_ds.core_step_core_index.data]
-        
+        self.current_ds = self.current_ds.isel(
+            {"core": np.arange(new_cores.size)}
+        ).assign_coords({"core": new_cores})
+        self.current_ds.core_step_core_index.data = label_map[
+            self.current_ds.core_step_core_index.data
+        ]
+
         self.next_ds.core_label.data = label_map[self.next_ds.core_label.data]
         new_cores = np.unique(label_map[self.next_ds.core.data])
-        self.next_ds = self.next_ds.isel({"core":np.arange(new_cores.size)}).assign_coords({"core":new_cores})
-        self.next_ds.core_step_core_index.data = label_map[self.next_ds.core_step_core_index.data]
-        
-        self.current_max_core_label = np.maximum(np.max(self.current_ds.core_label.data), self.current_max_core_label)
-#         print(self.current_max_core_label)
-    
+        self.next_ds = self.next_ds.isel(
+            {"core": np.arange(new_cores.size)}
+        ).assign_coords({"core": new_cores})
+        self.next_ds.core_step_core_index.data = label_map[
+            self.next_ds.core_step_core_index.data
+        ]
+
+        self.current_max_core_label = np.maximum(
+            np.max(self.current_ds.core_label.data), self.current_max_core_label
+        )
+
+    #         print(self.current_max_core_label)
+
     def relabel_anvils(self) -> None:
-        self.combine_labels(self.current_ds.thick_anvil_label, self.next_ds.thick_anvil_label)
-        self.combine_labels(self.current_ds.thin_anvil_label, self.next_ds.thin_anvil_label)
-        
+        self.combine_labels(
+            self.current_ds.thick_anvil_label, self.next_ds.thick_anvil_label
+        )
+        self.combine_labels(
+            self.current_ds.thin_anvil_label, self.next_ds.thin_anvil_label
+        )
+
         label_map = self.anvil_label_map()
-        
+
         self.remap_anvil_labels(label_map)
-    
+
     def remap_anvil_labels(self, label_map) -> None:
         """
         Relabel anvils of current and next ds to contiguous integers, while maintaining the same
         labels for overlapping regions. Note that we must account for both the thin and thick anvil
         labels
         """
-        self.current_ds.thick_anvil_label.data = label_map[self.current_ds.thick_anvil_label.data]
-        self.next_ds.thick_anvil_label.data = label_map[self.next_ds.thick_anvil_label.data]
-        self.current_ds.thin_anvil_label.data = label_map[self.current_ds.thin_anvil_label.data]
-        self.next_ds.thin_anvil_label.data = label_map[self.next_ds.thin_anvil_label.data]
-        
+        self.current_ds.thick_anvil_label.data = label_map[
+            self.current_ds.thick_anvil_label.data
+        ]
+        self.next_ds.thick_anvil_label.data = label_map[
+            self.next_ds.thick_anvil_label.data
+        ]
+        self.current_ds.thin_anvil_label.data = label_map[
+            self.current_ds.thin_anvil_label.data
+        ]
+        self.next_ds.thin_anvil_label.data = label_map[
+            self.next_ds.thin_anvil_label.data
+        ]
+
         new_anvils = np.unique(label_map[self.current_ds.anvil.data])
-        self.current_ds = self.current_ds.isel({"anvil":np.arange(new_anvils.size)}).assign_coords({"anvil":new_anvils})
+        self.current_ds = self.current_ds.isel(
+            {"anvil": np.arange(new_anvils.size)}
+        ).assign_coords({"anvil": new_anvils})
         new_anvils = np.unique(label_map[self.next_ds.anvil.data])
-        self.next_ds = self.next_ds.isel({"anvil":np.arange(new_anvils.size)}).assign_coords({"anvil":new_anvils})
-        
-        self.current_ds.thick_anvil_step_anvil_index.data = label_map[self.current_ds.thick_anvil_step_anvil_index.data]
-        self.current_ds.thin_anvil_step_anvil_index.data = label_map[self.current_ds.thin_anvil_step_anvil_index.data]
-        
-        self.next_ds.thick_anvil_step_anvil_index.data = label_map[self.next_ds.thick_anvil_step_anvil_index.data]
-        self.next_ds.thin_anvil_step_anvil_index.data = label_map[self.next_ds.thin_anvil_step_anvil_index.data]
-        
+        self.next_ds = self.next_ds.isel(
+            {"anvil": np.arange(new_anvils.size)}
+        ).assign_coords({"anvil": new_anvils})
+
+        self.current_ds.thick_anvil_step_anvil_index.data = label_map[
+            self.current_ds.thick_anvil_step_anvil_index.data
+        ]
+        self.current_ds.thin_anvil_step_anvil_index.data = label_map[
+            self.current_ds.thin_anvil_step_anvil_index.data
+        ]
+
+        self.next_ds.thick_anvil_step_anvil_index.data = label_map[
+            self.next_ds.thick_anvil_step_anvil_index.data
+        ]
+        self.next_ds.thin_anvil_step_anvil_index.data = label_map[
+            self.next_ds.thin_anvil_step_anvil_index.data
+        ]
+
         self.current_max_anvil_label = np.maximum(
-            np.maximum(np.max(self.current_ds.thick_anvil_label.data), np.max(self.current_ds.thin_anvil_label.data)), 
-            self.current_max_anvil_label
+            np.maximum(
+                np.max(self.current_ds.thick_anvil_label.data),
+                np.max(self.current_ds.thin_anvil_label.data),
+            ),
+            self.current_max_anvil_label,
         )
-        
-        
-    def combine_labels(self, current_labels: xr.DataArray, next_labels: xr.DataArray) -> None:
+
+    def combine_labels(
+        self, current_labels: xr.DataArray, next_labels: xr.DataArray
+    ) -> None:
         """
         Combine the labels from the overlapping regions of two datasets
         """
         wh_zero = current_labels.sel(t=self.t_overlap[1:-1]).data != 0
-        current_labels.sel(t=self.t_overlap[1:-1]).data[wh_zero] = next_labels.sel(t=self.t_overlap[1:-1]).data[wh_zero]
-        next_labels.sel(t=self.t_overlap[1:-1]).data = current_labels.sel(t=self.t_overlap[1:-1]).data
-        
-        
+        current_labels.sel(t=self.t_overlap[1:-1]).data[wh_zero] = next_labels.sel(
+            t=self.t_overlap[1:-1]
+        ).data[wh_zero]
+        next_labels.sel(t=self.t_overlap[1:-1]).data = current_labels.sel(
+            t=self.t_overlap[1:-1]
+        ).data
+
     def relabel_next_ds(self) -> None:
         """
         Change all labels in self.next_ds to start with values larger than those in self.current_ds
         """
-        max_core = np.maximum(self.current_max_core_label, self.current_ds.core.data.max())
-        max_anvil = np.maximum(self.current_max_anvil_label, self.current_ds.anvil.data.max())
-        
+        max_core = np.maximum(
+            self.current_max_core_label, self.current_ds.core.data.max()
+        )
+        max_anvil = np.maximum(
+            self.current_max_anvil_label, self.current_ds.anvil.data.max()
+        )
+
         # Relabel coords
-        self.next_ds = self.next_ds.assign_coords({
-            "core":self.next_ds.core.data + max_core,
-            "anvil":self.next_ds.anvil.data + self.current_ds.anvil.data.max(),
-        })
-        
+        self.next_ds = self.next_ds.assign_coords(
+            {
+                "core": self.next_ds.core.data + max_core,
+                "anvil": self.next_ds.anvil.data + self.current_ds.anvil.data.max(),
+            }
+        )
+
         # Relabel core labels
-        self.next_ds.core_label.data[self.next_ds.core_label.data!=0] += max_core
+        self.next_ds.core_label.data[self.next_ds.core_label.data != 0] += max_core
         self.next_ds.core_step_core_index.data += max_core
 
         # Relabel anvil labels
-        self.next_ds.thick_anvil_label.data[self.next_ds.thick_anvil_label.data!=0] += max_anvil
-        self.next_ds.thin_anvil_label.data[self.next_ds.thin_anvil_label.data!=0] += max_anvil
+        self.next_ds.thick_anvil_label.data[
+            self.next_ds.thick_anvil_label.data != 0
+        ] += max_anvil
+        self.next_ds.thin_anvil_label.data[
+            self.next_ds.thin_anvil_label.data != 0
+        ] += max_anvil
         self.next_ds.thick_anvil_step_anvil_index.data += max_anvil
         self.next_ds.thin_anvil_step_anvil_index.data += max_anvil
-    
