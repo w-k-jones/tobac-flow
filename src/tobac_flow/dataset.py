@@ -787,7 +787,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         ]
     )
 
-    core_max_area = core_step_area[core_step_max_area_index - 1]
+    core_max_area = dataset.core_step_area.loc[core_step_max_area_index].data
 
     add_dataarray_to_ds(
         create_dataarray(
@@ -866,7 +866,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    core_max_area_t = core_step_t[core_step_max_area_index - 1]
+    core_max_area_t = dataset.core_step_t.loc[core_step_max_area_index].data
     add_dataarray_to_ds(
         create_dataarray(
             core_max_area_t,
@@ -880,7 +880,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
 
     # Pixel count and area for thick anvil
     thick_anvil_total_pixels = np.bincount(dataset.thick_anvil_label.data.ravel())[
-        dataset.thick_anvil.data
+        dataset.anvil.data
     ]
     add_dataarray_to_ds(
         create_dataarray(
@@ -956,7 +956,9 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         ]
     )
 
-    thick_anvil_max_area = thick_anvil_step_area[thick_anvil_step_max_area_index - 1]
+    thick_anvil_max_area = dataset.thick_anvil_step_area.loc[
+        thick_anvil_step_max_area_index
+    ].data
 
     add_dataarray_to_ds(
         create_dataarray(
@@ -1035,7 +1037,9 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thick_anvil_max_area_t = thick_anvil_step_t[thick_anvil_step_max_area_index - 1]
+    thick_anvil_max_area_t = dataset.thick_anvil_step_t.loc[
+        thick_anvil_step_max_area_index
+    ].data
     add_dataarray_to_ds(
         create_dataarray(
             thick_anvil_max_area_t,
@@ -1049,7 +1053,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
 
     # Pixel count and area for thin anvil
     thin_anvil_total_pixels = np.bincount(dataset.thin_anvil_label.data.ravel())[
-        dataset.thin_anvil.data
+        dataset.anvil.data
     ]
     add_dataarray_to_ds(
         create_dataarray(
@@ -1123,7 +1127,9 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         ]
     )
 
-    thin_anvil_max_area = thin_anvil_step_area[thin_anvil_step_max_area_index - 1]
+    thin_anvil_max_area = dataset.thin_anvil_step_area.loc[
+        thin_anvil_step_max_area_index
+    ].data
 
     add_dataarray_to_ds(
         create_dataarray(
@@ -1202,7 +1208,9 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thin_anvil_max_area_t = thin_anvil_step_t[thin_anvil_step_max_area_index - 1]
+    thin_anvil_max_area_t = dataset.thin_anvil_step_t.loc[
+        thin_anvil_step_max_area_index
+    ].data
     add_dataarray_to_ds(
         create_dataarray(
             thin_anvil_max_area_t,
