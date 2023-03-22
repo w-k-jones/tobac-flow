@@ -6,17 +6,17 @@ from datetime import datetime
 from dateutil.parser import parse as parse_date
 from tobac_flow.utils import apply_weighted_func_to_labels
 from tobac_flow.analysis import get_label_stats, weighted_statistics_on_labels
-from tobac_flow.dataset import add_dataarray_to_ds, create_dataarray, calculate_label_properties
+from tobac_flow.dataset import (
+    add_dataarray_to_ds,
+    create_dataarray,
+    calculate_label_properties,
+)
 
 parser = argparse.ArgumentParser(
     description="""Validate detected DCCs using GOES-16 GLM data"""
 )
 parser.add_argument("file", help="File to validate", type=str)
-parser.add_argument(
-    "-sd",
-    help="Directory to save preprocess files",
-    default=None
-)
+parser.add_argument("-sd", help="Directory to save preprocess files", default=None)
 
 args = parser.parse_args()
 
@@ -38,8 +38,8 @@ print("Saving to:", save_path)
 
 dataset = xr.open_dataset(fname)
 
-start_date = parse_date((fname).split("_S")[-1].split("_E")[0], fuzzy=True)
-end_date = parse_date((fname).split("_E")[-1].split("_X")[0], fuzzy=True)
+start_date = parse_date((str(fname)).split("_S")[-1].split("_E")[0], fuzzy=True)
+end_date = parse_date((str(fname)).split("_E")[-1].split("_X")[0], fuzzy=True)
 
 # Load cloud properties file
 from tobac_flow.dataloader import find_seviri_files
@@ -87,6 +87,7 @@ def get_area_from_lat_lon(lat, lon):
     area = dx * dy
 
     return area
+
 
 areas = get_area_from_lat_lon(dataset.lat.data, dataset.lon.data)
 add_dataarray_to_ds(
