@@ -1241,8 +1241,8 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
     anvil_no_growth_flag = np.asarray(
         [
             True
-            if dataset.anvil_core_count.data[i - 1] == 1
-            and dataset.thick_anvil_max_area_t.data[i - 1]
+            if dataset.anvil_core_count.loc[i] == 1
+            and dataset.thick_anvil_max_area_t.loc[i]
             <= dataset.core_end_t[dataset.core_anvil_index.data == i]
             else False
             for i in dataset.anvil.data
