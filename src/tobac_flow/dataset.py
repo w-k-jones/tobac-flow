@@ -445,34 +445,34 @@ def flag_edge_labels(dataset, start_date, end_date):
         )
     )
 
-    core_edge_label_flag = np.zeros_like(dataset.core, bool)
+    core_edge_label_flag = xr.zeros_like(dataset.core, dtype=bool)
 
     if core_edge_labels[0] == 0:
-        core_edge_label_flag[core_edge_labels[1:] - 1] = True
+        core_edge_label_flag.loc[core_edge_labels[1:]] = True
     else:
-        core_edge_label_flag[core_edge_labels - 1] = True
+        core_edge_label_flag.loc[core_edge_labels] = True
 
     core_start_labels = np.unique(dataset.core_label.sel(t=slice(None, start_date)))
 
-    core_start_label_flag = np.zeros_like(dataset.core, bool)
+    core_start_label_flag = xr.zeros_like(dataset.core, dtype=bool)
 
     if core_start_labels[0] == 0:
-        core_start_label_flag[core_start_labels[1:] - 1] = True
+        core_start_label_flag.loc[core_start_labels[1:]] = True
     else:
-        core_start_label_flag[core_start_labels - 1] = True
+        core_start_label_flag.loc[core_start_labels] = True
 
     core_end_labels = np.unique(dataset.core_label.sel(t=slice(end_date, None)))
 
-    core_end_label_flag = np.zeros_like(dataset.core, bool)
+    core_end_label_flag = xr.zeros_like(dataset.core, dtype=bool)
 
     if core_end_labels[0] == 0:
-        core_end_label_flag[core_end_labels[1:] - 1] = True
+        core_end_label_flag.loc[core_end_labels[1:]] = True
     else:
-        core_end_label_flag[core_end_labels - 1] = True
+        core_end_label_flag.loc[core_end_labels] = True
 
     add_dataarray_to_ds(
         create_dataarray(
-            core_edge_label_flag,
+            core_edge_label_flag.data,
             ("core",),
             "core_edge_label_flag",
             long_name="flag for cores intersecting the domain edge",
@@ -515,38 +515,38 @@ def flag_edge_labels(dataset, start_date, end_date):
         )
     )
 
-    thick_anvil_edge_label_flag = np.zeros_like(dataset.anvil, bool)
+    thick_anvil_edge_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
 
     if thick_anvil_edge_labels[0] == 0:
-        thick_anvil_edge_label_flag[thick_anvil_edge_labels[1:] - 1] = True
+        thick_anvil_edge_label_flag.loc[thick_anvil_edge_labels[1:]] = True
     else:
-        thick_anvil_edge_label_flag[thick_anvil_edge_labels - 1] = True
+        thick_anvil_edge_label_flag.loc[thick_anvil_edge_labels] = True
 
     thick_anvil_start_labels = np.unique(
         dataset.thick_anvil_label.sel(t=slice(None, start_date))
     )
 
-    thick_anvil_start_label_flag = np.zeros_like(dataset.anvil, bool)
+    thick_anvil_start_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
 
     if thick_anvil_start_labels[0] == 0:
-        thick_anvil_start_label_flag[thick_anvil_start_labels[1:] - 1] = True
+        thick_anvil_start_label_flag.loc[thick_anvil_start_labels[1:]] = True
     else:
-        thick_anvil_start_label_flag[thick_anvil_start_labels - 1] = True
+        thick_anvil_start_label_flag.loc[thick_anvil_start_labels] = True
 
     thick_anvil_end_labels = np.unique(
         dataset.thick_anvil_label.sel(t=slice(end_date, None))
     )
 
-    thick_anvil_end_label_flag = np.zeros_like(dataset.anvil, bool)
+    thick_anvil_end_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
 
     if thick_anvil_end_labels[0] == 0:
-        thick_anvil_end_label_flag[thick_anvil_end_labels[1:] - 1] = True
+        thick_anvil_end_label_flag.loc[thick_anvil_end_labels[1:]] = True
     else:
-        thick_anvil_end_label_flag[thick_anvil_end_labels - 1] = True
+        thick_anvil_end_label_flag.loc[thick_anvil_end_labels] = True
 
     add_dataarray_to_ds(
         create_dataarray(
-            thick_anvil_edge_label_flag,
+            thick_anvil_edge_label_flag.data,
             ("anvil",),
             "thick_anvil_edge_label_flag",
             long_name="flag for thick anvils intersecting the domain edge",
@@ -557,7 +557,7 @@ def flag_edge_labels(dataset, start_date, end_date):
 
     add_dataarray_to_ds(
         create_dataarray(
-            thick_anvil_start_label_flag,
+            thick_anvil_start_label_flag.data,
             ("anvil",),
             "thick_anvil_start_label_flag",
             long_name="flag for thick anvils intersecting the domain start time",
@@ -568,7 +568,7 @@ def flag_edge_labels(dataset, start_date, end_date):
 
     add_dataarray_to_ds(
         create_dataarray(
-            thick_anvil_end_label_flag,
+            thick_anvil_end_label_flag.data,
             ("anvil",),
             "thick_anvil_end_label_flag",
             long_name="flag for thick anvils intersecting the domain end time",
@@ -589,38 +589,38 @@ def flag_edge_labels(dataset, start_date, end_date):
         )
     )
 
-    thin_anvil_edge_label_flag = np.zeros_like(dataset.anvil, bool)
+    thin_anvil_edge_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
 
     if thin_anvil_edge_labels[0] == 0:
-        thin_anvil_edge_label_flag[thin_anvil_edge_labels[1:] - 1] = True
+        thin_anvil_edge_label_flag.loc[thin_anvil_edge_labels[1:]] = True
     else:
-        thin_anvil_edge_label_flag[thin_anvil_edge_labels - 1] = True
+        thin_anvil_edge_label_flag.loc[thin_anvil_edge_labels] = True
 
     thin_anvil_start_labels = np.unique(
         dataset.thin_anvil_label.sel(t=slice(None, start_date))
     )
 
-    thin_anvil_start_label_flag = np.zeros_like(dataset.anvil, bool)
+    thin_anvil_start_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
 
     if thin_anvil_start_labels[0] == 0:
-        thin_anvil_start_label_flag[thin_anvil_start_labels[1:] - 1] = True
+        thin_anvil_start_label_flag.loc[thin_anvil_start_labels[1:]] = True
     else:
-        thin_anvil_start_label_flag[thin_anvil_start_labels - 1] = True
+        thin_anvil_start_label_flag.loc[thin_anvil_start_labels] = True
 
     thin_anvil_end_labels = np.unique(
         dataset.thin_anvil_label.sel(t=slice(end_date, None))
     )
 
-    thin_anvil_end_label_flag = np.zeros_like(dataset.anvil, bool)
+    thin_anvil_end_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
 
     if thin_anvil_end_labels[0] == 0:
-        thin_anvil_end_label_flag[thin_anvil_end_labels[1:] - 1] = True
+        thin_anvil_end_label_flag.loc[thin_anvil_end_labels[1:]] = True
     else:
-        thin_anvil_end_label_flag[thin_anvil_end_labels - 1] = True
+        thin_anvil_end_label_flag.loc[thin_anvil_end_labels] = True
 
     add_dataarray_to_ds(
         create_dataarray(
-            thin_anvil_edge_label_flag,
+            thin_anvil_edge_label_flag.data,
             ("anvil",),
             "thin_anvil_edge_label_flag",
             long_name="flag for thin anvils intersecting the domain edge",
@@ -631,7 +631,7 @@ def flag_edge_labels(dataset, start_date, end_date):
 
     add_dataarray_to_ds(
         create_dataarray(
-            thin_anvil_start_label_flag,
+            thin_anvil_start_label_flag.data,
             ("anvil",),
             "thin_anvil_start_label_flag",
             long_name="flag for thin anvils intersecting the domain start time",
@@ -642,7 +642,7 @@ def flag_edge_labels(dataset, start_date, end_date):
 
     add_dataarray_to_ds(
         create_dataarray(
-            thin_anvil_end_label_flag,
+            thin_anvil_end_label_flag.data,
             ("anvil",),
             "thin_anvil_end_label_flag",
             long_name="flag for thin anvils intersecting the domain end time",
@@ -653,36 +653,36 @@ def flag_edge_labels(dataset, start_date, end_date):
 
 
 def flag_nan_adjacent_labels(dataset: xr.Dataset, da: xr.DataArray) -> None:
-    core_nan_flag = np.zeros_like(dataset.core, bool)
-    thick_anvil_nan_flag = np.zeros_like(dataset.anvil, bool)
-    thin_anvil_nan_flag = np.zeros_like(dataset.anvil, bool)
+    core_nan_flag = xr.zeros_like(dataset.core, dtype=bool)
+    thick_anvil_nan_flag = xr.zeros_like(dataset.anvil, dtype=bool)
+    thin_anvil_nan_flag = xr.zeros_like(dataset.anvil, dtype=bool)
 
     if np.any(np.isnan(da.data)):
         wh_nan = ndi.binary_dilation(np.isnan(da.data), structure=np.ones([3, 3, 3]))
         core_nan_labels = np.unique(dataset.core_labels.data[wh_nan])
 
         if core_nan_labels[0] == 0:
-            core_nan_flag[core_nan_labels[1:] - 1] = True
+            core_nan_flag.loc[core_nan_labels[1:]] = True
         else:
-            core_nan_flag[core_nan_labels - 1] = True
+            core_nan_flag.loc[core_nan_labels] = True
 
         thick_anvil_nan_labels = np.unique(dataset.thick_anvil_labels.data[wh_nan])
 
         if thick_anvil_nan_labels[0] == 0:
-            thick_anvil_nan_flag[thick_anvil_nan_labels[1:] - 1] = True
+            thick_anvil_nan_flag.loc[thick_anvil_nan_labels[1:]] = True
         else:
-            thick_anvil_nan_flag[thick_anvil_nan_labels - 1] = True
+            thick_anvil_nan_flag.loc[thick_anvil_nan_labels] = True
 
         thin_anvil_nan_labels = np.unique(dataset.thin_anvil_labels.data[wh_nan])
 
         if thin_anvil_nan_labels[0] == 0:
-            thin_anvil_nan_flag[thin_anvil_nan_labels[1:] - 1] = True
+            thin_anvil_nan_flag.loc[thin_anvil_nan_labels[1:]] = True
         else:
-            thin_anvil_nan_flag[thin_anvil_nan_labels - 1] = True
+            thin_anvil_nan_flag.loc[thin_anvil_nan_labels] = True
 
     add_dataarray_to_ds(
         create_dataarray(
-            core_nan_flag,
+            core_nan_flag.data,
             ("core",),
             "core_nan_flag",
             long_name="flag for cores intersecting missing values",
@@ -693,7 +693,7 @@ def flag_nan_adjacent_labels(dataset: xr.Dataset, da: xr.DataArray) -> None:
 
     add_dataarray_to_ds(
         create_dataarray(
-            thick_anvil_nan_flag,
+            thick_anvil_nan_flag.data,
             ("anvil",),
             "thick_anvil_nan_flag",
             long_name="flag for thick anvils intersecting missing values",
@@ -704,7 +704,7 @@ def flag_nan_adjacent_labels(dataset: xr.Dataset, da: xr.DataArray) -> None:
 
     add_dataarray_to_ds(
         create_dataarray(
-            thin_anvil_nan_flag,
+            thin_anvil_nan_flag.data,
             ("anvil",),
             "thin_anvil_nan_flag",
             long_name="flag for thin anvils intersecting missing values",
