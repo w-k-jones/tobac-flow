@@ -51,7 +51,7 @@ from tobac_flow.dataloader import find_seviri_files
 cld_files = find_seviri_files(
     start_date,
     end_date,
-    n_pad_files=2,
+    n_pad_files=0,
     file_type="cloud",
     file_path="/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/cld",
 )
@@ -64,7 +64,7 @@ cld_ds = cld_ds.assign_coords(t=[parse_date(f[-64:-50]) for f in cld_files])
 flx_files = find_seviri_files(
     start_date,
     end_date,
-    n_pad_files=2,
+    n_pad_files=0,
     file_type="flux",
     file_path="/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/flx",
 )

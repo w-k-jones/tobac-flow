@@ -1,6 +1,6 @@
 import numpy as np
 import xarray as xr
-from datetime import datetime
+from datetime import datetime, timedelta
 import pathlib
 from typing import Callable
 
@@ -334,7 +334,7 @@ class File_Linker:
         if "BT" in self.current_ds.data_vars:
             flag_nan_adjacent_labels(self.current_ds, self.current_ds.BT)
         # Select only between current start and end date
-        self.current_ds = self.current_ds.sel(t=slice(self.start_date, self.end_date))
+        self.current_ds = self.current_ds.sel(t=slice(self.start_date, self.end_date-timedelta(seconds=1)))
 
         cores = np.unique(self.current_ds.core_label.data).astype(np.int32)
         if cores[0] == 0 and cores.size > 1:
