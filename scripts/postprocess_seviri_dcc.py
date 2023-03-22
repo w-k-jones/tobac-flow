@@ -127,41 +127,41 @@ for field in (
     cld_ds.ctt,
     cld_ds.cwp,
 ):
-    [
-        add_dataarray_to_ds(da, dataset)
-        for da in weighted_statistics_on_labels(
-            dataset.core_label,
-            field.compute(),
-            cld_weights,
-            name="core",
-            dim="core",
-            dtype=np.float32,
-        )
-    ]
+    # [
+    #     add_dataarray_to_ds(da, dataset)
+    #     for da in weighted_statistics_on_labels(
+    #         dataset.core_label,
+    #         field.compute(),
+    #         cld_weights,
+    #         name="core",
+    #         dim="core",
+    #         dtype=np.float32,
+    #     )
+    # ]
 
-    [
-        add_dataarray_to_ds(da, dataset)
-        for da in weighted_statistics_on_labels(
-            dataset.thick_anvil_label,
-            field.compute(),
-            cld_weights,
-            name="thick_anvil",
-            dim="anvil",
-            dtype=np.float32,
-        )
-    ]
+    # [
+    #     add_dataarray_to_ds(da, dataset)
+    #     for da in weighted_statistics_on_labels(
+    #         dataset.thick_anvil_label,
+    #         field.compute(),
+    #         cld_weights,
+    #         name="thick_anvil",
+    #         dim="anvil",
+    #         dtype=np.float32,
+    #     )
+    # ]
 
-    [
-        add_dataarray_to_ds(da, dataset)
-        for da in weighted_statistics_on_labels(
-            dataset.thin_anvil_label,
-            field.compute(),
-            cld_weights,
-            name="thin_anvil",
-            dim="anvil",
-            dtype=np.float32,
-        )
-    ]
+    # [
+    #     add_dataarray_to_ds(da, dataset)
+    #     for da in weighted_statistics_on_labels(
+    #         dataset.thin_anvil_label,
+    #         field.compute(),
+    #         cld_weights,
+    #         name="thin_anvil",
+    #         dim="anvil",
+    #         dtype=np.float32,
+    #     )
+    # ]
 
     [
         add_dataarray_to_ds(da, dataset)
@@ -247,41 +247,41 @@ for field in (
     toa_lwup_cre,
     toa_cre,
 ):
-    [
-        add_dataarray_to_ds(da, dataset)
-        for da in weighted_statistics_on_labels(
-            dataset.core_label,
-            field.compute(),
-            cld_weights,
-            name="core",
-            dim="core",
-            dtype=np.float32,
-        )
-    ]
+    # [
+    #     add_dataarray_to_ds(da, dataset)
+    #     for da in weighted_statistics_on_labels(
+    #         dataset.core_label,
+    #         field.compute(),
+    #         cld_weights,
+    #         name="core",
+    #         dim="core",
+    #         dtype=np.float32,
+    #     )
+    # ]
 
-    [
-        add_dataarray_to_ds(da, dataset)
-        for da in weighted_statistics_on_labels(
-            dataset.thick_anvil_label,
-            field.compute(),
-            cld_weights,
-            name="thick_anvil",
-            dim="anvil",
-            dtype=np.float32,
-        )
-    ]
+    # [
+    #     add_dataarray_to_ds(da, dataset)
+    #     for da in weighted_statistics_on_labels(
+    #         dataset.thick_anvil_label,
+    #         field.compute(),
+    #         cld_weights,
+    #         name="thick_anvil",
+    #         dim="anvil",
+    #         dtype=np.float32,
+    #     )
+    # ]
 
-    [
-        add_dataarray_to_ds(da, dataset)
-        for da in weighted_statistics_on_labels(
-            dataset.thin_anvil_label,
-            field.compute(),
-            cld_weights,
-            name="thin_anvil",
-            dim="anvil",
-            dtype=np.float32,
-        )
-    ]
+    # [
+    #     add_dataarray_to_ds(da, dataset)
+    #     for da in weighted_statistics_on_labels(
+    #         dataset.thin_anvil_label,
+    #         field.compute(),
+    #         cld_weights,
+    #         name="thin_anvil",
+    #         dim="anvil",
+    #         dtype=np.float32,
+    #     )
+    # ]
 
     [
         add_dataarray_to_ds(da, dataset)
