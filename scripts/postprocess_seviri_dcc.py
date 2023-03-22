@@ -17,7 +17,11 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("file", help="File to validate", type=str)
 parser.add_argument("-sd", help="Directory to save preprocess files", default=None)
-
+parser.add_argument(
+    "--save_spatial_props",
+    help="Save statistics of label spatial properties to output file",
+    action="store_true",
+)
 args = parser.parse_args()
 
 fname = pathlib.Path(args.file)
