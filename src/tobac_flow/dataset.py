@@ -716,7 +716,7 @@ def flag_nan_adjacent_labels(dataset: xr.Dataset, da: xr.DataArray) -> None:
 
 def calculate_label_properties(dataset: xr.Dataset) -> None:
     # Pixel count and area
-    core_total_pixels = np.bincount(dataset.core_label.data.ravel())[1:]
+    core_total_pixels = np.bincount(dataset.core_label.data.ravel())[dataset.core.data]
     add_dataarray_to_ds(
         create_dataarray(
             core_total_pixels,
@@ -728,7 +728,9 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    core_step_pixels = np.bincount(dataset.core_step_label.data.ravel())[1:]
+    core_step_pixels = np.bincount(dataset.core_step_label.data.ravel())[
+        dataset.core.data
+    ]
     add_dataarray_to_ds(
         create_dataarray(
             core_step_pixels,
@@ -877,7 +879,9 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
     )
 
     # Pixel count and area for thick anvil
-    thick_anvil_total_pixels = np.bincount(dataset.thick_anvil_label.data.ravel())[1:]
+    thick_anvil_total_pixels = np.bincount(dataset.thick_anvil_label.data.ravel())[
+        dataset.core.data
+    ]
     add_dataarray_to_ds(
         create_dataarray(
             thick_anvil_total_pixels,
@@ -890,7 +894,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
     )
 
     thick_anvil_step_pixels = np.bincount(dataset.thick_anvil_step_label.data.ravel())[
-        1:
+        dataset.core.data
     ]
     add_dataarray_to_ds(
         create_dataarray(
@@ -1044,7 +1048,9 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
     )
 
     # Pixel count and area for thin anvil
-    thin_anvil_total_pixels = np.bincount(dataset.thin_anvil_label.data.ravel())[1:]
+    thin_anvil_total_pixels = np.bincount(dataset.thin_anvil_label.data.ravel())[
+        dataset.core.data
+    ]
     add_dataarray_to_ds(
         create_dataarray(
             thin_anvil_total_pixels,
@@ -1056,7 +1062,9 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thin_anvil_step_pixels = np.bincount(dataset.thin_anvil_step_label.data.ravel())[1:]
+    thin_anvil_step_pixels = np.bincount(dataset.thin_anvil_step_label.data.ravel())[
+        dataset.core.data
+    ]
     add_dataarray_to_ds(
         create_dataarray(
             thin_anvil_step_pixels,
