@@ -1274,7 +1274,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         x_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.core_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             core_step_x,
@@ -1291,7 +1291,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         y_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.core_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             core_step_y,
@@ -1308,7 +1308,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         lat_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.core_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             core_step_lat,
@@ -1325,7 +1325,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         lon_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.core_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             core_step_lon,
@@ -1350,10 +1350,10 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         ]
     )
 
-    core_start_x = core_step_x[core_start_index - 1]
-    core_start_y = core_step_y[core_start_index - 1]
-    core_start_lat = core_step_lat[core_start_index - 1]
-    core_start_lon = core_step_lon[core_start_index - 1]
+    core_start_x = dataset.core_step_x.loc[core_start_index].data
+    core_start_y = dataset.core_step_y.loc[core_start_index].data
+    core_start_lat = dataset.core_step_lat.loc[core_start_index].data
+    core_start_lon = dataset.core_step_lon.loc[core_start_index].data
 
     add_dataarray_to_ds(
         create_dataarray(
@@ -1402,7 +1402,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         x_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.thick_anvil_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             thick_anvil_step_x,
@@ -1419,7 +1419,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         y_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.thick_anvil_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             thick_anvil_step_y,
@@ -1436,7 +1436,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         lat_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.thick_anvil_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             thick_anvil_step_lat,
@@ -1453,7 +1453,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         lon_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.thick_anvil_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             thick_anvil_step_lon,
@@ -1482,10 +1482,10 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         ]
     )
 
-    thick_anvil_start_x = thick_anvil_step_x[thick_anvil_start_index - 1]
-    thick_anvil_start_y = thick_anvil_step_y[thick_anvil_start_index - 1]
-    thick_anvil_start_lat = thick_anvil_step_lat[thick_anvil_start_index - 1]
-    thick_anvil_start_lon = thick_anvil_step_lon[thick_anvil_start_index - 1]
+    thick_anvil_start_x = dataset.thick_anvil_step_x.loc[thick_anvil_start_index].data
+    thick_anvil_start_y = dataset.thick_anvil_step_y.loc[thick_anvil_start_index].data
+    thick_anvil_start_lat = dataset.thick_anvil_step_lat.loc[thick_anvil_start_index].data
+    thick_anvil_start_lon = dataset.thick_anvil_step_lon.loc[thick_anvil_start_index].data
 
     add_dataarray_to_ds(
         create_dataarray(
@@ -1533,7 +1533,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         x_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.thin_anvil_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             thin_anvil_step_x,
@@ -1550,7 +1550,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         y_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.thin_anvil_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             thin_anvil_step_y,
@@ -1567,7 +1567,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         lat_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.thin_anvil_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             thin_anvil_step_lat,
@@ -1584,7 +1584,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         lon_stack,
         area_stack,
         lambda x, w: np.average(x, weights=w),
-    )
+    )[dataset.thin_anvil_step.data-1]
     add_dataarray_to_ds(
         create_dataarray(
             thin_anvil_step_lon,
