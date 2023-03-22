@@ -386,6 +386,7 @@ class File_Linker:
         for var in self.current_ds.data_vars:
             self.current_ds[var].encoding.update(comp)
 
+        print(datetime.now(), "Saving to %s" % (new_filename), flush=True)
         self.current_ds.to_netcdf(new_filename)
 
         self.current_ds.close()
