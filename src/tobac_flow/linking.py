@@ -381,6 +381,11 @@ class File_Linker:
                 self.current_filename.stem + "_linked.nc"
             )
 
+        # Add compression encoding
+        comp = dict(zlib=True, complevel=5, shuffle=True)
+        for var in self.current_ds.data_vars:
+            self.current_ds[var].encoding.update(comp)
+
         self.current_ds.to_netcdf(new_filename)
 
         self.current_ds.close()
