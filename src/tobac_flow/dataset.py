@@ -746,6 +746,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.area.data[np.newaxis, ...],
         dataset.core_label.data,
         np.nansum,
+        index=dataset.core.data,
         dtype=np.float32,
         default=np.nan,
     )
@@ -764,6 +765,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.area.data[np.newaxis, ...],
         dataset.core_step_label.data,
         np.nansum,
+        index=dataset.core_step.data,
         dtype=np.float32,
         default=np.nan,
     )
@@ -805,6 +807,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.t.data[:, np.newaxis, np.newaxis],
         dataset.core_label.data,
         np.nanmin,
+        index=dataset.core.data,
         dtype="datetime64[ns]",
         default=None,
     )
@@ -823,6 +826,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.t.data[:, np.newaxis, np.newaxis],
         dataset.core_label.data,
         np.nanmax,
+        index=dataset.core.data,
         dtype="datetime64[ns]",
         default=None,
     )
@@ -852,6 +856,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.t.data[:, np.newaxis, np.newaxis],
         dataset.core_step_label.data,
         np.nanmin,
+        index=dataset.core_step.data,
         dtype="datetime64[ns]",
         default=None,
     )
@@ -911,6 +916,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.area.data[np.newaxis, ...],
         dataset.thick_anvil_label.data,
         np.nansum,
+        index=dataset.anvil.data,
         dtype=np.float32,
         default=np.nan,
     )
@@ -929,6 +935,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.area.data[np.newaxis, ...],
         dataset.thick_anvil_step_label.data,
         np.nansum,
+        index=dataset.thick_anvil_step.data,
         dtype=np.float32,
         default=np.nan,
     )
@@ -976,6 +983,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.t.data[:, np.newaxis, np.newaxis],
         dataset.thick_anvil_label.data,
         np.nanmin,
+        index=dataset.anvil.data,
         dtype="datetime64[ns]",
         default=None,
     )
@@ -994,6 +1002,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.t.data[:, np.newaxis, np.newaxis],
         dataset.thick_anvil_label.data,
         np.nanmax,
+        index=dataset.anvil.data,
         dtype="datetime64[ns]",
         default=None,
     )
@@ -1023,6 +1032,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.t.data[:, np.newaxis, np.newaxis],
         dataset.thick_anvil_step_label.data,
         np.nanmin,
+        index=dataset.thick_anvil_step.data,
         dtype="datetime64[ns]",
         default=None,
     )
@@ -1084,6 +1094,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.area.data[np.newaxis, ...],
         dataset.thin_anvil_label.data,
         np.nansum,
+        index=dataset.anvil.data,
         dtype=np.float32,
         default=np.nan,
     )
@@ -1102,6 +1113,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.area.data[np.newaxis, ...],
         dataset.thin_anvil_step_label.data,
         np.nansum,
+        index=dataset.thin_anvil_step.data,
         dtype=np.float32,
         default=np.nan,
     )
@@ -1147,6 +1159,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.t.data[:, np.newaxis, np.newaxis],
         dataset.thin_anvil_label.data,
         np.nanmin,
+        index=dataset.anvil.data,
         dtype="datetime64[ns]",
         default=None,
     )
@@ -1165,6 +1178,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.t.data[:, np.newaxis, np.newaxis],
         dataset.thin_anvil_label.data,
         np.nanmax,
+        index=dataset.anvil.data,
         dtype="datetime64[ns]",
         default=None,
     )
@@ -1194,6 +1208,7 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset.t.data[:, np.newaxis, np.newaxis],
         dataset.thin_anvil_step_label.data,
         np.nanmin,
+        index=dataset.thin_anvil_step.data,
         dtype="datetime64[ns]",
         default=None,
     )

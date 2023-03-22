@@ -70,7 +70,7 @@ def labeled_comprehension(
     if not dtype:
         dtype = field.dtype
 
-    if not index:
+    if index is None:
         index = np.unique(labels[labels != 0])
 
     comp = ndi.labeled_comprehension(
