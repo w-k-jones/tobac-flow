@@ -364,7 +364,7 @@ def weighted_statistics_on_labels(labels, da, weights, name=None, dim=None, dtyp
     )
 
     stats_array = apply_weighted_func_to_labels(
-        labels.data, da.data, weights, weighted_stats
+        labels.data, da.data, weights, weighted_stats, default=np.nan
     )
 
     mean_da = create_dataarray(

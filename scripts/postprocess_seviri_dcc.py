@@ -164,7 +164,7 @@ for field in (
     # ]
 
     [
-        add_dataarray_to_ds(da, dataset)
+        add_dataarray_to_ds(da.iloc[dataset.core_step.data - 1], dataset)
         for da in weighted_statistics_on_labels(
             dataset.core_step_label,
             field.compute(),
@@ -176,7 +176,7 @@ for field in (
     ]
 
     [
-        add_dataarray_to_ds(da, dataset)
+        add_dataarray_to_ds(da.iloc[dataset.thick_anvil_step.data - 1], dataset)
         for da in weighted_statistics_on_labels(
             dataset.thick_anvil_step_label,
             field.compute(),
@@ -188,7 +188,7 @@ for field in (
     ]
 
     [
-        add_dataarray_to_ds(da, dataset)
+        add_dataarray_to_ds(da.iloc[dataset.thin_anvil_step.data - 1], dataset)
         for da in weighted_statistics_on_labels(
             dataset.thin_anvil_step_label,
             field.compute(),
@@ -205,7 +205,7 @@ core_step_ice_proportion = apply_weighted_func_to_labels(
     cld_ds.phase.compute().data,
     cld_weights,
     ice_proportion,
-)
+)[dataset.core_step.data - 1]
 
 add_dataarray_to_ds(
     create_dataarray(
@@ -284,7 +284,7 @@ for field in (
     # ]
 
     [
-        add_dataarray_to_ds(da, dataset)
+        add_dataarray_to_ds(da.iloc[dataset.core_step.data - 1], dataset)
         for da in weighted_statistics_on_labels(
             dataset.core_step_label,
             field.compute(),
@@ -296,7 +296,7 @@ for field in (
     ]
 
     [
-        add_dataarray_to_ds(da, dataset)
+        add_dataarray_to_ds(da.iloc[dataset.thick_anvil_step.data - 1], dataset)
         for da in weighted_statistics_on_labels(
             dataset.thick_anvil_step_label,
             field.compute(),
@@ -308,7 +308,7 @@ for field in (
     ]
 
     [
-        add_dataarray_to_ds(da, dataset)
+        add_dataarray_to_ds(da.iloc[dataset.thin_anvil_step.data - 1], dataset)
         for da in weighted_statistics_on_labels(
             dataset.thin_anvil_step_label,
             field.compute(),
