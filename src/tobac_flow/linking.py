@@ -298,10 +298,15 @@ class File_Linker:
             self.relabel_cores()
             self.relabel_anvils()
         else:
-            self.current_max_core_label = np.max(self.current_ds.core_label.data)
+            self.current_max_core_label = np.maximum(
+                np.max(self.current_ds.core_label.data), self.current_max_core_label
+            )
             self.current_max_anvil_label = np.maximum(
-                np.max(self.current_ds.thick_anvil_label.data),
-                np.max(self.current_ds.thin_anvil_label.data),
+                np.maximum(
+                    np.max(self.current_ds.thick_anvil_label.data),
+                    np.max(self.current_ds.thin_anvil_label.data),
+                ),
+                self.current_max_anvil_label,
             )
 
         self.output_current_ds()
