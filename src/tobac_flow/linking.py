@@ -297,6 +297,12 @@ class File_Linker:
         if len(self.t_overlap) > 2:
             self.relabel_cores()
             self.relabel_anvils()
+        else:
+            self.current_max_core_label = np.max(self.current_ds.core_label.data)
+            self.current_max_anvil_label = np.maximum(
+                np.max(self.current_ds.thick_anvil_label.data),
+                np.max(self.current_ds.thin_anvil_label.data),
+            )
 
         self.output_current_ds()
         self.current_ds = self.next_ds
