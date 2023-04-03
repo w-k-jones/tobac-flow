@@ -259,6 +259,7 @@ class File_Linker:
         files: list[pathlib.Path | str],
         output_func: Callable,
         output_path: str | pathlib.Path | None = None,
+        output_file_suffix: str | None = None,
         overlap: float = 0.5,
     ) -> None:
         self.files = [pathlib.Path(filename) for filename in files]
@@ -271,6 +272,12 @@ class File_Linker:
             self.output_path = pathlib.Path(self.output_path)
         if self.output_path is not None and not self.output_path.exists():
             self.output_path.mkdir()
+        if output_file_suffix == None or output_file_suffix == "":
+            self.file_suffix = "_linked"
+        else:
+            self.file_suffix = output_file_suffix
+        if len(self.file_suffix) > 0 and self.file_suffix[0] != "_":
+            self.file_suffix = "_" + self.file_suffix
         self.overlap = overlap
         self.current_max_core_label = 0
         self.current_max_anvil_label = 0
@@ -405,11 +412,11 @@ class File_Linker:
 
         if self.output_path is None:
             new_filename = self.current_filename.parent / (
-                self.current_filename.stem + "_linked.nc"
+                self.current_filename.stem + self.file_suffix + ".nc"
             )
         else:
             new_filename = self.output_path / (
-                self.current_filename.stem + "_linked.nc"
+                self.current_filename.stem + self.file_suffix + ".nc"
             )
 
         # Add compression encoding
@@ -418,8 +425,8 @@ class File_Linker:
             self.current_ds[var].encoding.update(comp)
 
         print(datetime.now(), "Saving to %s" % (new_filename), flush=True)
-        self.current_ds.to_netcdf(new_filename)
 
+        self.current_ds.to_netcdf(new_filename)
         self.current_ds.close()
 
     def generate_label_map(
