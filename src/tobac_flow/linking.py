@@ -322,11 +322,11 @@ class File_Linker:
     def output_current_ds(self) -> None:
         if "BT" in self.current_ds.data_vars:
             self.current_ds = self.current_ds.get(
-                ["core_label", "thick_anvil_label", "thin_anvil_label", "BT"]
+                ["core_label", "thick_anvil_label", "thin_anvil_label", "area", "lat", "lon", "BT"]
             )
         else:
             self.current_ds = self.current_ds.get(
-                ["core_label", "thick_anvil_label", "thin_anvil_label"]
+                ["core_label", "thick_anvil_label", "thin_anvil_label", "area", "lat", "lon"]
             )
         cores = np.unique(self.current_ds.core_label.data).astype(np.int32)
         if cores[0] == 0 and cores.size > 1:
@@ -618,7 +618,7 @@ class File_Linker:
         self.next_ds = self.next_ds.assign_coords(
             {
                 "core": self.next_ds.core.data + max_core,
-                "anvil": self.next_ds.anvil.data + self.current_ds.anvil.data.max(),
+                "anvil": self.next_ds.anvil.data + max_anvil,
             }
         )
 

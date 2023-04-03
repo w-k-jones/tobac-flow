@@ -61,6 +61,11 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
+    "--save_label_props",
+    help="Save statistics of label properties to output file",
+    action="store_true",
+)
+parser.add_argument(
     "--save_field_props",
     help="Save statistics of field properties to output file",
     action="store_true",
@@ -389,13 +394,14 @@ def main() -> None:
         dataset,
     )
 
-    calculate_label_properties(dataset)
+    if args.save_label_props:
+        calculate_label_properties(dataset)
 
     if args.save_spatial_props:
         get_label_stats(dataset.core_label, dataset)
         get_label_stats(dataset.thick_anvil_label, dataset)
         get_label_stats(dataset.thin_anvil_label, dataset)
-
+    
     if args.save_bt:
         add_dataarray_to_ds(
             bt.sel(t=dataset.t),
