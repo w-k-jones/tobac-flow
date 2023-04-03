@@ -659,21 +659,21 @@ def flag_nan_adjacent_labels(dataset: xr.Dataset, da: xr.DataArray) -> None:
 
     if np.any(np.isnan(da.data)):
         wh_nan = ndi.binary_dilation(np.isnan(da.data), structure=np.ones([3, 3, 3]))
-        core_nan_labels = np.unique(dataset.core_labels.data[wh_nan])
+        core_nan_labels = np.unique(dataset.core_label.data[wh_nan])
 
         if core_nan_labels[0] == 0:
             core_nan_flag.loc[core_nan_labels[1:]] = True
         else:
             core_nan_flag.loc[core_nan_labels] = True
 
-        thick_anvil_nan_labels = np.unique(dataset.thick_anvil_labels.data[wh_nan])
+        thick_anvil_nan_labels = np.unique(dataset.thick_anvil_label.data[wh_nan])
 
         if thick_anvil_nan_labels[0] == 0:
             thick_anvil_nan_flag.loc[thick_anvil_nan_labels[1:]] = True
         else:
             thick_anvil_nan_flag.loc[thick_anvil_nan_labels] = True
 
-        thin_anvil_nan_labels = np.unique(dataset.thin_anvil_labels.data[wh_nan])
+        thin_anvil_nan_labels = np.unique(dataset.thin_anvil_label.data[wh_nan])
 
         if thin_anvil_nan_labels[0] == 0:
             thin_anvil_nan_flag.loc[thin_anvil_nan_labels[1:]] = True

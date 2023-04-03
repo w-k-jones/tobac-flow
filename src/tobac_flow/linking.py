@@ -299,12 +299,25 @@ class File_Linker:
             self.relabel_anvils()
         else:
             self.current_max_core_label = np.maximum(
-                np.max(self.current_ds.core_label.data), self.current_max_core_label
+                np.max(
+                    self.current_ds.core_label.sel(
+                        t=slice(None, self.end_date - timedelta(seconds=1))
+                    ).data
+                ),
+                self.current_max_core_label,
             )
             self.current_max_anvil_label = np.maximum(
                 np.maximum(
-                    np.max(self.current_ds.thick_anvil_label.data),
-                    np.max(self.current_ds.thin_anvil_label.data),
+                    np.max(
+                        self.current_ds.thick_anvil_label.sel(
+                            t=slice(None, self.end_date - timedelta(seconds=1))
+                        ).data
+                    ),
+                    np.max(
+                        self.current_ds.thin_anvil_label.sel(
+                            t=slice(None, self.end_date - timedelta(seconds=1))
+                        ).data
+                    ),
                 ),
                 self.current_max_anvil_label,
             )
