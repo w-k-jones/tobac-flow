@@ -320,14 +320,18 @@ class File_Linker:
         self.output_current_ds()
 
     def output_current_ds(self) -> None:
-        if "BT" in self.current_ds.data_vars:
-            self.current_ds = self.current_ds.get(
-                ["core_label", "thick_anvil_label", "thin_anvil_label", "area", "lat", "lon", "BT"]
-            )
-        else:
-            self.current_ds = self.current_ds.get(
-                ["core_label", "thick_anvil_label", "thin_anvil_label", "area", "lat", "lon"]
-            )
+        default_vars = [
+            "goes_imager_projection",
+            "lat",
+            "lon",
+            "area",
+            "BT",
+            "core_label",
+            "thick_anvil_label",
+            "thin_anvil_label",
+        ]
+        data_vars = [var for var in default_vars if var in self.current_ds.data_vars]
+        self.current_ds = self.current_ds.get(data_vars)
         cores = np.unique(self.current_ds.core_label.data).astype(np.int32)
         if cores[0] == 0 and cores.size > 1:
             cores = cores[1:]

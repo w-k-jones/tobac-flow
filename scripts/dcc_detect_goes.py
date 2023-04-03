@@ -401,7 +401,7 @@ def main() -> None:
         get_label_stats(dataset.core_label, dataset)
         get_label_stats(dataset.thick_anvil_label, dataset)
         get_label_stats(dataset.thin_anvil_label, dataset)
-    
+
     if args.save_bt:
         add_dataarray_to_ds(
             bt.sel(t=dataset.t),
