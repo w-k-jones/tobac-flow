@@ -25,13 +25,13 @@ args = parser.parse_args()
 fname = pathlib.Path(args.file)
 
 if args.sd is None:
-    save_dir = pathlib.Path("./")
+    save_dir = fname.parent
 else:
     save_dir = pathlib.Path(args.sd)
 if not save_dir.exists():
     save_dir.mkdir()
 
-save_name = fname.stem + ".nc"
+save_name = fname.stem + "_processed.nc"
 
 save_path = save_dir / save_name
 
