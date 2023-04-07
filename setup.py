@@ -6,7 +6,7 @@ import numpy
 
 setup(
     name='tobac flow',
-    version='1.7',
+    version='1.7.1',
     description="Detection and tracking of deep convective clouds in high time resolution geostationary satellite imagery",
     url='',
     author='William Jones',

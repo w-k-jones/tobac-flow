@@ -154,7 +154,7 @@ def main() -> None:
     wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
     bt_curvature_filter = get_curvature_filter(bt, direction="positive")
 
-    wvd_threshold = 0.125
+    wvd_threshold = 0.25
     bt_threshold = 0.25
 
     wvd_markers = np.logical_and(wvd_growth > wvd_threshold, wvd_curvature_filter)
