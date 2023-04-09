@@ -6,6 +6,7 @@ from datetime import datetime
 from dateutil.parser import parse as parse_date
 from tobac_flow.analysis import get_label_stats, weighted_statistics_on_labels
 from tobac_flow.dataset import (
+    flag_nan_adjacent_labels,
     add_dataarray_to_ds,
     calculate_label_properties,
 )
@@ -41,6 +42,9 @@ dataset = xr.open_dataset(fname)
 
 start_date = parse_date((str(fname)).split("_S")[-1].split("_E")[0], fuzzy=True)
 end_date = parse_date((str(fname)).split("_E")[-1].split("_X")[0], fuzzy=True)
+
+if "BT" in dataset.data_vars:
+    flag_nan_adjacent_labels(dataset, dataset.BT)
 
 calculate_label_properties(dataset)
 

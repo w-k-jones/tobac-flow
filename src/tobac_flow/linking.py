@@ -7,7 +7,6 @@ from typing import Callable
 from tobac_flow.utils import get_dates_from_filename
 from tobac_flow.dataset import (
     flag_edge_labels,
-    flag_nan_adjacent_labels,
     add_step_labels,
     add_label_coords,
     link_step_labels,
