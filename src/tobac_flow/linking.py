@@ -366,8 +366,8 @@ class File_Linker:
         )
         # Add error flags
         flag_edge_labels(self.current_ds, self.start_date, self.end_date)
-        # if "BT" in self.current_ds.data_vars:
-        #     flag_nan_adjacent_labels(self.current_ds, self.current_ds.BT)
+        if "BT" in self.current_ds.data_vars:
+            flag_nan_adjacent_labels(self.current_ds, self.current_ds.BT)
         # Select only between current start and end date
         self.current_ds = self.current_ds.sel(
             t=slice(self.start_date, self.end_date - timedelta(seconds=1))
