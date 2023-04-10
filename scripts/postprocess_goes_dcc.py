@@ -89,6 +89,9 @@ for field in (dataset.BT,):
         )
     ]
 
+# Remove BT to reduce file size
+dataset = dataset.drop_vars("BT")
+
 print(datetime.now(), "Saving to %s" % (save_path), flush=True)
 # Add compression encoding
 comp = dict(zlib=True, complevel=5, shuffle=True)
