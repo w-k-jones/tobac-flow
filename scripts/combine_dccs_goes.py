@@ -1,4 +1,3 @@
-from dateutil.parser import parse as parse_date
 from tobac_flow.linking import File_Linker
 import argparse
 
