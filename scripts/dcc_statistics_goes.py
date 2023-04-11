@@ -21,7 +21,7 @@ y_str = dcc_files[0].stem.split("_Y")[-1][:9]
 new_filename = f"dcc_statistics_G16_S{start_str}_E{end_str}_X{x_str}_Y{y_str}.nc"
 new_filename
 
-save_path = pathlib.path(args.sd) / new_filename
+save_path = pathlib.Path(args.sd) / new_filename
 
 # Load files
 
