@@ -385,7 +385,7 @@ def argmax_groupby(field, find_max, groups, coord):
 def argmin_groupby(field, find_min, groups, coord):
     return xr.DataArray(
         [
-            field_group[1].data[np.argmax(min_group[1].data)]
+            field_group[1].data[np.argmin(min_group[1].data)]
             for field_group, min_group in zip(
                 field.groupby(groups), find_min.groupby(groups)
             )
