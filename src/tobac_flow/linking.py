@@ -521,11 +521,11 @@ class File_Linker:
         return label_map
 
     def relabel_cores(self) -> None:
-        self.combine_labels(self.current_ds.core_label, self.next_ds.core_label)
-
         label_map = self.core_label_map()
 
         self.remap_core_labels(label_map)
+
+        self.combine_labels(self.current_ds.core_label, self.next_ds.core_label)
 
     def remap_core_labels(self, label_map) -> None:
         """
@@ -558,16 +558,16 @@ class File_Linker:
     #         print(self.current_max_core_label)
 
     def relabel_anvils(self) -> None:
+        label_map = self.anvil_label_map()
+
+        self.remap_anvil_labels(label_map)
+
         self.combine_labels(
             self.current_ds.thick_anvil_label, self.next_ds.thick_anvil_label
         )
         self.combine_labels(
             self.current_ds.thin_anvil_label, self.next_ds.thin_anvil_label
         )
-
-        label_map = self.anvil_label_map()
-
-        self.remap_anvil_labels(label_map)
 
     def remap_anvil_labels(self, label_map) -> None:
         """
@@ -625,13 +625,16 @@ class File_Linker:
         """
         Combine the labels from the overlapping regions of two datasets
         """
-        wh_zero = current_labels.sel(t=self.t_overlap[1:-1]).data == 0
-        current_labels.loc[self.t_overlap[1:-1]].data[wh_zero] = next_labels.sel(
-            t=self.t_overlap[1:-1]
-        ).data[wh_zero]
-        next_labels.loc[self.t_overlap[1:-1]].data = current_labels.sel(
-            t=self.t_overlap[1:-1]
-        ).data
+        wh_zero = (
+            self.current_ds.thick_anvil_label.sel(t=self.t_overlap[1:-1]).data == 0
+        )
+        self.current_ds.thick_anvil_label.loc[self.t_overlap[1:-1]] += (
+            self.next_ds.thick_anvil_label.sel(t=self.t_overlap[1:-1]).data * wh_zero
+        )
+        wh_zero = self.next_ds.thick_anvil_label.sel(t=self.t_overlap[1:-1]).data == 0
+        self.next_ds.thick_anvil_label.loc[self.t_overlap[1:-1]] += (
+            self.current_ds.thick_anvil_label.sel(t=self.t_overlap[1:-1]).data * wh_zero
+        )
 
     def relabel_next_ds(self) -> None:
         """
