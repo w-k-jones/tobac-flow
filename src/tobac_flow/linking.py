@@ -266,24 +266,24 @@ class File_Linker:
         for filename in self.files:
             if not filename.exists:
                 raise ValueError(f"File {filename} does not exist")
-        
+
         self.output_func = output_func
         self.output_path = output_path
 
         if isinstance(self.output_path, str):
             self.output_path = pathlib.Path(self.output_path)
-        
+
         if self.output_path is not None and not self.output_path.exists():
             self.output_path.mkdir()
-        
+
         if output_file_suffix == None or output_file_suffix == "":
             self.file_suffix = "_linked"
         else:
             self.file_suffix = output_file_suffix
-        
+
         if len(self.file_suffix) > 0 and self.file_suffix[0] != "_":
             self.file_suffix = "_" + self.file_suffix
-        
+
         self.overlap = overlap
 
         self.current_max_core_label = 0
@@ -293,10 +293,8 @@ class File_Linker:
         self.current_max_thin_anvil_step_label = 0
 
         self.current_filename = self.files.pop(0)
-        self.current_ds = xr.open_dataset(
-            self.current_filename
-        )
-    
+        self.current_ds = xr.open_dataset(self.current_filename)
+
     def process_next_file(self) -> None:
         self.next_filename = self.files.pop(0)
         self.start_date, self.end_date = get_dates_from_filename(self.current_filename)
@@ -460,15 +458,17 @@ class File_Linker:
         # Reassign to contiguous integers
         unique_labels = np.unique(label_map)
 
+        remapper = np.zeros(max_label + 1, dtype=int)
+
         # First maintain existing labels
         existing_labels = unique_labels[unique_labels <= previous_max]
-        label_map[existing_labels] = existing_labels
+        remapper[existing_labels] = existing_labels
 
         # Then add new labels
         new_labels = unique_labels[unique_labels > previous_max]
-        label_map[new_labels] = np.arange(new_labels.size) + previous_max + 1
+        remapper[new_labels] = np.arange(new_labels.size) + previous_max + 1
 
-        return label_map
+        return remapper[label_map]
 
     def core_label_map(self) -> np.ndarray:
         """
@@ -625,7 +625,7 @@ class File_Linker:
         """
         Combine the labels from the overlapping regions of two datasets
         """
-        wh_zero = current_labels.sel(t=self.t_overlap[1:-1]).data != 0
+        wh_zero = current_labels.sel(t=self.t_overlap[1:-1]).data == 0
         current_labels.loc[self.t_overlap[1:-1]].data[wh_zero] = next_labels.sel(
             t=self.t_overlap[1:-1]
         ).data[wh_zero]
