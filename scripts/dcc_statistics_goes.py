@@ -804,6 +804,49 @@ dataset["anvil_initial_core_index"] = xr.DataArray(
     dataset.core.groupby(dataset.core_anvil_index).min().data, {"anvil": dataset.anvil}
 )
 
+# Add valid flags combining the exisiting data flags
+dataset["core_is_valid"] = xr.DataArray(
+    np.logical_not(
+        np.logical_or.reduce(
+            [
+                dataset.core_edge_label_flag.data,
+                dataset.core_start_label_flag.data,
+                dataset.core_end_label_flag.data,
+                dataset.core_nan_flag.data,
+            ]
+        )
+    ),
+    {"core": dataset.core},
+)
+
+dataset["thick_anvil_is_valid"] = xr.DataArray(
+    np.logical_not(
+        np.logical_or.reduce(
+            [
+                dataset.thick_anvil_edge_label_flag.data,
+                dataset.thick_anvil_start_label_flag.data,
+                dataset.thick_anvil_end_label_flag.data,
+                dataset.thick_anvil_nan_flag.data,
+            ]
+        )
+    ),
+    {"anvil": dataset.anvil},
+)
+
+dataset["thin_anvil_is_valid"] = xr.DataArray(
+    np.logical_not(
+        np.logical_or.reduce(
+            [
+                dataset.thin_anvil_edge_label_flag.data,
+                dataset.thin_anvil_start_label_flag.data,
+                dataset.thin_anvil_end_label_flag.data,
+                dataset.thin_anvil_nan_flag.data,
+            ]
+        )
+    ),
+    {"anvil": dataset.anvil},
+)
+
 print(datetime.now(), "Saving to %s" % (save_path), flush=True)
 # Add compression encoding
 comp = dict(zlib=True, complevel=5, shuffle=True)
