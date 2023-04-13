@@ -291,8 +291,8 @@ def create_nan_slice(da, t_ind):
             "t": [slice_t.data],
             "y": da.y,
             "x": da.x,
-            "y_image": da.y_image,
-            "x_image": da.x_image,
+            "y_image": 0,
+            "x_image": 0,
         },
         ("t", "y", "x"),
     )
