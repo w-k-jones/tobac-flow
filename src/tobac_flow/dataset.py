@@ -884,19 +884,19 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
     )
 
     # Pixel count and area for thick anvil
-    thick_anvil_total_pixels = np.bincount(dataset.thick_anvil_label.data.ravel())[
-        dataset.anvil.data
-    ]
-    add_dataarray_to_ds(
-        create_dataarray(
-            thick_anvil_total_pixels,
-            ("anvil",),
-            "thick_anvil_pixel_count",
-            long_name="total number of pixels for thick anvil",
-            dtype=np.int32,
-        ),
-        dataset,
-    )
+    # thick_anvil_total_pixels = np.bincount(dataset.thick_anvil_label.data.ravel())[
+    #     dataset.anvil.data
+    # ]
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thick_anvil_total_pixels,
+    #         ("anvil",),
+    #         "thick_anvil_pixel_count",
+    #         long_name="total number of pixels for thick anvil",
+    #         dtype=np.int32,
+    #     ),
+    #     dataset,
+    # )
 
     thick_anvil_step_pixels = np.bincount(dataset.thick_anvil_step_label.data.ravel())[
         dataset.thick_anvil_step.data
@@ -1062,19 +1062,19 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
     # )
 
     # Pixel count and area for thin anvil
-    thin_anvil_total_pixels = np.bincount(dataset.thin_anvil_label.data.ravel())[
-        dataset.anvil.data
-    ]
-    add_dataarray_to_ds(
-        create_dataarray(
-            thin_anvil_total_pixels,
-            ("anvil",),
-            "thin_anvil_pixel_count",
-            long_name="total number of pixels for thin anvil",
-            dtype=np.int32,
-        ),
-        dataset,
-    )
+    # thin_anvil_total_pixels = np.bincount(dataset.thin_anvil_label.data.ravel())[
+    #     dataset.anvil.data
+    # ]
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thin_anvil_total_pixels,
+    #         ("anvil",),
+    #         "thin_anvil_pixel_count",
+    #         long_name="total number of pixels for thin anvil",
+    #         dtype=np.int32,
+    #     ),
+    #     dataset,
+    # )
 
     thin_anvil_step_pixels = np.bincount(dataset.thin_anvil_step_label.data.ravel())[
         dataset.thin_anvil_step.data
@@ -1090,24 +1090,24 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thin_anvil_total_area = labeled_comprehension(
-        dataset.area.data[np.newaxis, ...],
-        dataset.thin_anvil_label.data,
-        np.nansum,
-        index=dataset.anvil.data,
-        dtype=np.float32,
-        default=np.nan,
-    )
-    add_dataarray_to_ds(
-        create_dataarray(
-            thin_anvil_total_area,
-            ("anvil",),
-            "thin_anvil_total_area",
-            long_name="total area of thin anvil",
-            dtype=np.float32,
-        ),
-        dataset,
-    )
+    # thin_anvil_total_area = labeled_comprehension(
+    #     dataset.area.data[np.newaxis, ...],
+    #     dataset.thin_anvil_label.data,
+    #     np.nansum,
+    #     index=dataset.anvil.data,
+    #     dtype=np.float32,
+    #     default=np.nan,
+    # )
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thin_anvil_total_area,
+    #         ("anvil",),
+    #         "thin_anvil_total_area",
+    #         long_name="total area of thin anvil",
+    #         dtype=np.float32,
+    #     ),
+    #     dataset,
+    # )
 
     thin_anvil_step_area = labeled_comprehension(
         dataset.area.data[np.newaxis, ...],

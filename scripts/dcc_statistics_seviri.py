@@ -82,7 +82,7 @@ for f in dcc_files[1:]:
             dataset.thick_anvil_end_label_flag.loc[
                 anvil_overlap
             ].data = dcc_ds.thick_anvil_end_label_flag.loc[anvil_overlap].data
-            
+
             dataset.thin_anvil_edge_label_flag.loc[anvil_overlap].data = np.logical_or(
                 dataset.thin_anvil_edge_label_flag.loc[anvil_overlap].data,
                 dcc_ds.thin_anvil_edge_label_flag.loc[anvil_overlap].data,
@@ -90,7 +90,6 @@ for f in dcc_files[1:]:
             dataset.thin_anvil_end_label_flag.loc[
                 anvil_overlap
             ].data = dcc_ds.thin_anvil_end_label_flag.loc[anvil_overlap].data
-            
 
         # Now combine the rest, by concatenating along each dimension
         core_different = sorted(list(set(dcc_ds.core.data) - set(dataset.core.data)))
@@ -150,6 +149,7 @@ anvil_lifetime = dataset.thick_anvil_step_t.groupby(
 
 anvil_invalid_lifetime = anvil_lifetime < np.timedelta64(timedelta(minutes=15))
 
+
 def max_t_diff(x, *args, **kwargs):
     if len(x) > 1:
         return np.max(np.diff(x))
@@ -157,18 +157,20 @@ def max_t_diff(x, *args, **kwargs):
         return np.timedelta64(timedelta(minutes=0))
 
 
-thick_anvil_max_time_diff = dataset.thick_anvil_step_t.groupby(dataset.thick_anvil_step_anvil_index).reduce(
-    max_t_diff
-)
+thick_anvil_max_time_diff = dataset.thick_anvil_step_t.groupby(
+    dataset.thick_anvil_step_anvil_index
+).reduce(max_t_diff)
 
-thick_anvil_invalid_time_diff = thick_anvil_max_time_diff >= np.timedelta64(timedelta(minutes=20))
+thick_anvil_invalid_time_diff = thick_anvil_max_time_diff >= np.timedelta64(
+    timedelta(minutes=20)
+)
 
 
 anvil_nan_flag = np.logical_or.reduce(
     [
         thin_anvil_any_nan_step.data,
         anvil_invalid_lifetime.data,
-        thick_anvil_invalid_time_diff.data, 
+        thick_anvil_invalid_time_diff.data,
     ]
 )
 
@@ -185,9 +187,9 @@ def start_end_diff(x, *args, **kwargs):
     return x[0] - x[-1]
 
 
-core_bt_change = dataset.core_step_ctt_mean.groupby(dataset.core_step_core_index).reduce(
-    start_end_diff
-)
+core_bt_change = dataset.core_step_ctt_mean.groupby(
+    dataset.core_step_core_index
+).reduce(start_end_diff)
 
 core_invalid_bt = core_bt_change.data < 8
 

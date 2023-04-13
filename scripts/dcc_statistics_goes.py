@@ -163,6 +163,7 @@ anvil_lifetime = dataset.thick_anvil_step_t.groupby(
 
 anvil_invalid_lifetime = anvil_lifetime < np.timedelta64(timedelta(minutes=15))
 
+
 def max_t_diff(x, *args, **kwargs):
     if len(x) > 1:
         return np.max(np.diff(x))
@@ -170,19 +171,21 @@ def max_t_diff(x, *args, **kwargs):
         return np.timedelta64(timedelta(minutes=0))
 
 
-thick_anvil_max_time_diff = dataset.thick_anvil_step_t.groupby(dataset.thick_anvil_step_anvil_index).reduce(
-    max_t_diff
-)
+thick_anvil_max_time_diff = dataset.thick_anvil_step_t.groupby(
+    dataset.thick_anvil_step_anvil_index
+).reduce(max_t_diff)
 
-thick_anvil_invalid_time_diff = thick_anvil_max_time_diff >= np.timedelta64(timedelta(minutes=20))
+thick_anvil_invalid_time_diff = thick_anvil_max_time_diff >= np.timedelta64(
+    timedelta(minutes=20)
+)
 
 anvil_nan_flag = np.logical_or.reduce(
     [
         dataset.thick_anvil_nan_flag.data,
         dataset.thin_anvil_nan_flag.data,
         thin_anvil_any_nan_step.data,
-        anvil_invalid_lifetime.data, 
-        thick_anvil_invalid_time_diff.data, 
+        anvil_invalid_lifetime.data,
+        thick_anvil_invalid_time_diff.data,
     ]
 )
 
