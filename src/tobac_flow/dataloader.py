@@ -284,8 +284,12 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
 
 
 def create_nan_slice(da, t_ind):
-    nan_slice_da = xr.full_like(da.isel(t=slice(0, 1)), np.nan)
-    nan_slice_da.t.data[0] = (da.t[t_ind] + (da.t[t_ind + 1] - da.t[t_ind]) / 2).item()
+    slice_t = da.t[t_ind] + (da.t[t_ind + 1] - da.t[t_ind]) / 2
+    nan_slice_da = xr.DataArray(
+        np.full([1, da.y.size, da.x.size], np.nan),
+        {"t": [slice_t.data], "y": da.y, "x": da.x},
+        ("t", "y", "x"),
+    )
     return nan_slice_da
 
 
