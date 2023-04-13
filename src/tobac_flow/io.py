@@ -427,12 +427,22 @@ def download_blob(
 #                                         clobber=clobber)
 
 
-def get_goes_date(filename):
-    base_string = os.path.split(filename)[-1].split("_s")[-1]
-    date = parse_date(base_string[:4] + "0101" + base_string[7:13]) + timedelta(
-        days=int(base_string[4:7]) - 1
+def get_goes_date(filename: str) -> datetime:
+    """
+    Finds the centre point time from an ABI filename
+    """
+    base_string = os.path.split(filename)[-1]
+
+    start_string = base_string.split("_s")[-1]
+    start_date = parse_date(start_string[:4] + "0101" + start_string[7:13]) + timedelta(
+        days=int(start_string[4:7]) - 1
     )
-    return date
+    end_string = base_string.split("_e")[-1]
+    end_date = parse_date(end_string[:4] + "0101" + end_string[7:13]) + timedelta(
+        days=int(end_string[4:7]) - 1
+    )
+
+    return start_date + (end_date - start_date) / 2
 
 
 def find_abi_files(
