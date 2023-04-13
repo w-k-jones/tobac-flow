@@ -67,9 +67,6 @@ def goes_dataloader(
     # Load ABI files
     bt, wvd, swd = load_mcmip(abi_files, x0, x1, y0, y1)
 
-    # Sort by time
-    bt, wvd, swd = bt.sortby(bt.t), wvd.sortby(wvd.t), swd.sortby(swd.t)
-
     # Check time is correct on all files, remove if incorrect
     pad_hours = int(np.ceil(n_pad_files / 12))
     padded_start_date = start_date - timedelta(hours=pad_hours)
@@ -273,6 +270,9 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     swd.data[all_DQF] = np.nan
     swd.data[all_stripe] = np.nan
 
+    # Sort by time
+    bt, wvd, swd = bt.sortby(bt.t), wvd.sortby(wvd.t), swd.sortby(swd.t)
+
     goes_ds.close()
 
     return bt, wvd, swd
@@ -365,7 +365,7 @@ def fill_time_gap_full_disk(
         dates = [dates[0]] + dates
 
     if np.sum(np.array(dates) > end_date) < n_pad_files:
-        dates = dates + padded_end_date
+        dates = dates + [padded_end_date]
     else:
         dates = dates + [dates[-1]]
 
@@ -409,6 +409,18 @@ def fill_time_gap_full_disk(
                 full_bt, full_wvd, full_swd = load_mcmip(
                     full_disk_files, x0, x1, y0, y1
                 )
+
+                new_coords = {
+                    "t": full_bt.t.data,
+                    "y": bt.y,
+                    "x": bt.x,
+                    "y_image": bt.y_image,
+                    "x_image": bt.x_image,
+                }
+
+                full_bt = xr.DataArray(full_bt.data, new_coords, ("t", "y", "x"))
+                full_wvd = xr.DataArray(full_wvd.data, new_coords, ("t", "y", "x"))
+                full_swd = xr.DataArray(full_swd.data, new_coords, ("t", "y", "x"))
 
                 bt_concat_list.append(full_bt)
                 wvd_concat_list.append(full_wvd)
