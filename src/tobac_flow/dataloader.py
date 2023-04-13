@@ -92,44 +92,39 @@ def goes_dataloader(
     if io_kwargs["view"] == "M":
         io_kwargs["view"] = "C"
         bt, wvd, swd = fill_time_gap_full_disk(
-            bt, wvd, swd, time_gap, x0, x1, y0, y1, **io_kwargs
+            bt,
+            wvd,
+            swd,
+            start_date,
+            end_date,
+            n_pad_files,
+            time_gap,
+            x0,
+            x1,
+            y0,
+            y1,
+            **io_kwargs,
         )
-
-        datetime_coord = get_datetime_from_coord(bt.t)
-
-        wh_valid_t = np.logical_and(
-            [t > padded_start_date for t in datetime_coord],
-            [t < padded_end_date for t in datetime_coord],
-        )
-
-        if not np.all(wh_valid_t):
-            warnings.warn(
-                "Invalid time stamps found in ABI data, removing", RuntimeWarning
-            )
-            bt = bt[wh_valid_t]
-            wvd = wvd[wh_valid_t]
-            swd = swd[wh_valid_t]
 
     if io_kwargs["view"] == "C":
         io_kwargs["view"] = "F"
         bt, wvd, swd = fill_time_gap_full_disk(
-            bt, wvd, swd, time_gap, x0, x1, y0, y1, **io_kwargs
+            bt,
+            wvd,
+            swd,
+            start_date,
+            end_date,
+            n_pad_files,
+            time_gap,
+            x0,
+            x1,
+            y0,
+            y1,
+            **io_kwargs,
         )
 
-        datetime_coord = get_datetime_from_coord(bt.t)
-
-        wh_valid_t = np.logical_and(
-            [t > padded_start_date for t in datetime_coord],
-            [t < padded_end_date for t in datetime_coord],
-        )
-
-        if not np.all(wh_valid_t):
-            warnings.warn(
-                "Invalid time stamps found in ABI data, removing", RuntimeWarning
-            )
-            bt = bt[wh_valid_t]
-            wvd = wvd[wh_valid_t]
-            swd = swd[wh_valid_t]
+    if np.unique(bt.t).size < bt.t.size:
+        raise RuntimeError("Duplicate time steps in input index values")
 
     if return_new_ds:
         goes_ds = xr.open_dataset(abi_files[0])
@@ -344,17 +339,37 @@ def find_full_disk_for_time_gap(start_date, end_date, **io_kwargs):
 
 
 def fill_time_gap_full_disk(
-    bt,
-    wvd,
-    swd,
-    time_gap=timedelta(minutes=15),
-    x0=None,
-    x1=None,
-    y0=None,
-    y1=None,
+    bt: xr.DataArray,
+    wvd: xr.DataArray,
+    swd: xr.DataArray,
+    start_date: datetime,
+    end_date: datetime,
+    n_pad_files: int,
+    time_gap: timedelta = timedelta(minutes=15),
+    x0: int = None,
+    x1: int = None,
+    y0: int = None,
+    y1: int = None,
     **io_kwargs,
-):
-    where_time_gap = np.where(np.diff(get_datetime_from_coord(bt.t)) > time_gap)[0]
+) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray]:
+
+    pad_hours = int(np.ceil(n_pad_files / 12))
+    padded_start_date = start_date - timedelta(hours=pad_hours)
+    padded_end_date = end_date + timedelta(hours=pad_hours)
+
+    # Pad dates list if we are missing pad values
+    dates = get_datetime_from_coord(bt.t)
+    if np.sum(np.array(dates) < start_date) < n_pad_files:
+        dates = [padded_start_date] + dates
+    else:
+        dates = [dates[0]] + dates
+
+    if np.sum(np.array(dates) > end_date) < n_pad_files:
+        dates = dates + padded_end_date
+    else:
+        dates = dates + [dates[-1]]
+
+    where_time_gap = np.where(np.diff(dates) > time_gap)[0]
 
     bt_concat_list = []
     wvd_concat_list = []
@@ -381,36 +396,65 @@ def fill_time_gap_full_disk(
     if where_time_gap.size > 0:
         for t_ind in where_time_gap:
             full_disk_files = find_full_disk_for_time_gap(
-                bt.t.data[t_ind], bt.t.data[t_ind + 1], **io_kwargs
+                np.datetime64(dates[t_ind]),
+                np.datetime64(dates[t_ind + 1]),
+                **io_kwargs,
             )
-            bt_concat_list.append(bt.isel(t=slice(last_t_ind, t_ind + 1)))
-            wvd_concat_list.append(wvd.isel(t=slice(last_t_ind, t_ind + 1)))
-            swd_concat_list.append(swd.isel(t=slice(last_t_ind, t_ind + 1)))
+            if t_ind > 0 and t_ind <= bt.t.size and last_t_ind < bt.t.size:
+                bt_concat_list.append(bt.isel(t=slice(last_t_ind, t_ind)))
+                wvd_concat_list.append(wvd.isel(t=slice(last_t_ind, t_ind)))
+                swd_concat_list.append(swd.isel(t=slice(last_t_ind, t_ind)))
 
             if len(full_disk_files) > 0:
                 full_bt, full_wvd, full_swd = load_mcmip(
-                    full_disk_files, x0, x1, y0, y1
+                    full_disk_files, x0 + 902, x1 + 902, y0 + 422, y1 + 422
                 )
 
                 bt_concat_list.append(full_bt)
                 wvd_concat_list.append(full_wvd)
                 swd_concat_list.append(full_swd)
 
-            last_t_ind = t_ind + 1
+            last_t_ind = t_ind
 
-        #         raise ValueError
+        if last_t_ind < bt.t.size:
+            bt_concat_list.append(bt.isel(t=slice(last_t_ind, None)))
+            wvd_concat_list.append(wvd.isel(t=slice(last_t_ind, None)))
+            swd_concat_list.append(swd.isel(t=slice(last_t_ind, None)))
 
-        bt_concat_list.append(bt.isel(t=slice(last_t_ind, None)))
-        wvd_concat_list.append(wvd.isel(t=slice(last_t_ind, None)))
-        swd_concat_list.append(swd.isel(t=slice(last_t_ind, None)))
+        bt = xr.concat(bt_concat_list, "t", join="left")
+        wvd = xr.concat(wvd_concat_list, "t", join="left")
+        swd = xr.concat(swd_concat_list, "t", join="left")
 
-        return (
-            xr.concat(bt_concat_list, "t", join="left"),
-            xr.concat(wvd_concat_list, "t", join="left"),
-            xr.concat(swd_concat_list, "t", join="left"),
+        datetime_coord = get_datetime_from_coord(bt.t)
+
+        wh_valid_t = np.logical_and(
+            [t > padded_start_date for t in datetime_coord],
+            [t < padded_end_date for t in datetime_coord],
         )
-    else:
-        return bt, wvd, swd
+
+        if not np.all(wh_valid_t):
+            warnings.warn(
+                "Invalid time stamps found in ABI data, removing", RuntimeWarning
+            )
+            bt = bt[wh_valid_t]
+            wvd = wvd[wh_valid_t]
+            swd = swd[wh_valid_t]
+
+        dates = get_datetime_from_coord(bt.t)
+        pre_dates = np.sum(np.array(dates) < start_date)
+        extra_pre_steps = pre_dates - n_pad_files if pre_dates > n_pad_files else None
+
+        post_dates = np.sum(np.array(dates) > end_date)
+        extra_post_steps = (
+            -(post_dates - n_pad_files) if post_dates > n_pad_files else None
+        )
+
+        if extra_pre_steps is not None or extra_post_steps is not None:
+            bt = bt.isel(t=slice(extra_pre_steps, extra_post_steps))
+            wvd = swd.isel(t=slice(extra_pre_steps, extra_post_steps))
+            wvd = swd.isel(t=slice(extra_pre_steps, extra_post_steps))
+
+    return bt, wvd, swd
 
 
 def glob_seviri_files(
