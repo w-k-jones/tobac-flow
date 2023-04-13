@@ -359,7 +359,12 @@ class File_Linker:
         cores = np.unique(self.current_ds.core_label.data).astype(np.int32)
         if cores[0] == 0 and cores.size > 1:
             cores = cores[1:]
-        anvils = np.unique(self.current_ds.thick_anvil_label.data).astype(np.int32)
+        anvils = np.asarray(
+            list(
+                set(np.unique(self.current_ds.thick_anvil_label.data))
+                | set(np.unique(self.current_ds.thin_anvil_label.data))
+            )
+        ).astype(np.int32)
         if anvils[0] == 0 and anvils.size > 1:
             anvils = anvils[1:]
         self.current_ds = self.current_ds.assign_coords(
