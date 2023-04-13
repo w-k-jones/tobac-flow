@@ -67,6 +67,9 @@ def goes_dataloader(
     # Load ABI files
     bt, wvd, swd = load_mcmip(abi_files, x0, x1, y0, y1)
 
+    # Sort by time
+    bt, wvd, swd = bt.sortby(bt.t), wvd.sortby(wvd.t), swd.sortby(swd.t)
+
     # Check time is correct on all files, remove if incorrect
     pad_hours = int(np.ceil(n_pad_files / 12))
     padded_start_date = start_date - timedelta(hours=pad_hours)
@@ -92,11 +95,41 @@ def goes_dataloader(
             bt, wvd, swd, time_gap, x0, x1, y0, y1, **io_kwargs
         )
 
+        datetime_coord = get_datetime_from_coord(bt.t)
+
+        wh_valid_t = np.logical_and(
+            [t > padded_start_date for t in datetime_coord],
+            [t < padded_end_date for t in datetime_coord],
+        )
+
+        if not np.all(wh_valid_t):
+            warnings.warn(
+                "Invalid time stamps found in ABI data, removing", RuntimeWarning
+            )
+            bt = bt[wh_valid_t]
+            wvd = wvd[wh_valid_t]
+            swd = swd[wh_valid_t]
+
     if io_kwargs["view"] == "C":
         io_kwargs["view"] = "F"
         bt, wvd, swd = fill_time_gap_full_disk(
             bt, wvd, swd, time_gap, x0, x1, y0, y1, **io_kwargs
         )
+
+        datetime_coord = get_datetime_from_coord(bt.t)
+
+        wh_valid_t = np.logical_and(
+            [t > padded_start_date for t in datetime_coord],
+            [t < padded_end_date for t in datetime_coord],
+        )
+
+        if not np.all(wh_valid_t):
+            warnings.warn(
+                "Invalid time stamps found in ABI data, removing", RuntimeWarning
+            )
+            bt = bt[wh_valid_t]
+            wvd = wvd[wh_valid_t]
+            swd = swd[wh_valid_t]
 
     if return_new_ds:
         goes_ds = xr.open_dataset(abi_files[0])
