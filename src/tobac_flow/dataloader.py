@@ -407,7 +407,7 @@ def fill_time_gap_full_disk(
 
             if len(full_disk_files) > 0:
                 full_bt, full_wvd, full_swd = load_mcmip(
-                    full_disk_files, x0 + 902, x1 + 902, y0 + 422, y1 + 422
+                    full_disk_files, x0, x1, y0, y1
                 )
 
                 bt_concat_list.append(full_bt)
