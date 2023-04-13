@@ -625,15 +625,49 @@ class File_Linker:
         """
         Combine the labels from the overlapping regions of two datasets
         """
-        wh_zero = (
-            self.current_ds.thick_anvil_label.sel(t=self.t_overlap[1:-1]).data == 0
+
+        # Transfer from next_labels to current_labels
+
+        # This set operation removes "stubs" i.e. labels that should be flagged as end labels
+        # Labels that appear in the first step of next_labels, but don't appear in current_labels should be removed
+        combine_label_set = (
+            (
+                set(np.unique(next_labels.sel(t=self.t_overlap[1:-1]).data))
+                - set(np.unique(next_labels.sel(t=self.t_overlap[0]).data))
+            )
+            | set(np.unique(current_labels.sel(t=self.t_overlap[:-1]).data))
+        ) - set([0])
+
+        wh_combine = np.logical_and(
+            np.isin(
+                next_labels.sel(t=self.t_overlap[1:-1]).data, list(combine_label_set)
+            ),
+            current_labels.sel(t=self.t_overlap[1:-1]).data == 0,
         )
-        self.current_ds.thick_anvil_label.loc[self.t_overlap[1:-1]] += (
-            self.next_ds.thick_anvil_label.sel(t=self.t_overlap[1:-1]).data * wh_zero
+
+        current_labels.loc[self.t_overlap[1:-1]] += (
+            next_labels.sel(t=self.t_overlap[1:-1]).data * wh_combine
         )
-        wh_zero = self.next_ds.thick_anvil_label.sel(t=self.t_overlap[1:-1]).data == 0
-        self.next_ds.thick_anvil_label.loc[self.t_overlap[1:-1]] += (
-            self.current_ds.thick_anvil_label.sel(t=self.t_overlap[1:-1]).data * wh_zero
+
+        # Now transfer from current_labels to next_labels
+
+        combine_label_set = (
+            (
+                set(np.unique(current_labels.sel(t=self.t_overlap[1:-1]).data))
+                - set(np.unique(current_labels.sel(t=self.t_overlap[-1]).data))
+            )
+            | set(np.unique(next_labels.sel(t=self.t_overlap[1:]).data))
+        ) - set([0])
+
+        wh_combine = np.logical_and(
+            np.isin(
+                current_labels.sel(t=self.t_overlap[1:-1]).data, list(combine_label_set)
+            ),
+            next_labels.sel(t=self.t_overlap[1:-1]).data == 0,
+        )
+
+        next_labels.loc[self.t_overlap[1:-1]] += (
+            current_labels.sel(t=self.t_overlap[1:-1]).data * wh_combine
         )
 
     def relabel_next_ds(self) -> None:
