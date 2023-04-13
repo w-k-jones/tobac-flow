@@ -148,8 +148,8 @@ def any_nan(x, *args, **kwargs):
     return np.any(np.isnan(x))
 
 
-thin_anvil_any_nan_step = dataset.thin_anvil_step_BT_mean.groupby(
-    dataset.thin_anvil_step_anvil_index
+thick_anvil_any_nan_step = dataset.thick_anvil_step_BT_mean.groupby(
+    dataset.thick_anvil_step_anvil_index
 ).reduce(any_nan)
 
 
@@ -183,7 +183,7 @@ anvil_nan_flag = np.logical_or.reduce(
     [
         dataset.thick_anvil_nan_flag.data,
         dataset.thin_anvil_nan_flag.data,
-        thin_anvil_any_nan_step.data,
+        thick_anvil_any_nan_step.data,
         anvil_invalid_lifetime.data,
         thick_anvil_invalid_time_diff.data,
     ]
