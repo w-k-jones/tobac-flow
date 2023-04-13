@@ -950,33 +950,33 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thick_anvil_step_max_area_index = np.asarray(
-        [
-            dataset.thick_anvil_step[dataset.thick_anvil_step_anvil_index.data == i][
-                np.argmax(
-                    thick_anvil_step_area[
-                        dataset.thick_anvil_step_anvil_index.data == i
-                    ]
-                )
-            ]
-            for i in dataset.anvil.data
-        ]
-    )
+    # thick_anvil_step_max_area_index = np.asarray(
+    #     [
+    #         dataset.thick_anvil_step[dataset.thick_anvil_step_anvil_index.data == i][
+    #             np.argmax(
+    #                 thick_anvil_step_area[
+    #                     dataset.thick_anvil_step_anvil_index.data == i
+    #                 ]
+    #             )
+    #         ]
+    #         for i in dataset.anvil.data
+    #     ]
+    # )
 
-    thick_anvil_max_area = dataset.thick_anvil_step_area.loc[
-        thick_anvil_step_max_area_index
-    ].data
+    # thick_anvil_max_area = dataset.thick_anvil_step_area.loc[
+    #     thick_anvil_step_max_area_index
+    # ].data
 
-    add_dataarray_to_ds(
-        create_dataarray(
-            thick_anvil_max_area,
-            ("anvil",),
-            "thick_anvil_max_area",
-            long_name="maximum area of thick anvil",
-            dtype=np.float32,
-        ),
-        dataset,
-    )
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thick_anvil_max_area,
+    #         ("anvil",),
+    #         "thick_anvil_max_area",
+    #         long_name="maximum area of thick anvil",
+    #         dtype=np.float32,
+    #     ),
+    #     dataset,
+    # )
 
     # Time stats for thick_anvil
     thick_anvil_start_t = labeled_comprehension(
@@ -1047,19 +1047,19 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thick_anvil_max_area_t = dataset.thick_anvil_step_t.loc[
-        thick_anvil_step_max_area_index
-    ].data
-    add_dataarray_to_ds(
-        create_dataarray(
-            thick_anvil_max_area_t,
-            ("anvil",),
-            "thick_anvil_max_area_t",
-            long_name="time of thick anvil maximum area",
-            dtype="datetime64[ns]",
-        ),
-        dataset,
-    )
+    # thick_anvil_max_area_t = dataset.thick_anvil_step_t.loc[
+    #     thick_anvil_step_max_area_index
+    # ].data
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thick_anvil_max_area_t,
+    #         ("anvil",),
+    #         "thick_anvil_max_area_t",
+    #         long_name="time of thick anvil maximum area",
+    #         dtype="datetime64[ns]",
+    #     ),
+    #     dataset,
+    # )
 
     # Pixel count and area for thin anvil
     thin_anvil_total_pixels = np.bincount(dataset.thin_anvil_label.data.ravel())[
@@ -1128,31 +1128,31 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thin_anvil_step_max_area_index = np.asarray(
-        [
-            dataset.thin_anvil_step[dataset.thin_anvil_step_anvil_index.data == i][
-                np.argmax(
-                    thin_anvil_step_area[dataset.thin_anvil_step_anvil_index.data == i]
-                )
-            ]
-            for i in dataset.anvil.data
-        ]
-    )
+    # thin_anvil_step_max_area_index = np.asarray(
+    #     [
+    #         dataset.thin_anvil_step[dataset.thin_anvil_step_anvil_index.data == i][
+    #             np.argmax(
+    #                 thin_anvil_step_area[dataset.thin_anvil_step_anvil_index.data == i]
+    #             )
+    #         ]
+    #         for i in dataset.anvil.data
+    #     ]
+    # )
 
-    thin_anvil_max_area = dataset.thin_anvil_step_area.loc[
-        thin_anvil_step_max_area_index
-    ].data
+    # thin_anvil_max_area = dataset.thin_anvil_step_area.loc[
+    #     thin_anvil_step_max_area_index
+    # ].data
 
-    add_dataarray_to_ds(
-        create_dataarray(
-            thin_anvil_max_area,
-            ("anvil",),
-            "thin_anvil_max_area",
-            long_name="maximum area of thin anvil",
-            dtype=np.float32,
-        ),
-        dataset,
-    )
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thin_anvil_max_area,
+    #         ("anvil",),
+    #         "thin_anvil_max_area",
+    #         long_name="maximum area of thin anvil",
+    #         dtype=np.float32,
+    #     ),
+    #     dataset,
+    # )
 
     # Time stats for thin_anvil
     thin_anvil_start_t = labeled_comprehension(
@@ -1223,42 +1223,42 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thin_anvil_max_area_t = dataset.thin_anvil_step_t.loc[
-        thin_anvil_step_max_area_index
-    ].data
-    add_dataarray_to_ds(
-        create_dataarray(
-            thin_anvil_max_area_t,
-            ("anvil",),
-            "thin_anvil_max_area_t",
-            long_name="time of thin anvil maximum area",
-            dtype="datetime64[ns]",
-        ),
-        dataset,
-    )
+    # thin_anvil_max_area_t = dataset.thin_anvil_step_t.loc[
+    #     thin_anvil_step_max_area_index
+    # ].data
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thin_anvil_max_area_t,
+    #         ("anvil",),
+    #         "thin_anvil_max_area_t",
+    #         long_name="time of thin anvil maximum area",
+    #         dtype="datetime64[ns]",
+    #     ),
+    #     dataset,
+    # )
 
     # Flag no growth anvils
-    anvil_no_growth_flag = np.asarray(
-        [
-            True
-            if dataset.anvil_core_count.loc[i] == 1
-            and dataset.thick_anvil_max_area_t.loc[i]
-            <= dataset.core_end_t[dataset.core_anvil_index.data == i]
-            else False
-            for i in dataset.anvil.data
-        ]
-    )
+    # anvil_no_growth_flag = np.asarray(
+    #     [
+    #         True
+    #         if dataset.anvil_core_count.loc[i] == 1
+    #         and dataset.thick_anvil_max_area_t.loc[i]
+    #         <= dataset.core_end_t[dataset.core_anvil_index.data == i]
+    #         else False
+    #         for i in dataset.anvil.data
+    #     ]
+    # )
 
-    add_dataarray_to_ds(
-        create_dataarray(
-            anvil_no_growth_flag,
-            ("anvil",),
-            "anvil_no_growth_flag",
-            long_name="flag for anvils that do not grow after core activity ends",
-            dtype=bool,
-        ),
-        dataset,
-    )
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         anvil_no_growth_flag,
+    #         ("anvil",),
+    #         "anvil_no_growth_flag",
+    #         long_name="flag for anvils that do not grow after core activity ends",
+    #         dtype=bool,
+    #     ),
+    #     dataset,
+    # )
 
     # Location and lat/lon for cores
     area_stack = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
@@ -1465,72 +1465,72 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thick_anvil_start_index = np.asarray(
-        [
-            np.nanmin(
-                dataset.thick_anvil_step[dataset.thick_anvil_step_anvil_index.data == i]
-            )
-            for i in dataset.anvil.data
-        ]
-    )
-    thick_anvil_end_index = np.asarray(
-        [
-            np.nanmax(
-                dataset.thick_anvil_step[dataset.thick_anvil_step_anvil_index.data == i]
-            )
-            for i in dataset.anvil.data
-        ]
-    )
+    # thick_anvil_start_index = np.asarray(
+    #     [
+    #         np.nanmin(
+    #             dataset.thick_anvil_step[dataset.thick_anvil_step_anvil_index.data == i]
+    #         )
+    #         for i in dataset.anvil.data
+    #     ]
+    # )
+    # thick_anvil_end_index = np.asarray(
+    #     [
+    #         np.nanmax(
+    #             dataset.thick_anvil_step[dataset.thick_anvil_step_anvil_index.data == i]
+    #         )
+    #         for i in dataset.anvil.data
+    #     ]
+    # )
 
-    thick_anvil_start_x = dataset.thick_anvil_step_x.loc[thick_anvil_start_index].data
-    thick_anvil_start_y = dataset.thick_anvil_step_y.loc[thick_anvil_start_index].data
-    thick_anvil_start_lat = dataset.thick_anvil_step_lat.loc[
-        thick_anvil_start_index
-    ].data
-    thick_anvil_start_lon = dataset.thick_anvil_step_lon.loc[
-        thick_anvil_start_index
-    ].data
+    # thick_anvil_start_x = dataset.thick_anvil_step_x.loc[thick_anvil_start_index].data
+    # thick_anvil_start_y = dataset.thick_anvil_step_y.loc[thick_anvil_start_index].data
+    # thick_anvil_start_lat = dataset.thick_anvil_step_lat.loc[
+    #     thick_anvil_start_index
+    # ].data
+    # thick_anvil_start_lon = dataset.thick_anvil_step_lon.loc[
+    #     thick_anvil_start_index
+    # ].data
 
-    add_dataarray_to_ds(
-        create_dataarray(
-            thick_anvil_start_x,
-            ("anvil",),
-            "anvil_start_x",
-            long_name="initial x location of anvil",
-            dtype=np.float32,
-        ),
-        dataset,
-    )
-    add_dataarray_to_ds(
-        create_dataarray(
-            thick_anvil_start_y,
-            ("anvil",),
-            "anvil_start_y",
-            long_name="initial y location of anvil",
-            dtype=np.float32,
-        ),
-        dataset,
-    )
-    add_dataarray_to_ds(
-        create_dataarray(
-            thick_anvil_start_lat,
-            ("anvil",),
-            "anvil_start_lat",
-            long_name="initial latitude of anvil",
-            dtype=np.float32,
-        ),
-        dataset,
-    )
-    add_dataarray_to_ds(
-        create_dataarray(
-            thick_anvil_start_lon,
-            ("anvil",),
-            "anvil_start_lon",
-            long_name="initial longitude of anvil",
-            dtype=np.float32,
-        ),
-        dataset,
-    )
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thick_anvil_start_x,
+    #         ("anvil",),
+    #         "anvil_start_x",
+    #         long_name="initial x location of anvil",
+    #         dtype=np.float32,
+    #     ),
+    #     dataset,
+    # )
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thick_anvil_start_y,
+    #         ("anvil",),
+    #         "anvil_start_y",
+    #         long_name="initial y location of anvil",
+    #         dtype=np.float32,
+    #     ),
+    #     dataset,
+    # )
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thick_anvil_start_lat,
+    #         ("anvil",),
+    #         "anvil_start_lat",
+    #         long_name="initial latitude of anvil",
+    #         dtype=np.float32,
+    #     ),
+    #     dataset,
+    # )
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         thick_anvil_start_lon,
+    #         ("anvil",),
+    #         "anvil_start_lon",
+    #         long_name="initial longitude of anvil",
+    #         dtype=np.float32,
+    #     ),
+    #     dataset,
+    # )
 
     thin_anvil_step_x = apply_weighted_func_to_labels(
         dataset.thin_anvil_step_label.data,
