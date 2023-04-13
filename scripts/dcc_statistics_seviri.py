@@ -219,7 +219,7 @@ core_lifetime = dataset.core_step_t.groupby(dataset.core_step_core_index).reduce
 core_invalid_lifetime = core_lifetime < np.timedelta64(timedelta(minutes=15))
 
 core_any_nan_step = dataset.core_step_cot_mean.groupby(
-    dataset.core_step_anvil_index
+    dataset.core_step_core_index
 ).reduce(any_nan)
 
 
