@@ -15,7 +15,7 @@ args = parser.parse_args()
 dcc_files = sorted([pathlib.Path(f) for f in args.files])
 
 start_str = dcc_files[0].stem.split("_S")[-1][:15]
-end_str = dcc_files[0].stem.split("_E")[-1][:15]
+end_str = dcc_files[-1].stem.split("_E")[-1][:15]
 x_str = dcc_files[0].stem.split("_X")[-1][:9]
 y_str = dcc_files[0].stem.split("_Y")[-1][:9]
 new_filename = f"dcc_statistics_SEVIRI_S{start_str}_E{end_str}_X{x_str}_Y{y_str}.nc"
