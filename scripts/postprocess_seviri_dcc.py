@@ -327,6 +327,8 @@ for var in dataset.data_vars:
 
 dataset.to_netcdf(save_path)
 
+print(datetime.now(), "Saving complete, closing datasets", flush=True)
+
 dataset.close()
 cld_ds.close()
 flx_ds.close()
