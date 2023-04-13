@@ -134,7 +134,7 @@ def any_nan(x, *args, **kwargs):
     return np.any(np.isnan(x))
 
 
-thin_anvil_any_nan_step = dataset.thin_anvil_step_cod_mean.groupby(
+thin_anvil_any_nan_step = dataset.thin_anvil_step_cot_mean.groupby(
     dataset.thin_anvil_step_anvil_index
 ).reduce(any_nan)
 
