@@ -113,17 +113,17 @@ for var, dtype in output_dtypes.items():
 # Filter out cores/anvils or steps which don't appear in the others index
 
 wh_core = np.isin(dataset.core, dataset.core_step_core_index)
-wh_core_step = np.isin(dataset.core_step_core_index, dataset.core)
 wh_anvil = np.logical_and(
     np.isin(dataset.anvil, dataset.thick_anvil_step_anvil_index),
     np.isin(dataset.anvil, dataset.thin_anvil_step_anvil_index),
 )
+dataset = dataset.sel(
+    core=dataset.core.data[wh_core], anvil=dataset.anvil.data[wh_anvil]
+)
+wh_core_step = np.isin(dataset.core_step_core_index, dataset.core)
 wh_thick_anvil_step = np.isin(dataset.thick_anvil_step_anvil_index, dataset.anvil)
 wh_thin_anvil_step = np.isin(dataset.thin_anvil_step_anvil_index, dataset.anvil)
-
 dataset = dataset.sel(
-    core=dataset.core.data[wh_core],
-    anvil=dataset.anvil.data[wh_anvil],
     core_step=dataset.core_step.data[wh_core_step],
     thick_anvil_step=dataset.thick_anvil_step[wh_thick_anvil_step],
     thin_anvil_step=dataset.thin_anvil_step[wh_thin_anvil_step],
@@ -218,6 +218,11 @@ core_lifetime = dataset.core_step_t.groupby(dataset.core_step_core_index).reduce
 
 core_invalid_lifetime = core_lifetime < np.timedelta64(timedelta(minutes=15))
 
+core_any_nan_step = dataset.core_step_cot_mean.groupby(
+    dataset.core_step_anvil_index
+).reduce(any_nan)
+
+
 wh_core_invalid = np.logical_or.reduce(
     [
         dataset.core_start_label_flag.data,
@@ -227,6 +232,7 @@ wh_core_invalid = np.logical_or.reduce(
         core_invalid_bt,
         core_invalid_time_diff,
         core_invalid_lifetime,
+        core_any_nan_step,
     ]
 )
 
