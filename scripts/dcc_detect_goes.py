@@ -61,6 +61,16 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
+    "--save_wvd",
+    help="Save water vapour difference field to output file",
+    action="store_true",
+)
+parser.add_argument(
+    "--save_swd",
+    help="Save split window difference field to output file",
+    action="store_true",
+)
+parser.add_argument(
     "--save_label_props",
     help="Save statistics of label properties to output file",
     action="store_true",
@@ -407,6 +417,16 @@ def main() -> None:
     if args.save_bt:
         add_dataarray_to_ds(
             bt.sel(t=dataset.t),
+            dataset,
+        )
+    if args.save_wvd:
+        add_dataarray_to_ds(
+            wvd.sel(t=dataset.t),
+            dataset,
+        )
+    if args.save_swd:
+        add_dataarray_to_ds(
+            swd.sel(t=dataset.t),
             dataset,
         )
 
