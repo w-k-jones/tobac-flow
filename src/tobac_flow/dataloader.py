@@ -287,7 +287,13 @@ def create_nan_slice(da, t_ind):
     slice_t = da.t[t_ind] + (da.t[t_ind + 1] - da.t[t_ind]) / 2
     nan_slice_da = xr.DataArray(
         np.full([1, da.y.size, da.x.size], np.nan),
-        {"t": [slice_t.data], "y": da.y, "x": da.x},
+        {
+            "t": [slice_t.data],
+            "y": da.y,
+            "x": da.x,
+            "y_image": y_image,
+            "x_image": x_image,
+        },
         ("t", "y", "x"),
     )
     return nan_slice_da
