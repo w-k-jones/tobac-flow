@@ -463,8 +463,8 @@ def fill_time_gap_full_disk(
 
         if extra_pre_steps is not None or extra_post_steps is not None:
             bt = bt.isel(t=slice(extra_pre_steps, extra_post_steps))
-            wvd = swd.isel(t=slice(extra_pre_steps, extra_post_steps))
-            wvd = swd.isel(t=slice(extra_pre_steps, extra_post_steps))
+            wvd = wvd.isel(t=slice(extra_pre_steps, extra_post_steps))
+            swd = swd.isel(t=slice(extra_pre_steps, extra_post_steps))
 
     return bt, wvd, swd
 
