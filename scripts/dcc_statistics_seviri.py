@@ -134,8 +134,8 @@ def any_nan(x, *args, **kwargs):
     return np.any(np.isnan(x))
 
 
-thin_anvil_any_nan_step = dataset.thin_anvil_step_cot_mean.groupby(
-    dataset.thin_anvil_step_anvil_index
+thick_anvil_any_nan_step = dataset.thick_anvil_step_cot_mean.groupby(
+    dataset.thick_anvil_step_anvil_index
 ).reduce(any_nan)
 
 
@@ -168,7 +168,7 @@ thick_anvil_invalid_time_diff = thick_anvil_max_time_diff >= np.timedelta64(
 
 anvil_nan_flag = np.logical_or.reduce(
     [
-        thin_anvil_any_nan_step.data,
+        thick_anvil_any_nan_step.data,
         anvil_invalid_lifetime.data,
         thick_anvil_invalid_time_diff.data,
     ]
@@ -223,7 +223,6 @@ wh_core_invalid = np.logical_or.reduce(
         dataset.core_start_label_flag.data,
         dataset.core_end_label_flag.data,
         dataset.core_edge_label_flag.data,
-        dataset.core_nan_flag,
         core_invalid_anvil,
         core_invalid_bt,
         core_invalid_time_diff,
@@ -814,7 +813,6 @@ dataset["core_is_valid"] = xr.DataArray(
                 dataset.core_edge_label_flag.data,
                 dataset.core_start_label_flag.data,
                 dataset.core_end_label_flag.data,
-                dataset.core_nan_flag.data,
             ]
         )
     ),
@@ -828,7 +826,6 @@ dataset["thick_anvil_is_valid"] = xr.DataArray(
                 dataset.thick_anvil_edge_label_flag.data,
                 dataset.thick_anvil_start_label_flag.data,
                 dataset.thick_anvil_end_label_flag.data,
-                dataset.thick_anvil_nan_flag.data,
             ]
         )
     ),
@@ -842,7 +839,6 @@ dataset["thin_anvil_is_valid"] = xr.DataArray(
                 dataset.thin_anvil_edge_label_flag.data,
                 dataset.thin_anvil_start_label_flag.data,
                 dataset.thin_anvil_end_label_flag.data,
-                dataset.thin_anvil_nan_flag.data,
             ]
         )
     ),
