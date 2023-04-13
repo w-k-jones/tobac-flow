@@ -370,6 +370,8 @@ def main() -> None:
         dataset,
     )
 
+    # bt, wvd, swd = bt.sel(t=dataset.t), wvd.sel(t=dataset.t), swd.sel(t=dataset.t)
+
     add_step_labels(dataset)
 
     dataset = add_label_coords(dataset)
@@ -378,7 +380,7 @@ def main() -> None:
 
     # Add data quality flags
     flag_edge_labels(dataset, start_date, end_date)
-    flag_nan_adjacent_labels(dataset, bt)
+    flag_nan_adjacent_labels(dataset, bt.sel(t=dataset.t))
 
     core_max_bt_diff = core_bt_diff_mean[wh_valid_core]
 
