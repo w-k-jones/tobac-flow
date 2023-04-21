@@ -452,7 +452,10 @@ def flag_edge_labels(dataset, start_date, end_date):
     else:
         core_edge_label_flag.loc[core_edge_labels] = True
 
-    core_start_labels = np.unique(dataset.core_label.sel(t=slice(None, start_date)))
+    if get_datetime_from_coord(dataset.t)[0] < start_date:
+        core_start_labels = np.unique(dataset.core_label.sel(t=slice(None, start_date)))
+    else:
+        core_start_labels = np.unique(dataset.core_label[0])
 
     core_start_label_flag = xr.zeros_like(dataset.core, dtype=bool)
 
@@ -461,7 +464,10 @@ def flag_edge_labels(dataset, start_date, end_date):
     else:
         core_start_label_flag.loc[core_start_labels] = True
 
-    core_end_labels = np.unique(dataset.core_label.sel(t=slice(end_date, None)))
+    if get_datetime_from_coord(dataset.t)[-1] > end_date:
+        core_end_labels = np.unique(dataset.core_label.sel(t=slice(end_date, None)))
+    else:
+        core_start_labels = np.unique(dataset.core_label[-1])
 
     core_end_label_flag = xr.zeros_like(dataset.core, dtype=bool)
 
@@ -522,9 +528,12 @@ def flag_edge_labels(dataset, start_date, end_date):
     else:
         thick_anvil_edge_label_flag.loc[thick_anvil_edge_labels] = True
 
-    thick_anvil_start_labels = np.unique(
-        dataset.thick_anvil_label.sel(t=slice(None, start_date))
-    )
+    if get_datetime_from_coord(dataset.t)[0] < start_date:
+        thick_anvil_start_labels = np.unique(
+            dataset.thick_anvil_label.sel(t=slice(None, start_date))
+        )
+    else:
+        thick_anvil_start_labels = np.unique(dataset.thick_anvil_label[0])
 
     thick_anvil_start_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
 
@@ -533,9 +542,12 @@ def flag_edge_labels(dataset, start_date, end_date):
     else:
         thick_anvil_start_label_flag.loc[thick_anvil_start_labels] = True
 
-    thick_anvil_end_labels = np.unique(
-        dataset.thick_anvil_label.sel(t=slice(end_date, None))
-    )
+    if get_datetime_from_coord(dataset.t)[-1] < end_date:
+        thick_anvil_end_labels = np.unique(
+            dataset.thick_anvil_label.sel(t=slice(end_date, None))
+        )
+    else:
+        thick_anvil_end_labels = np.unique(dataset.thick_anvil_label[-1])
 
     thick_anvil_end_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
 
@@ -599,8 +611,10 @@ def flag_edge_labels(dataset, start_date, end_date):
     thin_anvil_start_labels = np.unique(
         dataset.thin_anvil_label.sel(t=slice(None, start_date))
     )
-
-    thin_anvil_start_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
+    if get_datetime_from_coord(dataset.t)[0] < start_date:
+        thin_anvil_start_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
+    else:
+        thin_anvil_start_labels = np.unique(dataset.thick_anvil_label[0])
 
     if thin_anvil_start_labels[0] == 0:
         thin_anvil_start_label_flag.loc[thin_anvil_start_labels[1:]] = True
@@ -610,8 +624,10 @@ def flag_edge_labels(dataset, start_date, end_date):
     thin_anvil_end_labels = np.unique(
         dataset.thin_anvil_label.sel(t=slice(end_date, None))
     )
-
-    thin_anvil_end_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
+    if get_datetime_from_coord(dataset.t)[-1] < end_date:
+        thin_anvil_end_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
+    else:
+        thin_anvil_end_labels = np.unique(dataset.thick_anvil_label[-1])
 
     if thin_anvil_end_labels[0] == 0:
         thin_anvil_end_label_flag.loc[thin_anvil_end_labels[1:]] = True
