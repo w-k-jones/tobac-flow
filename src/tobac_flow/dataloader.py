@@ -271,7 +271,8 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     swd.data[all_stripe] = np.nan
 
     # Sort by time
-    bt, wvd, swd = bt.sortby(bt.t), wvd.sortby(wvd.t), swd.sortby(swd.t)
+    if bt.t.size > 1:
+        bt, wvd, swd = bt.sortby(bt.t), wvd.sortby(wvd.t), swd.sortby(swd.t)
 
     goes_ds.close()
 
