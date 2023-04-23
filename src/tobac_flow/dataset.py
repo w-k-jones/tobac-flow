@@ -542,7 +542,7 @@ def flag_edge_labels(dataset, start_date, end_date):
     else:
         thick_anvil_start_label_flag.loc[thick_anvil_start_labels] = True
 
-    if get_datetime_from_coord(dataset.t)[-1] < end_date:
+    if get_datetime_from_coord(dataset.t)[-1] > end_date:
         thick_anvil_end_labels = np.unique(
             dataset.thick_anvil_label.sel(t=slice(end_date, None))
         )
@@ -622,7 +622,7 @@ def flag_edge_labels(dataset, start_date, end_date):
     else:
         thin_anvil_start_label_flag.loc[thin_anvil_start_labels] = True
 
-    if get_datetime_from_coord(dataset.t)[-1] < end_date:
+    if get_datetime_from_coord(dataset.t)[-1] > end_date:
         thin_anvil_end_labels = np.unique(
             dataset.thin_anvil_label.sel(t=slice(end_date, None))
         )
