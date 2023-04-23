@@ -165,6 +165,8 @@ def goes_dataloader(
     wvd = fill_time_gap_nan(wvd, time_gap)
     swd = fill_time_gap_nan(swd, time_gap)
 
+    print(f"Loaded {bt.t.size} time steps", flush=True)
+
     wvd.name = "WVD"
     wvd.attrs["standard_name"] = wvd.name
     wvd.attrs["long_name"] = "water vapour difference"
@@ -229,6 +231,7 @@ def get_stripe_deviation(da):
 def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     ds_slice = {"x": slice(x0, x1), "y": slice(y0, y1)}
     # Load a stack of goes datasets using xarray
+    print(f"Loading {len(files)} files", flush=True)
     goes_ds = xr.open_mfdataset(files, concat_dim="t", combine="nested").isel(ds_slice)
 
     # Extract fields and load into memory
@@ -276,6 +279,7 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
 
 def create_nan_slice(da, t_ind):
     slice_t = da.t[t_ind] + (da.t[t_ind + 1] - da.t[t_ind]) / 2
+    print(f"Adding NaN slice at {slice_t}", flush=True)
     nan_slice_da = xr.DataArray(
         np.full([1, da.y.size, da.x.size], np.nan),
         {
@@ -391,6 +395,10 @@ def fill_time_gap_full_disk(
 
     if where_time_gap.size > 0:
         for t_ind in where_time_gap:
+            print(
+                f"Filling time gape between {dates[t_ind].isoformat()} and {dates[t_ind + 1].isoformat()}",
+                flush=True,
+            )
             full_disk_files = find_full_disk_for_time_gap(
                 np.datetime64(dates[t_ind]),
                 np.datetime64(dates[t_ind + 1]),

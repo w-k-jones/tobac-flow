@@ -467,7 +467,7 @@ def flag_edge_labels(dataset, start_date, end_date):
     if get_datetime_from_coord(dataset.t)[-1] > end_date:
         core_end_labels = np.unique(dataset.core_label.sel(t=slice(end_date, None)))
     else:
-        core_start_labels = np.unique(dataset.core_label[-1])
+        core_end_labels = np.unique(dataset.core_label[-1])
 
     core_end_label_flag = xr.zeros_like(dataset.core, dtype=bool)
 
