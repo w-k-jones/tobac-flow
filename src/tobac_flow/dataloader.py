@@ -229,12 +229,7 @@ def get_stripe_deviation(da):
 def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     ds_slice = {"x": slice(x0, x1), "y": slice(y0, y1)}
     # Load a stack of goes datasets using xarray
-    if len(files) > 1:
-        goes_ds = xr.open_mfdataset(files, concat_dim="t", combine="nested").isel(
-            ds_slice
-        )
-    else:
-        goes_ds = xr.open_dataset(files[0]).isel(ds_slice)
+    goes_ds = xr.open_mfdataset(files, concat_dim="t", combine="nested").isel(ds_slice)
 
     # Extract fields and load into memory
     wvd = (goes_ds.CMI_C08 - goes_ds.CMI_C10).load()
