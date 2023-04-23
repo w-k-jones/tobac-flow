@@ -396,7 +396,7 @@ def fill_time_gap_full_disk(
     if where_time_gap.size > 0:
         for t_ind in where_time_gap:
             print(
-                f"Filling time gape between {dates[t_ind].isoformat()} and {dates[t_ind + 1].isoformat()}",
+                f"Filling time gap between {dates[t_ind].isoformat()} and {dates[t_ind + 1].isoformat()}",
                 flush=True,
             )
             full_disk_files = find_full_disk_for_time_gap(
