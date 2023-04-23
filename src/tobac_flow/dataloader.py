@@ -279,7 +279,7 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
 
 def create_nan_slice(da, t_ind):
     slice_t = da.t[t_ind] + (da.t[t_ind + 1] - da.t[t_ind]) / 2
-    print(f"Adding NaN slice at {slice_t}", flush=True)
+    print(f"Adding NaN slice at {slice_t.item()}", flush=True)
     nan_slice_da = xr.DataArray(
         np.full([1, da.y.size, da.x.size], np.nan),
         {
