@@ -466,6 +466,7 @@ def fill_time_gap_full_disk(
         )
 
         if extra_pre_steps is not None or extra_post_steps is not None:
+            print("Trimming excess time steps", flush=True)
             bt = bt.isel(t=slice(extra_pre_steps, extra_post_steps))
             wvd = wvd.isel(t=slice(extra_pre_steps, extra_post_steps))
             swd = swd.isel(t=slice(extra_pre_steps, extra_post_steps))
