@@ -80,16 +80,16 @@ def goes_subplot(goes_ds, *args, fig=None, cbar_size="5%", cbar_pad=0.1, **kwarg
         elif location == "left":
             fig.add_axes(cax_l)
             cbar = plt.colorbar(*args, cax=cax_l, orientation="vertical", **kwargs)
-            cax.yaxis.set_ticks_position("left")
-            cax.yaxis.set_label_position("left")
+            cbar.yaxis.set_ticks_position("left")
+            cbar.yaxis.set_label_position("left")
         elif location == "bottom":
             fig.add_axes(cax_b)
             cbar = plt.colorbar(*args, cax=cax_b, orientation="horizontal", **kwargs)
         elif location == "top":
             fig.add_axes(cax_t)
             cbar = plt.colorbar(*args, cax=cax_t, orientation="horizontal", **kwargs)
-            cax.xaxis.set_ticks_position("top")
-            cax.xaxis.set_label_position("top")
+            cbar.xaxis.set_ticks_position("top")
+            cbar.xaxis.set_label_position("top")
         else:
             raise ValueError(
                 "Location keyword must be 'left', 'right', 'bottom' or 'top'"
