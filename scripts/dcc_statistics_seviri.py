@@ -19,7 +19,6 @@ end_str = dcc_files[-1].stem.split("_E")[-1][:15]
 x_str = dcc_files[0].stem.split("_X")[-1][:9]
 y_str = dcc_files[0].stem.split("_Y")[-1][:9]
 new_filename = f"dcc_statistics_SEVIRI_S{start_str}_E{end_str}_X{x_str}_Y{y_str}.nc"
-new_filename
 
 save_dir = pathlib.Path(args.sd)
 if not save_dir.exists():
@@ -59,37 +58,37 @@ for f in dcc_files[1:]:
         dcc_ds = dcc_ds.get(var_list)
         core_overlap = sorted(list(set(dataset.core.data) & set(dcc_ds.core.data)))
         if len(core_overlap) > 0:
-            dataset.core_edge_label_flag.loc[core_overlap].data = np.logical_or(
+            dataset.core_edge_label_flag.loc[core_overlap] = np.logical_or(
                 dataset.core_edge_label_flag.loc[core_overlap].data,
                 dcc_ds.core_edge_label_flag.loc[core_overlap].data,
             )
             dataset.core_end_label_flag.loc[
                 core_overlap
-            ].data = dcc_ds.core_end_label_flag.loc[core_overlap].data
+            ] = dcc_ds.core_end_label_flag.loc[core_overlap]
 
             wh_zero = dataset.core_anvil_index.loc[core_overlap] == 0
             wh_anvil_is_zero_cores = wh_zero.core.data[wh_zero.data]
             dataset.core_anvil_index.loc[
                 wh_anvil_is_zero_cores
-            ].data = dcc_ds.core_anvil_index.loc[wh_anvil_is_zero_cores].data
+            ] = dcc_ds.core_anvil_index.loc[wh_anvil_is_zero_cores]
 
         anvil_overlap = sorted(list(set(dataset.anvil.data) & set(dcc_ds.anvil.data)))
         if len(core_overlap) > 0:
-            dataset.thick_anvil_edge_label_flag.loc[anvil_overlap].data = np.logical_or(
+            dataset.thick_anvil_edge_label_flag.loc[anvil_overlap] = np.logical_or(
                 dataset.thick_anvil_edge_label_flag.loc[anvil_overlap].data,
                 dcc_ds.thick_anvil_edge_label_flag.loc[anvil_overlap].data,
             )
             dataset.thick_anvil_end_label_flag.loc[
                 anvil_overlap
-            ].data = dcc_ds.thick_anvil_end_label_flag.loc[anvil_overlap].data
+            ] = dcc_ds.thick_anvil_end_label_flag.loc[anvil_overlap]
 
-            dataset.thin_anvil_edge_label_flag.loc[anvil_overlap].data = np.logical_or(
+            dataset.thin_anvil_edge_label_flag.loc[anvil_overlap] = np.logical_or(
                 dataset.thin_anvil_edge_label_flag.loc[anvil_overlap].data,
                 dcc_ds.thin_anvil_edge_label_flag.loc[anvil_overlap].data,
             )
             dataset.thin_anvil_end_label_flag.loc[
                 anvil_overlap
-            ].data = dcc_ds.thin_anvil_end_label_flag.loc[anvil_overlap].data
+            ] = dcc_ds.thin_anvil_end_label_flag.loc[anvil_overlap]
 
         # Now combine the rest, by concatenating along each dimension
         core_different = sorted(list(set(dcc_ds.core.data) - set(dataset.core.data)))
