@@ -253,6 +253,20 @@ def main() -> None:
 
     print("Final detected core count: n =", core_labels.max())
 
+    # Now clean up used variables after core detection
+    del (
+        wvd_growth,
+        bt_growth,
+        wvd_curvature_filter,
+        bt_curvature_filter,
+        wvd_markers,
+        bt_markers,
+        combined_markers,
+    )
+    import gc
+
+    gc.collect()
+
     print(datetime.now(), "Detecting thick anvil region", flush=True)
     upper_threshold = -5
     lower_threshold = -15
