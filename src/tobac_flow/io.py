@@ -3,7 +3,6 @@ import os
 import shutil
 import subprocess
 import warnings
-import collections
 from glob import glob
 from datetime import datetime, timedelta
 
@@ -506,7 +505,9 @@ def find_abi_files(
             local_file = _get_download_destination(
                 blob, save_dir, replicate_path=replicate_path
             )
-            if _check_if_file_exists_and_is_valid(local_file, blob):
+            if _check_if_file_exists_and_is_valid(
+                local_file, blob, remove_corrupt=remove_corrupt
+            ):
                 files += [local_file]
     return files
 

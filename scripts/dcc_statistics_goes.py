@@ -280,7 +280,7 @@ thick_anvil_max_area_t = dataset.thick_anvil_step_t.loc[thick_anvil_max_area_ste
 
 wh_no_growth = (
     core_end_t[np.logical_not(wh_core_invalid)].loc[anvil_initial_core.data].data
-    > thick_anvil_max_area_t[np.logical_not(anvil_nan_flag)][wh_anvil_has_core].data
+    >= thick_anvil_max_area_t[np.logical_not(anvil_nan_flag)][wh_anvil_has_core].data
 )
 
 dataset = dataset.sel(anvil=dataset.anvil.data[np.logical_not(wh_no_growth)])
