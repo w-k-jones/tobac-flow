@@ -381,7 +381,8 @@ def download_blob(
                     )
                 else:
                     if remove_corrupt:
-                        os.remove(save_path)
+                        if os.exists(save_path):
+                            os.remove(save_path)
                     raise RuntimeError(f"{save_path}: downloaded file not valid")
         else:
             raise OSError("Not enough storage space available for download")
@@ -494,10 +495,10 @@ def find_abi_files(
                     verbose=verbose,
                 )
             except OSError as e:
-                warnings.warn(e.args[0])
+                warnings.warn(str(e.args[0]))
                 download_missing = False
             except RuntimeError as e:
-                warnings.warn(e.args[0])
+                warnings.warn(str(e.args[0]))
             else:
                 if os.path.exists(save_file):
                     files += [save_file]
