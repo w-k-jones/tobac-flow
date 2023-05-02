@@ -381,7 +381,7 @@ def download_blob(
                     )
                 else:
                     if remove_corrupt:
-                        if os.exists(save_path):
+                        if os.path.exists(save_path):
                             os.remove(save_path)
                     raise RuntimeError(f"{save_path}: downloaded file not valid")
         else:
