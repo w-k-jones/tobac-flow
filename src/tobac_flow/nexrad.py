@@ -202,7 +202,7 @@ def regrid_nexrad(nexrad_files, goes_ds, **kwargs):
     ref_total = np.zeros(goes_shape)
     ref_counts_raw = np.zeros(goes_shape)
     ref_counts_masked = np.zeros(goes_shape)
-    ref_max = np.full(goes_shape, np.nan)
+    # ref_max = np.full(goes_shape, np.nan)
 
     for nf in nexrad_files:
         print(datetime.now(), nf)
@@ -226,9 +226,9 @@ def regrid_nexrad(nexrad_files, goes_ds, **kwargs):
     # ref_max[ref_mask] = np.nan
     # ref_max[np.logical_and(~ref_mask, np.isnan(ref_max))] = -33
 
-    ref_grid = xr.DataArray(ref_grid, goes_ds.CMI_C13.coords, goes_ds.CMI_C13.dims)
-    ref_mask = xr.DataArray(ref_mask, goes_ds.CMI_C13.coords, goes_ds.CMI_C13.dims)
-    ref_max = xr.DataArray(ref_max, goes_ds.CMI_C13.coords, goes_ds.CMI_C13.dims)
+    ref_grid = xr.DataArray(ref_grid, goes_coords, goes_dims)
+    ref_mask = xr.DataArray(ref_mask, goes_coords, goes_dims)
+    # ref_max = xr.DataArray(ref_max, goes_ds.coords, goes_ds.dims)
 
     return ref_grid, ref_mask  # , ref_max
 
