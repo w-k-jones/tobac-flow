@@ -83,7 +83,7 @@ def detect_growth_markers(flow, wvd):
     )
 
     marker_labels = filter_labels_by_length(marker_labels, 3)
-    marker_labels = filter_labels_by_mask(marker_labels, watershed_markers != 0)
+    marker_labels = filter_labels_by_mask(marker_labels, wvd_diff_filtered >= 0.5)
     if isinstance(wvd, xr.DataArray):
         marker_labels = filter_labels_by_mask(marker_labels, wvd.data >= -5)
     else:

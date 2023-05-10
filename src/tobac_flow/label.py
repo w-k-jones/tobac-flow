@@ -1,7 +1,9 @@
+import warnings
 import numpy as np
 from scipy import ndimage as ndi
 from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
+from tobac_flow.dataset import create_dataarray
 
 
 def flat_label(mask, structure=ndi.generate_binary_structure(3, 1), dtype=np.int32):
