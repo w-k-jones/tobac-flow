@@ -1,8 +1,8 @@
+from typing import Callable
 import numpy as np
 import scipy.ndimage as ndi
 import cv2
 import xarray as xr
-from typing import Callable
 
 
 def warp_flow(

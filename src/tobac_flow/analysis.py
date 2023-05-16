@@ -5,7 +5,10 @@ from tobac_flow.dataset import (
     create_dataarray,
     n_unique_along_axis,
 )
-from tobac_flow.utils import apply_func_to_labels, apply_weighted_func_to_labels
+from tobac_flow.utils.legacy_utils import (
+    apply_func_to_labels,
+    apply_weighted_func_to_labels,
+)
 
 
 def find_object_lengths(labels: np.ndarray[int], axis: int = 0) -> np.ndarray[int]:
@@ -236,7 +239,7 @@ def filter_labels_by_length_and_multimask_legacy(labels, masks, min_length):
 def get_stats_for_labels(labels, da, dim=None, dtype=None):
     if not dim:
         dim = labels.name.split("_label")[0]
-    if dtype == None:
+    if dtype is None:
         dtype = da.dtype
     mean_da = create_dataarray(
         apply_func_to_labels(labels.data, da.data, np.nanmean),
@@ -325,7 +328,7 @@ def get_label_stats(da, ds):
 def weighted_statistics_on_labels(labels, da, weights, name=None, dim=None, dtype=None):
     if not dim:
         dim = labels.name.split("_label")[0]
-    if dtype == None:
+    if dtype is None:
         dtype = da.dtype
 
     try:

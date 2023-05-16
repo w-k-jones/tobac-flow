@@ -1,15 +1,12 @@
 import numpy as np
 import xarray as xr
 from scipy import ndimage as ndi
-from .analysis import (
+from tobac_flow.analysis import (
     filter_labels_by_length,
     filter_labels_by_mask,
-    filter_labels_by_length_and_mask,
-    filter_labels_by_multimask,
-    filter_labels_by_length_and_multimask,
     filter_labels_by_length_and_multimask_legacy,
 )
-from .dataset import get_time_diff_from_coord
+from tobac_flow.utils.datetime_utils import get_time_diff_from_coord
 import warnings
 
 # Filtering of the growth metric occurs in three steps:
@@ -21,7 +18,7 @@ import warnings
 def filtered_tdiff(flow, raw_diff):
     t_struct = np.zeros([3, 3, 3])
     t_struct[:, 1, 1] = 1
-    s_struct = ndi.generate_binary_structure(2, 1)[np.newaxis, ...]
+    # s_struct = ndi.generate_binary_structure(2, 1)[np.newaxis, ...]
 
     filtered_diff = flow.convolve(
         raw_diff, structure=t_struct, func=lambda x: np.nanmean(x, 0)

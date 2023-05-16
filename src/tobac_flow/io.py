@@ -3,7 +3,6 @@ import os
 import shutil
 import subprocess
 import warnings
-from glob import glob
 from datetime import datetime, timedelta
 
 # External modules

@@ -1,20 +1,21 @@
+import warnings
+import tarfile
+from datetime import datetime, timedelta
+from dateutil.parser import parse as parse_date
 import numpy as np
 from numpy import ma
-import pyart
-import tarfile
 from scipy import stats
 from scipy import ndimage as ndi
 import xarray as xr
-from dateutil.parser import parse as parse_date
-from datetime import datetime, timedelta
+import pyart
 
-from .abi import get_abi_x_y
-from .dataset import (
+from tobac_flow.abi import get_abi_x_y
+from tobac_flow.utils.xarray_utils import (
     get_ds_bin_edges,
     get_ds_shape,
     get_ds_core_coords,
-    get_datetime_from_coord,
 )
+from tobac_flow.utils.xarray_utils import get_datetime_from_coord
 
 
 def get_gates_from_tar(nexrad_archive):
@@ -165,8 +166,6 @@ def get_3d_nexrad_hist(
     counts_2d = np.zeros(raw_mask.shape)
     mean_2d = np.full(raw_mask.shape, np.nan)
     max_2d = np.full(raw_mask.shape, np.nan)
-
-    import warnings
 
     # Catch warnings as this throws a lot of runtimewarnings due to NaNs
     with warnings.catch_warnings():

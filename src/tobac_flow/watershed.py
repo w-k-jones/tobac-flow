@@ -7,7 +7,7 @@ from skimage.morphology._util import (
     _validate_connectivity,
     _offsets_to_raveled_neighbors,
 )
-from skimage.util import crop, regular_seeds
+from skimage.util import crop
 from skimage.segmentation._watershed import _validate_inputs
 
 from tobac_flow._watershed import watershed_raveled

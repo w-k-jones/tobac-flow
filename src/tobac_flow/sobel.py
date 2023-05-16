@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.ndimage as ndi
 
-from .convolve import convolve
+from tobac_flow.convolve import convolve
 
 
 def _sobel_matrix(ndims):

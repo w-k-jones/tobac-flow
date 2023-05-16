@@ -6,21 +6,20 @@ from dateutil.parser import parse as parse_date
 from scipy import ndimage as ndi
 from scipy import stats
 
-from tobac_flow import io, abi
-from tobac_flow.flow import Flow
+from tobac_flow.flow import create_flow
 from tobac_flow.dataloader import seviri_dataloader, find_seviri_files
-from tobac_flow.dataset import (
-    get_time_diff_from_coord,
+from tobac_flow.utils.label_utils import labeled_comprehension
+from tobac_flow.utils.xarray_utils import (
     add_dataarray_to_ds,
     create_dataarray,
 )
+from tobac_flow.utils.datetime_utils import get_time_diff_from_coord
 from tobac_flow.analysis import (
     get_label_stats,
     apply_weighted_func_to_labels,
     weighted_statistics_on_labels,
     find_object_lengths,
     remap_labels,
-    labeled_comprehension,
     mask_labels,
 )
 from tobac_flow.detection import get_curvature_filter, get_growth_rate
@@ -162,7 +161,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
 
     print(datetime.now(), "Calculating flow field", flush=True)
 
-    flow = Flow(bt, model="DIS", vr_steps=1, smoothing_passes=1)
+    flow = create_flow(bt, model="Farneback", vr_steps=1, smoothing_passes=1)
 
     print(datetime.now(), "Detecting growth markers", flush=True)
 
@@ -229,10 +228,6 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
 
         step_bt = step_bt[args]
         step_t = step_t[args]
-
-        #     step_bt_diff = [((step_bt[i] - step_bt[i+3])
-        #                      / ((step_t[i+3] - step_t[i]).astype("timedelta64[s]").astype("int")/60) )
-        #                     for i in range(len(step_bt)-3)]
 
         step_bt_diff = (step_bt[:-t_offset] - step_bt[t_offset:]) / (
             (step_t[t_offset:] - step_t[:-t_offset])

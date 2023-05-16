@@ -9,13 +9,12 @@ from glmtools.io.lightning_ellipse import lightning_ellipse_rev
 from lmatools.coordinateSystems import CoordinateSystem
 from lmatools.grid.fixed import get_GOESR_coordsys
 
-from .abi import get_abi_x_y
-from .dataset import (
+from tobac_flow.abi import get_abi_x_y
+from tobac_flow.utils.xarray_utils import (
     get_ds_bin_edges,
-    get_ds_shape,
     get_ds_core_coords,
-    get_datetime_from_coord,
 )
+from tobac_flow.utils.datetime_utils import get_datetime_from_coord
 
 # equatorial and polar radii
 this_ellps = 0

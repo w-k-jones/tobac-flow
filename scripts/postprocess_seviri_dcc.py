@@ -4,12 +4,12 @@ import argparse
 import pathlib
 from datetime import datetime
 from dateutil.parser import parse as parse_date
-from tobac_flow.utils import apply_weighted_func_to_labels
+from tobac_flow.utils.legacy_utils import apply_weighted_func_to_labels
 from tobac_flow.analysis import get_label_stats, weighted_statistics_on_labels
-from tobac_flow.dataset import (
+from tobac_flow.dataset import calculate_label_properties
+from tobac_flow.utils.xarray_utils import (
     add_dataarray_to_ds,
     create_dataarray,
-    calculate_label_properties,
 )
 
 parser = argparse.ArgumentParser(

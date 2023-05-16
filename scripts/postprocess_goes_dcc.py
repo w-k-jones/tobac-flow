@@ -5,10 +5,8 @@ import pathlib
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 from tobac_flow.analysis import get_label_stats, weighted_statistics_on_labels
-from tobac_flow.dataset import (
-    add_dataarray_to_ds,
-    calculate_label_properties,
-)
+from tobac_flow.dataset import calculate_label_properties
+from tobac_flow.utils.xarray_utils import add_dataarray_to_ds
 
 parser = argparse.ArgumentParser(
     description="""Postprocess detected DCCs using GOES-16 data"""

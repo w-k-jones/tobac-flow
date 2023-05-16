@@ -1,10 +1,10 @@
-import numpy as np
-import xarray as xr
 from datetime import datetime, timedelta
 import pathlib
 from typing import Callable
+import numpy as np
+import xarray as xr
 
-from tobac_flow.utils import get_dates_from_filename
+from tobac_flow.utils.datetime_utils import get_dates_from_filename
 from tobac_flow.dataset import (
     flag_edge_labels,
     flag_nan_adjacent_labels,
@@ -250,9 +250,6 @@ def link_dcc_anvils(dcc_ds1, dcc_ds2, overlap=0):
     return anvil_step_links1, anvil_step_links2, anvil_links1, anvil_links2
 
 
-from typing import Callable
-
-
 class File_Linker:
     def __init__(
         self,
@@ -276,7 +273,7 @@ class File_Linker:
         if self.output_path is not None and not self.output_path.exists():
             self.output_path.mkdir()
 
-        if output_file_suffix == None or output_file_suffix == "":
+        if output_file_suffix is None or output_file_suffix == "":
             self.file_suffix = "_linked"
         else:
             self.file_suffix = output_file_suffix

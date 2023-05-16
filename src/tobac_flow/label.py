@@ -3,167 +3,12 @@ import numpy as np
 from scipy import ndimage as ndi
 from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
-from tobac_flow.dataset import create_dataarray
+from tobac_flow.utils.label_utils import flat_label
 
 
-def flat_label(mask, structure=ndi.generate_binary_structure(3, 1), dtype=np.int32):
-    """
-    For a 3d+ field, return connected component labels that do not connect
-        across the highest order dimension. In general this is used for finding
-        labels at individual time steps.
-
-    Parameters
-    ----------
-    mask : numpy.ndarray
-        The (boolean) array of masked values to label into separate regions
-    structure : numpy.ndarray, optional
-        The structuring element to connect labels. This defaults to 1
-            connectivity using ndi.generate_binary_structure(3,1).
-    dtype : type, optional (default : np.int32)
-        The dtype of the ouput labels
-
-    Returns
-    -------
-    Output : numpy.ndarray
-        The array of connected labelled regions
-
-    See Also
-    --------
-    scipy.ndimage.label : this is the labelling routine used, with the
-        connectivity of the highest dimension set to 0
-    get_step_labels_for_label : find which step labels correspond to each input
-        label
-    """
-    label_struct = structure.copy()
-    label_struct[0] = 0
-    label_struct[-1] = 0
-
-    output = ndi.label(mask, structure=label_struct, output=dtype)[0]
-    return output
-
-
-def get_step_labels_for_label(
-    labels, step_labels, structure=ndi.generate_binary_structure(3, 1), dtype=np.int32
-):
-    """
-    Given the output from flat_label, and the original label array, find which
-        step labels correspond to each original label
-
-    Parameters
-    ----------
-    labels : numpy.ndarray
-        The orginal array of labels
-    step_labels : numpy.ndarray
-        The array of labels split into separate steps
-    structure : numpy.ndarray, optional
-        The structuring element to connect labels. This defaults to 1
-            connectivity using ndi.generate_binary_structure(3,1).
-    dtype : type, optional (default : np.int32)
-        The dtype of the ouput labels
-
-    Returns
-    -------
-    Output : numpy.ndarray
-        The array of labelled regions at each time step
-
-    See Also
-    --------
-    scipy.ndimage.label : this is the labelling routine used, with the
-        connectivity of the highest dimension set to 0
-    """
-    bins = np.cumsum(np.bincount(labels.ravel()))
-    args = np.argsort(labels.ravel())
-    return [
-        np.unique(step_labels.ravel()[args[bins[i] : bins[i + 1]]])
-        if bins[i + 1] > bins[i]
-        else None
-        for i in range(bins.size - 1)
-    ]
-
-
-def relabel_objects(labels):
-    """
-    Given an array of labelled regions, renumber the labels so that they are
-        contiguous integers
-
-    Parameters
-    ----------
-    labels : numpy.ndarray
-        The array of labels to renumber
-
-    Returns
-    -------
-    new_labels : numpy.ndarray
-        The regions labelled with contiguous integers
-    """
-    bins = np.cumsum(np.bincount(labels.ravel()))
-    args = np.argsort(labels.ravel())
-    new_labels = np.zeros_like(labels)
-    counter = 1
-    for i in range(bins.size - 1):
-        if bins[i + 1] > bins[i]:
-            new_labels.ravel()[args[bins[i] : bins[i + 1]]] = counter
-            counter += 1
-    return new_labels
-
-
-def slice_labels(labels):
-    """
-    Given an array of labelled regions, will split these regions into separate
-        labels along the leading dimension. In general this is used for finding
-        the section of each label at each individual time step. Note that unlike
-        flat_label the regions for each label at each time step will remain as a
-        single label, even if it is not all connected at that step.
-
-    Parameters
-    ----------
-    labels : numpy.ndarray
-        The array of labels to split into individual time steps
-
-    Returns
-    -------
-    step_labels : numpy.ndarray
-        An array of labels corresponding the regions associated with the input
-            labels at individual time steps
-    """
-    step_labels = np.zeros_like(labels)
-    max_label = 0
-    for i in range(labels.shape[0]):
-        step_labels[i] = relabel_objects(labels[i])
-        step_labels[i][np.nonzero(step_labels[i])] += max_label
-        max_label = step_labels.max()
-    return step_labels
-
-
-def slice_label_da(label_da):
-    """
-    Slice labels into individual time steps for a dataarray of input labels, and
-        set attributes of the returned dataarray appropriately
-
-    Parameters
-    ----------
-    labels : xarray.DataArray
-        The array of labels to split into individual time steps
-
-    Returns
-    -------
-    step_labels : xarray.DataArray
-        An array of labels corresponding the regions associated with the input
-            labels at individual time steps
-    """
-    label_name = label_da.name.split("_label")[0]
-    step_labels = create_dataarray(
-        slice_labels(label_da.data),
-        label_da.dims,
-        f"{label_name}_step_label",
-        long_name=f"{label_da.long_name} at each time step",
-        units="",
-        dtype=np.int32,
-    )
-    return step_labels
-
-
-def subsegment_labels(input_mask, shrink_factor=0.1, peak_min_distance=5):
+def subsegment_labels(
+    input_mask: np.ndarray[bool], shrink_factor: float = 0.1, peak_min_distance: int = 5
+) -> np.ndarray[int]:
     """
     Takes a 3d array (t,y,x) of regions and splits each label at each time step
         into multiple labels based on morphology.
@@ -273,7 +118,9 @@ def flow_label(
         flat_labels = flat_label(mask.astype(bool), structure=structure).astype(dtype)
     else:
         flat_labels = subsegment_labels(
-            mask.astype(bool), shrink_factor=subsegment_shrink
+            mask.astype(bool),
+            shrink_factor=subsegment_shrink,
+            peak_min_distance=peak_min_distance,
         )
 
     label_struct = structure * np.array([1, 0, 1])[:, np.newaxis, np.newaxis]

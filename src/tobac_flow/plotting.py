@@ -12,14 +12,6 @@ def get_goes_ccrs(goes_ds):
     )
 
 
-def get_goes_ccrs(goes_ds):
-    return ccrs.Geostationary(
-        satellite_height=goes_ds.goes_imager_projection.perspective_point_height,
-        central_longitude=goes_ds.goes_imager_projection.longitude_of_projection_origin,
-        sweep_axis=goes_ds.goes_imager_projection.sweep_angle_axis,
-    )
-
-
 def get_goes_extent(goes_ds):
     h = goes_ds.goes_imager_projection.perspective_point_height
     img_extent = (

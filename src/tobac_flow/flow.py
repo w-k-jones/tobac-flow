@@ -1,9 +1,8 @@
+from typing import Callable
 import numpy as np
 import xarray as xr
 import cv2
 from scipy import ndimage as ndi
-import warnings
-from typing import Callable
 
 from tobac_flow.convolve import warp_flow, convolve
 from tobac_flow.label import flow_label

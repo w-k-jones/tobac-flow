@@ -2,83 +2,12 @@ import numpy as np
 from scipy import stats
 from scipy import ndimage as ndi
 import xarray as xr
-from dateutil.parser import parse as parse_date
 from tobac_flow.abi import get_abi_lat_lon, get_abi_pixel_area
-from tobac_flow.label import slice_labels
-from tobac_flow.utils import labeled_comprehension, apply_weighted_func_to_labels
-
-
-def get_coord_bin_edges(coord):
-    # Now set up the bin edges for the goes dataset coordinates. Note we multiply by height to convert into the Proj coords
-    bins = np.zeros(coord.size + 1)
-    bins[:-1] += coord.data
-    bins[1:] += coord.data
-    bins[1:-1] /= 2
-    return bins
-
-
-def get_ds_bin_edges(ds, dims=None):
-    if dims is None:
-        dims = [coord for coord in ds.coords]
-    elif isinstance(dims, str):
-        dims = [dims]
-
-    return [get_coord_bin_edges(ds.coords[dim]) for dim in dims]
-
-
-def get_ds_shape(ds):
-    shape = tuple(
-        [
-            ds.coords[k].size
-            for k in ds.coords
-            if k in set(ds.coords.keys()).intersection(set(ds.dims))
-        ]
-    )
-    return shape
-
-
-def get_ds_core_coords(ds):
-    coords = {
-        k: ds.coords[k]
-        for k in ds.coords
-        if k in set(ds.coords.keys()).intersection(set(ds.dims))
-    }
-    return coords
-
-
-def get_datetime_from_coord(coord):
-    return [parse_date(t.item()) for t in coord.astype("datetime64[s]").astype(str)]
-
-
-def time_diff(datetime_list):
-    return (
-        [(datetime_list[1] - datetime_list[0]).total_seconds() / 60]
-        + [
-            (datetime_list[i + 2] - datetime_list[i]).total_seconds() / 120
-            for i in range(len(datetime_list) - 2)
-        ]
-        + [(datetime_list[-1] - datetime_list[-2]).total_seconds() / 60]
-    )
-
-
-def get_time_diff_from_coord(coord):
-    return np.array(time_diff(get_datetime_from_coord(coord)))
-
-
-def create_dataarray(
-    array, dims, name, coords=None, long_name=None, units=None, dtype=None
-):
-    da = xr.DataArray(array.astype(dtype), coords=coords, dims=dims)
-    da.name = name
-    da.attrs["standard_name"] = name
-    if long_name:
-        da.attrs["long_name"] = long_name
-    else:
-        da.attrs["long_name"] = name
-    if units:
-        da.attrs["units"] = units
-
-    return da
+from tobac_flow.utils.xarray_utils import create_dataarray, add_dataarray_to_ds
+from tobac_flow.utils.label_utils import labeled_comprehension, slice_labels
+from tobac_flow.utils.datetime_utils import get_datetime_from_coord
+from tobac_flow.utils.legacy_utils import apply_weighted_func_to_labels
+from tobac_flow.utils.stats_utils import find_overlap_mode, n_unique_along_axis
 
 
 def get_bulk_stats(da):
@@ -213,17 +142,6 @@ def get_temporal_stats(da):
     return mean_da, std_da, median_da, max_da, min_da
 
 
-def n_unique_along_axis(a, axis=0):
-    b = np.sort(np.moveaxis(a, axis, 0), axis=0)
-    return (b[1:] != b[:-1]).sum(axis=0) + (
-        np.count_nonzero(a, axis=axis) == a.shape[axis]
-    ).astype(int)
-
-
-def add_dataarray_to_ds(da, ds):
-    ds[da.name] = da
-
-
 def create_new_goes_ds(goes_ds):
     goes_coords = {
         "t": goes_ds.t,
@@ -338,12 +256,6 @@ def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
 
 def link_step_labels(dataset: xr.Dataset) -> None:
     # Add linking indices between each label
-    def find_overlap_mode(x):
-        if np.any(x):
-            return stats.mode(x[x != 0], keepdims=False)[0]
-        else:
-            return 0
-
     core_step_core_index = labeled_comprehension(
         dataset.core_label.data,
         dataset.core_step_label.data,
@@ -1361,12 +1273,12 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
             for i in dataset.core.data
         ]
     )
-    core_end_index = np.asarray(
-        [
-            np.nanmax(dataset.core_step[dataset.core_step_core_index.data == i])
-            for i in dataset.core.data
-        ]
-    )
+    # core_end_index = np.asarray(
+    #     [
+    #         np.nanmax(dataset.core_step[dataset.core_step_core_index.data == i])
+    #         for i in dataset.core.data
+    #     ]
+    # )
 
     core_start_x = dataset.core_step_x.loc[core_start_index].data
     core_start_y = dataset.core_step_y.loc[core_start_index].data

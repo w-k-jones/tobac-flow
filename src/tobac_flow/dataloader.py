@@ -1,15 +1,15 @@
+from glob import glob
+import os
+import warnings
+from datetime import datetime, timedelta
+from dateutil.parser import parse as parse_date
 import numpy as np
 import pandas as pd
 import xarray as xr
-import os
-from datetime import datetime, timedelta
-from dateutil.parser import parse as parse_date
-from glob import glob
-import warnings
 
 from tobac_flow import io
-from tobac_flow.dataset import (
-    get_datetime_from_coord,
+from tobac_flow.utils.datetime_utils import get_datetime_from_coord
+from tobac_flow.utils.xarray_utils import (
     create_dataarray,
     add_dataarray_to_ds,
 )

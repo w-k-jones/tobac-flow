@@ -89,7 +89,7 @@ def get_abi_ref(dataset, check=False, dtype=None):
         DQF = dataset.DQF
         ref[DQF < 0] = np.nan
         ref[DQF > 1] = np.nan
-    if dtype == None:
+    if dtype is None:
         return ref
     else:
         return ref.astype(dtype)
@@ -107,7 +107,7 @@ def get_abi_bt(dataset, check=False, dtype=None):
         DQF = dataset.DQF
         bt[DQF < 0] = np.nan
         bt[DQF > 1] = np.nan
-    if dtype == None:
+    if dtype is None:
         return bt
     else:
         return bt.astype(dtype)

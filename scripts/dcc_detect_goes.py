@@ -8,9 +8,7 @@ from scipy import stats
 from tobac_flow.flow import create_flow
 from tobac_flow.dataloader import goes_dataloader
 from tobac_flow.dataset import (
-    add_dataarray_to_ds,
     add_label_coords,
-    create_dataarray,
     add_step_labels,
     add_label_coords,
     flag_edge_labels,
@@ -25,10 +23,9 @@ from tobac_flow.analysis import (
     remap_labels,
     mask_labels,
 )
-from tobac_flow.utils import labeled_comprehension
-
 from tobac_flow.detection import get_curvature_filter, get_growth_rate
-from tobac_flow.label import slice_labels
+from tobac_flow.utils.xarray_utils import create_dataarray, add_dataarray_to_ds
+from tobac_flow.utils.label_utils import labeled_comprehension, slice_labels
 
 import argparse
 
