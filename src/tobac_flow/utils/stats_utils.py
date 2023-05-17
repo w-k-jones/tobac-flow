@@ -146,3 +146,12 @@ def weighted_stats_and_uncertainties(
         min_error,
         max_error,
     )
+
+
+def get_weighted_proportions(data, weights, flag_values):
+    wh_flags = np.expand_dims(data, -1) == flag_values
+    weighted_flags = wh_flags.astype(float) * np.expand_dims(weights, -1)
+    proportions = np.nansum(
+        weighted_flags.reshape([-1, len(list(flag_values))]), 0
+    ) / np.nansum(weights)
+    return proportions

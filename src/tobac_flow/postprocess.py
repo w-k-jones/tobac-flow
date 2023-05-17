@@ -1,6 +1,7 @@
 """
 Functions for processing data associated with detected regions
 """
+from functools import partial
 import numpy as np
 import xarray as xr
 from tobac_flow.utils import (
@@ -8,6 +9,7 @@ from tobac_flow.utils import (
     apply_func_to_labels,
     weighted_stats,
     weighted_stats_and_uncertainties,
+    get_weighted_proportions,
 )
 
 
@@ -223,5 +225,65 @@ def add_weighted_stats_to_dataset(
 
     for da in stats_da:
         dcc_dataset[da.name] = da
+
+    return dcc_dataset
+
+
+def get_weighted_proportions_da(
+    flag_da, weights, labels, dim, dim_name=None, index=None
+):
+    if dim_name is None:
+        dim_name = dim
+    if index is None:
+        index = range(1, int(np.nanmax(labels) + 1))
+    flag_values = [int(n) for n in flag_da.flag_values.replace("b", "").split(" ")]
+    flag_meanings = {
+        int(flag[0]): flag[1]
+        for flag in [
+            flag.split(":") for flag in flag_da.flag_meanings.split(" ") if ":" in flag
+        ]
+        if int(flag[0]) in flag_values
+    }
+    flag_values = np.asarray(list(flag_meanings.keys()))
+    new_dim = (dim, flag_da.name)
+    new_coord = {dim: index, flag_da.name: flag_values}
+    proportions = test_application = apply_func_to_labels(
+        labels.to_numpy(),
+        flag_da.to_numpy(),
+        weights.to_numpy(),
+        func=partial(get_weighted_proportions, flag_values=flag_values),
+        index=index,
+        default=np.asarray([np.nan] * len(flag_meanings)),
+    )
+    proportions = xr.DataArray(
+        proportions,
+        new_coord,
+        new_dim,
+        f"{dim_name}_{flag_da.name}_proportion",
+        attrs=get_new_attrs_cell_method(flag_da.attrs, "proportion of", dim_name),
+    )
+    return proportions
+
+
+def add_weighted_proportions_to_dataset(
+    dcc_dataset,
+    flag_da,
+    weights,
+    dim,
+    dim_name=None,
+    index=None,
+    labels=None,
+):
+    if dim_name is None:
+        dim_name = dim
+    if index is None:
+        index = dcc_dataset[dim]
+    if labels is None:
+        labels = dcc_dataset[f"{dim_name}_label"]
+
+    proportions_da = get_weighted_proportions_da(
+        flag_da, weights, labels, dim, dim_name=dim_name, index=index
+    )
+    dcc_dataset[proportions_da.name] = proportions_da
 
     return dcc_dataset

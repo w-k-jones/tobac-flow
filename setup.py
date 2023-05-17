@@ -11,7 +11,7 @@ cython_modules = [str(f) for f in src.glob("**/*.pyx")]
 
 setup(
     name="tobac-flow",
-    version="1.7.4",
+    version="1.7.5",
     description="Detection and tracking of deep convective clouds in high time resolution geostationary satellite imagery",
     url="",
     author="William Jones",
