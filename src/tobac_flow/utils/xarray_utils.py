@@ -72,3 +72,20 @@ def get_new_attrs(attrs: dict, modifier: str) -> dict:
             "standard_name"
         ] = f'{modifier.replace(" ", "_")}_{attrs["standard_name"]}'
     return new_attrs
+
+
+def get_new_attrs_cell_method(attrs: dict, modifier: str, dim_name: str) -> dict:
+    """
+    Modify existing dataarray attributes with a modifier operation over a cell
+        region
+    """
+    new_attrs = attrs.copy()
+    if "long_name" in attrs:
+        new_attrs["long_name"] = f'{modifier.replace("_", " ")} {attrs["long_name"]}'
+    if "standard_name" in attrs:
+        new_attrs[
+            "standard_name"
+        ] = f'{modifier.replace(" ", "_")}_{attrs["standard_name"]}'
+    # Add cell method
+    new_attrs["cell_methods"] = f"area: {modifier} where {dim_name}"
+    return new_attrs
