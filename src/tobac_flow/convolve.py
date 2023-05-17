@@ -282,7 +282,7 @@ def convolve(
     n_struct = np.count_nonzero(structure)
 
     if isinstance(data, xr.DataArray):
-        data = data.compute().data
+        data = data.to_numpy()
 
     if func is not None:
         res = np.full(data.shape, fill_value, dtype=dtype)

@@ -5,7 +5,7 @@ import pathlib
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 from tobac_flow.utils.legacy_utils import apply_weighted_func_to_labels
-from tobac_flow.analysis import get_label_stats, weighted_statistics_on_labels
+from tobac_flow.analysis import get_label_stats
 from tobac_flow.dataset import calculate_label_properties
 from tobac_flow.postprocess import add_weighted_stats_to_dataset, add_cre_to_dataset
 from tobac_flow.utils import add_dataarray_to_ds, create_dataarray, add_area_to_dataset
@@ -85,10 +85,11 @@ if args.save_spatial_props:
     get_label_stats(dataset.thin_anvil_label, dataset)
 
 weights = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
+
 print(datetime.now(), "Processing cloud properties", flush=True)
 cld_weights = np.copy(weights)
-cld_weights[cld_ds.qcflag.compute().data != 0] = 0
-cld_weights[cld_ds.cth.compute().data > 30] = 0
+cld_weights[cld_ds.qcflag.to_numpy() != 0] = 0
+cld_weights[cld_ds.cth.to_numpy() > 30] = 0
 cld_weights = xr.DataArray(cld_weights, cld_ds.coords, cld_ds.dims)
 
 for var in (
@@ -109,7 +110,7 @@ for var in (
 ice_proportion = lambda x, w: np.nansum((x == 2) * w) / np.nansum((x > 0) * w)
 core_step_ice_proportion = apply_weighted_func_to_labels(
     dataset.core_step_label.data,
-    cld_ds.phase.compute().data,
+    cld_ds.phase.to_numpy(),
     cld_weights,
     ice_proportion,
 )[dataset.core_step.data - 1]

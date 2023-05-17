@@ -102,21 +102,21 @@ def weighted_label_stats(
 
     if uncertainty:
         stats = apply_func_to_labels(
-            labels.compute().data,
-            dataset[var].compute().data,
-            dataset[f"{var}_uncertainty"].compute().data,
-            weights.compute().data,
+            labels.to_numpy(),
+            dataset[var].to_numpy(),
+            dataset[f"{var}_uncertainty"].to_numpy(),
+            weights.to_numpy(),
             func=weighted_stats_and_uncertainties,
-            index=coord.compute().data,
+            index=coord.to_numpy(),
             default=[np.nan] * 8,
         )
     else:
         stats = apply_func_to_labels(
-            labels.compute().data,
-            dataset[var].compute().data,
-            weights.compute().data,
+            labels.to_numpy(),
+            dataset[var].to_numpy(),
+            weights.to_numpy(),
             func=weighted_stats,
-            index=coord.compute().data,
+            index=coord.to_numpy(),
             default=[np.nan] * 4,
         )
     mean = xr.DataArray(
