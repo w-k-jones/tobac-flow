@@ -3,6 +3,9 @@
 __pycache__
 build/
 data/*
+*.ipynb
+*.html
+*.json
 development/.ipynb_checkpoints/*
 examples/*.gif
 examples/.ipynb_checkpoints/*
