@@ -51,6 +51,7 @@ def main():
     # Load cloud properties file
     from tobac_flow.dataloader import find_seviri_files
 
+    print(datetime.now(), "Loading cloud properties", flush=True)
     cld_files = find_seviri_files(
         start_date,
         end_date,
@@ -64,6 +65,8 @@ def main():
     cld_ds = cld_ds.assign_coords(t=[parse_date(f[-64:-50]) for f in cld_files])
 
     # Load flux file
+    print(datetime.now(), "Loading flux properties", flush=True)
+
     flx_files = find_seviri_files(
         start_date,
         end_date,
