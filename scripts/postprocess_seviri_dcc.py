@@ -7,10 +7,7 @@ from dateutil.parser import parse as parse_date
 from tobac_flow.utils.legacy_utils import apply_weighted_func_to_labels
 from tobac_flow.analysis import get_label_stats, weighted_statistics_on_labels
 from tobac_flow.dataset import calculate_label_properties
-from tobac_flow.utils.xarray_utils import (
-    add_dataarray_to_ds,
-    create_dataarray,
-)
+from tobac_flow.utils import add_dataarray_to_ds, create_dataarray, add_area_to_dataset
 
 parser = argparse.ArgumentParser(
     description="""Validate detected DCCs using GOES-16 GLM data"""
@@ -77,34 +74,7 @@ dataset["lat"] = cld_ds.isel(t=0).lat.compute()
 dataset["lon"] = cld_ds.isel(t=0).lon.compute()
 
 # Add area of each pixel
-def get_area_from_lat_lon(lat, lon):
-    from pyproj import Geod
-
-    g = Geod(ellps="WGS84")
-    dy, dx = np.zeros(lat.shape, dtype=float), np.zeros(lat.shape, dtype=float)
-    dy[:-1] = g.inv(lon[:-1], lat[:-1], lon[1:], lat[1:])[-1] / 1e3
-    dx[:, :-1] = g.inv(lon[:, :-1], lat[:, :-1], lon[:, 1:], lat[:, 1:])[-1] / 1e3
-    dy[1:] += dy[:-1]
-    dy[1:-1] /= 2
-    dx[:, 1:] += dx[:, :-1]
-    dx[:, 1:-1] /= 2
-    area = dx * dy
-
-    return area
-
-
-areas = get_area_from_lat_lon(dataset.lat.data, dataset.lon.data)
-add_dataarray_to_ds(
-    create_dataarray(
-        areas,
-        dataset.lat.dims,
-        "area",
-        long_name="pixel area",
-        units="km^2",
-        dtype=np.float32,
-    ),
-    dataset,
-)
+dataset = add_area_to_dataset(dataset)
 
 calculate_label_properties(dataset)
 
@@ -127,42 +97,6 @@ for field in (
     cld_ds.ctt,
     cld_ds.cwp,
 ):
-    # [
-    #     add_dataarray_to_ds(da, dataset)
-    #     for da in weighted_statistics_on_labels(
-    #         dataset.core_label,
-    #         field.compute(),
-    #         cld_weights,
-    #         name="core",
-    #         dim="core",
-    #         dtype=np.float32,
-    #     )
-    # ]
-
-    # [
-    #     add_dataarray_to_ds(da, dataset)
-    #     for da in weighted_statistics_on_labels(
-    #         dataset.thick_anvil_label,
-    #         field.compute(),
-    #         cld_weights,
-    #         name="thick_anvil",
-    #         dim="anvil",
-    #         dtype=np.float32,
-    #     )
-    # ]
-
-    # [
-    #     add_dataarray_to_ds(da, dataset)
-    #     for da in weighted_statistics_on_labels(
-    #         dataset.thin_anvil_label,
-    #         field.compute(),
-    #         cld_weights,
-    #         name="thin_anvil",
-    #         dim="anvil",
-    #         dtype=np.float32,
-    #     )
-    # ]
-
     [
         add_dataarray_to_ds(da[dataset.core_step.data - 1], dataset)
         for da in weighted_statistics_on_labels(

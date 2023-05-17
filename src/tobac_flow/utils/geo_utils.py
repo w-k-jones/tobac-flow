@@ -49,7 +49,7 @@ def add_area_to_dataset(dataset: xr.Dataset, squeeze: bool = False) -> xr.Datase
     else:
         lat = dataset.lat
         lon = dataset.lon
-        area = get_area_from_lat_lon(lat.data, lon.data)
+        area = get_area_from_lat_lon(lat.data, lon.data).astype(np.float32)
         area_da = xr.DataArray(
             area, dataset.lat.coords, dataset.lat.dims, attrs=area_attrs
         )

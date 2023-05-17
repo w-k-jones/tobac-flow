@@ -26,12 +26,13 @@ def warp_flow(
     flow : numpy.ndarray
         The flow vectors to warp the image by. Must have shape of img.shape, 2
     method : string, optional (default : "linear")
-        Interpolation method to use when warping. Either 'linear' or 'nearest'
+        Interpolation method to use when warping. Must be one of "nearest",
+        "linear", "cubic" or "lanczos"
     fill_value : scalar, optional (default : np.nan)
         Value used to fill locations that are warped outside of the image
     offsets : numpy.ndarray, optional (default : [0,0])
         Offset locations for the x and y dimensions that offset the locations
-            that the array is warped to
+        that the array is warped to
     res : numpy.ndarray, optional (default : None)
         Array to insert the output into. If None, a new array will be created
     grid_locs : numpy.ndarray, optional (default : None)
@@ -42,12 +43,15 @@ def warp_flow(
     res : numpy.ndarray
         The warped image according the the provided flow vectors and offsets
     """
-    if method == "linear":
-        method = cv2.INTER_LINEAR
-    elif method == "nearest":
-        method = cv2.INTER_NEAREST
-    else:
-        raise ValueError("method must be either 'linear' or 'nearest'")
+    method_map = {
+        "nearest": cv2.INTER_NEAREST,
+        "linear": cv2.INTER_LINEAR,
+        "cubic": cv2.INTER_CUBIC,
+        "lanczos": cv2.INTER_LANCZOS4,
+    }
+    if method not in method_map:
+        raise ValueError(f"method must be one of {list(method_map.keys())}")
+    method = method_map[method]
     h, w = flow.shape[:2]
     locs = flow[np.newaxis, ...] + np.atleast_2d(offsets)[
         :, np.newaxis, np.newaxis, :

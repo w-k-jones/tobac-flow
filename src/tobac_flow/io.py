@@ -24,6 +24,7 @@ if "GOOGLE_APPLICATION_CREDENTIALS" not in os.environ:
         export GOOGLE_APPLICATION_CREDENTIALS='path-to-your-credentials-file.json'
 
         2. In python:
+        import os
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'path-to-your-credentials-file.json'
 
         Then import io once this is set
