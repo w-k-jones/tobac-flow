@@ -2,9 +2,13 @@ import numpy as np
 import xarray as xr
 from pyproj import Geod
 
-def get_area_from_lat_lon(
-    lat:np.ndarray[float], lon:np.ndarray[float]
+
+def get_grid_spacing_from_lat_lon(
+    lat: np.ndarray[float], lon: np.ndarray[float]
 ) -> np.ndarray[float]:
+    """
+    Get the grid spacing of each pixel from 2d latitude and longitude arrays
+    """
     g = Geod(ellps="WGS84")
     dy, dx = np.zeros(lat.shape, dtype=float), np.zeros(lat.shape, dtype=float)
     dy[:-1] = g.inv(lon[:-1], lat[:-1], lon[1:], lat[1:])[-1] / 1e3
@@ -13,43 +17,41 @@ def get_area_from_lat_lon(
     dy[1:-1] /= 2
     dx[:, 1:] += dx[:, :-1]
     dx[:, 1:-1] /= 2
-    area = dx * dy
 
+    return dx, dy
+
+
+def get_area_from_lat_lon(
+    lat: np.ndarray[float], lon: np.ndarray[float]
+) -> np.ndarray[float]:
+    """
+    Get the area of each pixel from 2d latitude and longitude arrays
+    """
+    dx, dy = get_grid_spacing_from_lat_lon(lat, lon)
+    area = dx * dy
     return area
 
-def add_area_to_dataset(dataset: xr.Dataset, squeeze:bool = False) -> xr.Dataset:
-    area_attrs = {"long_name":"pixel area", "standard_name":"area", "units":"km2"}
+
+def add_area_to_dataset(dataset: xr.Dataset, squeeze: bool = False) -> xr.Dataset:
+    area_attrs = {"long_name": "pixel area", "standard_name": "area", "units": "km2"}
     if "t" in dataset.lat.dims:
         lat = dataset.lat.isel(t=0)
         lon = dataset.lon.isel(t=0)
         area = get_area_from_lat_lon(lat.data, lon.data)
         wh_t = dataset.lat.dims.index("t")
         if not squeeze:
-            area = np.repeat(
-                np.expand_dims(area, wh_t), dataset.t.size, wh_t
-            )
+            area = np.repeat(np.expand_dims(area, wh_t), dataset.t.size, wh_t)
             area_da = xr.DataArray(
-                area, 
-                dataset.lat.coords,
-                dataset.lat.dims, 
-                attrs=area_attrs
+                area, dataset.lat.coords, dataset.lat.dims, attrs=area_attrs
             )
         else:
-            xr.DataArray(
-                area, 
-                lat.coords,
-                lat.dims, 
-                attrs=area_attrs
-            )
+            xr.DataArray(area, lat.coords, lat.dims, attrs=area_attrs)
     else:
         lat = dataset.lat
         lon = dataset.lon
         area = get_area_from_lat_lon(lat.data, lon.data)
         area_da = xr.DataArray(
-            area, 
-            dataset.lat.coords,
-            dataset.lat.dims, 
-            attrs=area_attrs
+            area, dataset.lat.coords, dataset.lat.dims, attrs=area_attrs
         )
     dataset["area"] = area_da
     return dataset

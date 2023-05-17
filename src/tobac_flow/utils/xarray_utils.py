@@ -59,6 +59,7 @@ def get_ds_core_coords(ds):
     }
     return coords
 
+
 def get_new_attrs(attrs: dict, modifier: str) -> dict:
     """
     Modify existing dataarray attributes with a modifier operation
@@ -67,5 +68,7 @@ def get_new_attrs(attrs: dict, modifier: str) -> dict:
     if "long_name" in attrs:
         new_attrs["long_name"] = f'{modifier.replace("_", " ")} {attrs["long_name"]}'
     if "standard_name" in attrs:
-        new_attrs["standard_name"] = f'{modifier.replace(" ", "_")}_{attrs["standard_name"]}'
+        new_attrs[
+            "standard_name"
+        ] = f'{modifier.replace(" ", "_")}_{attrs["standard_name"]}'
     return new_attrs
