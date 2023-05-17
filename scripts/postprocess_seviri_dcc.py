@@ -96,8 +96,10 @@ for var in (
     "cer",
     "cwp",
     "ctp",
-    "ctp_corrected" "cth",
-    "cth_corrected" "ctt",
+    "ctp_corrected",
+    "cth",
+    "cth_corrected",
+    "ctt",
     "ctt_corrected",
     "stemp",
 ):
