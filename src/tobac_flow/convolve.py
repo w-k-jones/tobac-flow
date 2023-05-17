@@ -6,14 +6,14 @@ import xarray as xr
 
 
 def warp_flow(
-    img: np.ndarray,
-    flow: np.ndarray,
+    img: np.ndarray[float],
+    flow: np.ndarray[float],
     method: str = "linear",
     fill_value: float = np.nan,
-    offsets: np.ndarray = np.array([[0, 0]]),
-    res: np.ndarray | None = None,
-    grid_locs: np.ndarray | None = None,
-) -> np.ndarray:
+    offsets: np.ndarray[float] = np.array([[0, 0]]),
+    res: np.ndarray[float] | None = None,
+    grid_locs: np.ndarray[float] | None = None,
+) -> np.ndarray[float]:
     """
     Warp an image according to a set of optical flow vectors. Can be provided
         with an array of offsets to warp the image to set of adjacent locations
