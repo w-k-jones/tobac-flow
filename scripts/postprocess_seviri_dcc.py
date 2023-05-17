@@ -95,7 +95,7 @@ def main():
     cld_weights = np.copy(weights)
     cld_weights[cld_ds.qcflag.to_numpy() != 0] = 0
     cld_weights[cld_ds.cth.to_numpy() > 30] = 0
-    cld_weights = xr.DataArray(cld_weights, cld_ds.coords, cld_ds.dims)
+    cld_weights = xr.DataArray(cld_weights, cld_ds.lat.coords, cld_ds.lat.dims)
 
     for var in (
         "cot",
