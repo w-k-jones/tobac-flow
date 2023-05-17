@@ -11,7 +11,7 @@ def create_dataarray(
     if long_name:
         da.attrs["long_name"] = long_name
     else:
-        da.attrs["long_name"] = name
+        da.attrs["long_name"] = name.replace("_", " ")
     if units:
         da.attrs["units"] = units
 
@@ -58,3 +58,14 @@ def get_ds_core_coords(ds):
         if k in set(ds.coords.keys()).intersection(set(ds.dims))
     }
     return coords
+
+def get_new_attrs(attrs: dict, modifier: str) -> dict:
+    """
+    Modify existing dataarray attributes with a modifier operation
+    """
+    new_attrs = attrs.copy()
+    if "long_name" in attrs:
+        new_attrs["long_name"] = f'{modifier.replace("_", " ")} {attrs["long_name"]}'
+    if "standard_name" in attrs:
+        new_attrs["standard_name"] = f'{modifier.replace(" ", "_")}_{attrs["standard_name"]}'
+    return new_attrs
