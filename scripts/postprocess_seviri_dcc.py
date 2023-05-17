@@ -56,7 +56,7 @@ def main():
         end_date,
         n_pad_files=0,
         file_type="cloud",
-        file_path="/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/cld",
+        file_path="/gws/nopw/j04/eo_shared_data_vol2/satellite/seviri-orac/cld",
     )
 
     cld_ds = xr.open_mfdataset(cld_files, combine="nested", concat_dim="t")
@@ -69,7 +69,7 @@ def main():
         end_date,
         n_pad_files=0,
         file_type="flux",
-        file_path="/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/flx",
+        file_path="/gws/nopw/j04/eo_shared_data_vol2/satellite/seviri-orac/flx",
     )
 
     flx_ds = xr.open_mfdataset(flx_files, combine="nested", concat_dim="t")
