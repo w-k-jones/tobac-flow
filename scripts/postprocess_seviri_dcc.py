@@ -111,12 +111,14 @@ def main():
         "dem",
     ):
         for dim in ("core_step", "thick_anvil_step", "thin_anvil_step"):
+            print(f"{var} properties over {dim}", flush=True)
             dataset = add_weighted_stats_to_dataset(
                 dataset, cld_ds, cld_weights, var, dim
             )
 
     for var in ("lsflag", "lusflag", "illum", "cldtype", "phase"):
         for dim in ("core_step", "thick_anvil_step", "thin_anvil_step"):
+            print(f"{var} proportions over {dim}", flush=True)
             dataset = add_weighted_proportions_to_dataset(
                 dataset,
                 cld_ds[var],
@@ -149,6 +151,7 @@ def main():
         "cbh",
     ):
         for dim in ("core_step", "thick_anvil_step", "thin_anvil_step"):
+            print(f"{var} properties over {dim}", flush=True)
             dataset = add_weighted_stats_to_dataset(
                 dataset, flx_ds, cld_weights, var, dim
             )
