@@ -5,9 +5,9 @@ from Cython.Build import cythonize
 
 cwd = pathlib.Path("./")
 src = cwd / "src"
-packages = find_packages(src)
-modules = sorted(list(src.glob("**/[:alpha:]*.py")))
-cython_modules = list(src.glob("**/*.pyx"))
+packages = find_packages(str(src))
+modules = sorted([str(f.relative_to(f.parts[0])) for f in src.glob("**/[:alpha:]*.py")])
+cython_modules = [str(f) for f in src.glob("**/*.pyx")]
 setup(
     name="tobac-flow",
     version="1.7.4",
@@ -18,7 +18,7 @@ setup(
     license="BSD-3",
     packages=packages,
     package_dir={"": "src"},
-    py_modules=modules,
+    # py_modules=modules,
     include_package_data=True,
     install_requires=[],
     ext_modules=cythonize(cython_modules),
