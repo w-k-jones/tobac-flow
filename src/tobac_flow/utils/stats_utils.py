@@ -36,7 +36,7 @@ def weighted_average_and_std(
     if unbiased:
         # Bessel's correction for reliability weights
         correction = 1 - (np.sum(weights**2) / np.sum(weights) ** 2)
-        if correction != 0:
+        if correction >= 0:
             variance /= correction
             std = variance**0.5
         else:

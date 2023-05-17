@@ -64,21 +64,6 @@ def main():
 
     cld_ds = cld_ds.assign_coords(t=[parse_date(f[-64:-50]) for f in cld_files])
 
-    # Load flux file
-    print(datetime.now(), "Loading flux properties", flush=True)
-
-    flx_files = find_seviri_files(
-        start_date,
-        end_date,
-        n_pad_files=0,
-        file_type="flux",
-        file_path="/gws/nopw/j04/eo_shared_data_vol2/satellite/seviri-orac/flx",
-    )
-
-    flx_ds = xr.open_mfdataset(flx_files, combine="nested", concat_dim="t")
-
-    flx_ds = flx_ds.assign_coords(t=[parse_date(f[-46:-34]) for f in flx_files])
-
     dataset["lat"] = cld_ds.isel(t=0).lat.compute()
     dataset["lon"] = cld_ds.isel(t=0).lon.compute()
 
@@ -129,6 +114,24 @@ def main():
                 dim,
             )
 
+    cld_ds.close()
+    del cld_ds
+
+    # Load flux file
+    print(datetime.now(), "Loading flux properties", flush=True)
+
+    flx_files = find_seviri_files(
+        start_date,
+        end_date,
+        n_pad_files=0,
+        file_type="flux",
+        file_path="/gws/nopw/j04/eo_shared_data_vol2/satellite/seviri-orac/flx",
+    )
+
+    flx_ds = xr.open_mfdataset(flx_files, combine="nested", concat_dim="t")
+
+    flx_ds = flx_ds.assign_coords(t=[parse_date(f[-46:-34]) for f in flx_files])
+
     print(datetime.now(), "Processing flux properties", flush=True)
     flx_ds = add_cre_to_dataset(flx_ds)
 
@@ -170,7 +173,6 @@ def main():
     print(datetime.now(), "Saving complete, closing datasets", flush=True)
 
     dataset.close()
-    cld_ds.close()
     flx_ds.close()
 
 
