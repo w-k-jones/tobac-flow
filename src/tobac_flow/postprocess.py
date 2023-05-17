@@ -247,7 +247,7 @@ def get_weighted_proportions_da(
     flag_values = np.asarray(list(flag_meanings.keys()))
     new_dim = (dim, flag_da.name)
     new_coord = {dim: index, flag_da.name: flag_values}
-    proportions = test_application = apply_func_to_labels(
+    proportions = apply_func_to_labels(
         labels.to_numpy(),
         flag_da.to_numpy(),
         weights.to_numpy(),

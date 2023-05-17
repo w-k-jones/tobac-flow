@@ -125,7 +125,7 @@ def main():
             dataset = add_weighted_proportions_to_dataset(
                 dataset,
                 cld_ds[var],
-                weights,
+                cld_weights,
                 dim,
             )
 
