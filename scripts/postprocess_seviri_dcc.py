@@ -59,7 +59,7 @@ def main():
         file_path="/gws/nopw/j04/eo_shared_data_vol2/satellite/seviri-orac/cld",
     )
 
-    cld_ds = xr.open_mfdataset(cld_files, combine="nested", concat_dim="t")
+    cld_ds = xr.open_mfdataset(cld_files, combine="nested", concat_dim="t").squeeze()
 
     cld_ds = cld_ds.assign_coords(t=[parse_date(f[-64:-50]) for f in cld_files])
 
@@ -127,7 +127,7 @@ def main():
         file_path="/gws/nopw/j04/eo_shared_data_vol2/satellite/seviri-orac/flx",
     )
 
-    flx_ds = xr.open_mfdataset(flx_files, combine="nested", concat_dim="t")
+    flx_ds = xr.open_mfdataset(flx_files, combine="nested", concat_dim="t").squeeze()
 
     flx_ds = flx_ds.assign_coords(t=[parse_date(f[-46:-34]) for f in flx_files])
 
