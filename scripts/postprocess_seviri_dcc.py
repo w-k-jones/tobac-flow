@@ -6,6 +6,7 @@ from datetime import datetime
 from dateutil.parser import parse as parse_date
 from tobac_flow.analysis import get_label_stats
 from tobac_flow.dataset import calculate_label_properties
+from tobac_flow.dataloader import find_seviri_files
 from tobac_flow.postprocess import (
     add_weighted_stats_to_dataset,
     add_cre_to_dataset,
@@ -49,8 +50,6 @@ def main():
     end_date = parse_date((str(fname)).split("_E")[-1].split("_X")[0], fuzzy=True)
 
     # Load cloud properties file
-    from tobac_flow.dataloader import find_seviri_files
-
     print(datetime.now(), "Loading cloud properties", flush=True)
     cld_files = find_seviri_files(
         start_date,

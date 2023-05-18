@@ -237,14 +237,22 @@ def get_weighted_proportions_da(
     if index is None:
         index = range(1, int(np.nanmax(labels) + 1))
     flag_values = [int(n) for n in flag_da.flag_values.replace("b", "").split(" ")]
-    flag_meanings = {
-        int(flag[0]): flag[1]
-        for flag in [
-            flag.split(":") for flag in flag_da.flag_meanings.split(" ") if ":" in flag
-        ]
-        if int(flag[0]) in flag_values
-    }
-    flag_values = np.asarray(list(flag_meanings.keys()))
+    if ":" in flag_da.flag_meanings:
+        flag_meanings = {
+            int(flag[0]): flag[1]
+            for flag in [
+                flag.split(":")
+                for flag in flag_da.flag_meanings.split(" ")
+                if ":" in flag
+            ]
+            if int(flag[0]) in flag_values
+        }
+        flag_values = np.asarray(list(flag_meanings.keys()))
+    else:
+        flag_meanings = {
+            value: meaning
+            for value, meaning in zip(flag_values, flag_da.flag_meanings.split(" "))
+        }
     new_dim = (dim, flag_da.name)
     new_coord = {dim: index, flag_da.name: flag_values}
     proportions = apply_func_to_labels(
