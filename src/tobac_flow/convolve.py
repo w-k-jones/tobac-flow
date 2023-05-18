@@ -198,6 +198,8 @@ def convolve_step(
     n_backward = np.count_nonzero(structure[0])
     n_same = np.count_nonzero(structure[1])
     n_forward = np.count_nonzero(structure[-1])
+    if n_forward == 0:
+        n_forward = None
 
     if n_backward:
         offsets = np.stack(np.where(structure[0]), -1)[..., ::-1] - 1
