@@ -114,9 +114,13 @@ def nan_gaussian_filter(a, *args, propagate_nan=True, **kwargs):
     return result
 
 
-def get_growth_rate(flow, field):
+def get_growth_rate(flow, field, method: str = "linear"):
+    """
+    Detect the growth/cooling rate of a field
+    """
     growth_rate = (
-        flow.diff(field) / get_time_diff_from_coord(field.t)[:, np.newaxis, np.newaxis]
+        flow.diff(field, method=method)
+        / get_time_diff_from_coord(field.t)[:, np.newaxis, np.newaxis]
     )
 
     s_struct = ndi.generate_binary_structure(3, 1)
@@ -130,11 +134,13 @@ def get_growth_rate(flow, field):
         growth_rate,
         structure=ndi.generate_binary_structure(3, 1),
         func=lambda x: np.nanmean(x, 0),
+        method=method,
     )
     growth_rate = flow.convolve(
         growth_rate,
         structure=ndi.generate_binary_structure(3, 1),
         func=lambda x: np.nanmax(x, 0),
+        method=method,
     )
 
     return growth_rate

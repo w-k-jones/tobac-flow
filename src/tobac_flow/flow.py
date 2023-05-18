@@ -132,7 +132,9 @@ class Flow:
 
         return output
 
-    def diff(self, data: np.ndarray, dtype: type = np.float32) -> np.ndarray:
+    def diff(
+        self, data: np.ndarray, method: str = "linear", dtype: type = np.float32
+    ) -> np.ndarray:
         """
         Calculate the gradient of a dataset along the leading dimension in a
             semi-Lagrangian framework
@@ -141,6 +143,8 @@ class Flow:
         ----------
         data : numpy.ndarray
             The data to find the gradient of
+        method : str, optional (default : linear)
+            The interpolation method used for calculating the difference
         dtype : type, optional (default : np.float32)
             The dtype of the output data
 
@@ -156,7 +160,9 @@ class Flow:
             * 1
             / np.maximum(np.sum([np.isfinite(x[2]), np.isfinite(x[0])], 0), 1)
         )
-        diff = self.convolve(data, structure=diff_struct, func=diff_func, dtype=dtype)
+        diff = self.convolve(
+            data, structure=diff_struct, func=diff_func, method=method, dtype=dtype
+        )
 
         return diff
 
