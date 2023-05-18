@@ -73,7 +73,7 @@ for f in dcc_files[1:]:
             ] = dcc_ds.core_anvil_index.loc[wh_anvil_is_zero_cores]
 
         anvil_overlap = sorted(list(set(dataset.anvil.data) & set(dcc_ds.anvil.data)))
-        if len(core_overlap) > 0:
+        if len(anvil_overlap) > 0:
             dataset.thick_anvil_edge_label_flag.loc[anvil_overlap] = np.logical_or(
                 dataset.thick_anvil_edge_label_flag.loc[anvil_overlap].data,
                 dcc_ds.thick_anvil_edge_label_flag.loc[anvil_overlap].data,
