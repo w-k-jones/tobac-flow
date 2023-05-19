@@ -507,7 +507,7 @@ def process_core_properties(dataset):
                     dataset.core,
                 )
             elif var.endswith("_mean_combined_error"):
-                mean_var = var[:-3] + "mean"
+                mean_var = var[:-15]
                 std_da = combined_std_groupby(
                     dataset[var],
                     dataset[mean_var],
@@ -689,7 +689,7 @@ def process_thick_anvil_properties(dataset):
                     dataset.anvil,
                 )
             elif var.endswith("_mean_combined_error"):
-                mean_var = var[:-3] + "mean"
+                mean_var = var[:-15]
                 std_da = combined_std_groupby(
                     dataset[var],
                     dataset[mean_var],
@@ -860,7 +860,7 @@ def process_thin_anvil_properties(dataset):
                     dataset.anvil,
                 )
             elif var.endswith("_mean_combined_error"):
-                mean_var = var[:-3] + "mean"
+                mean_var = var[:-15]
                 std_da = combined_std_groupby(
                     dataset[var],
                     dataset[mean_var],
