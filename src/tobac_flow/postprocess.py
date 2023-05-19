@@ -10,6 +10,13 @@ from tobac_flow.utils import (
     weighted_stats,
     weighted_stats_and_uncertainties,
     get_weighted_proportions,
+    combined_mean_groupby,
+    combined_std_groupby,
+    weighted_average_groupby,
+    argmax_groupby,
+    argmin_groupby,
+    weighted_average_uncertainty_groupby,
+    counts_groupby,
 )
 
 
@@ -295,3 +302,604 @@ def add_weighted_proportions_to_dataset(
     dcc_dataset[proportions_da.name] = proportions_da
 
     return dcc_dataset
+
+
+def process_core_properties(dataset):
+    # Core start/end positions
+    core_start_step = argmin_groupby(
+        dataset.core_step,
+        dataset.core_step_t,
+        dataset.core_step_core_index,
+        dataset.core,
+    )
+
+    dataset["core_start_x"] = dataset.core_step_x.loc[core_start_step]
+    dataset["core_start_y"] = dataset.core_step_y.loc[core_start_step]
+    dataset["core_start_lat"] = dataset.core_step_lat.loc[core_start_step]
+    dataset["core_start_lon"] = dataset.core_step_lon.loc[core_start_step]
+    dataset["core_start_t"] = dataset.core_step_t.loc[core_start_step]
+
+    core_end_step = argmax_groupby(
+        dataset.core_step,
+        dataset.core_step_t,
+        dataset.core_step_core_index,
+        dataset.core,
+    )
+
+    dataset["core_end_x"] = dataset.core_step_x.loc[core_end_step]
+    dataset["core_end_y"] = dataset.core_step_y.loc[core_end_step]
+    dataset["core_end_lat"] = dataset.core_step_lat.loc[core_end_step]
+    dataset["core_end_lon"] = dataset.core_step_lon.loc[core_end_step]
+    dataset["core_end_t"] = dataset.core_step_t.loc[core_end_step]
+    dataset["core_lifetime"] = dataset.core_end_t - dataset.core_start_t
+
+    dataset["core_average_x"] = weighted_average_groupby(
+        dataset.core_step_x,
+        dataset.core_step_area,
+        dataset.core_step_core_index,
+        dataset.core,
+    )
+
+    dataset["core_average_y"] = weighted_average_groupby(
+        dataset.core_step_y,
+        dataset.core_step_area,
+        dataset.core_step_core_index,
+        dataset.core,
+    )
+
+    dataset["core_average_lat"] = weighted_average_groupby(
+        dataset.core_step_lat,
+        dataset.core_step_area,
+        dataset.core_step_core_index,
+        dataset.core,
+    )
+
+    dataset["core_average_lon"] = weighted_average_groupby(
+        dataset.core_step_lon,
+        dataset.core_step_area,
+        dataset.core_step_core_index,
+        dataset.core,
+    )
+
+    dataset["core_total_area"] = xr.DataArray(
+        dataset.core_step_area.groupby(dataset.core_step_core_index).sum().data,
+        {"core": dataset.core},
+    )
+
+    dataset["core_max_area"] = xr.DataArray(
+        dataset.core_step_area.groupby(dataset.core_step_core_index).max().data,
+        {"core": dataset.core},
+    )
+
+    dataset["core_max_area_t"] = argmax_groupby(
+        dataset.core_step_t,
+        dataset.core_step_area,
+        dataset.core_step_core_index,
+        dataset.core,
+    )
+
+    if "core_step_ctt_mean" in dataset.data_vars:
+        dataset["core_min_ctt_t"] = argmin_groupby(
+            dataset.core_step_t,
+            dataset.core_step_ctt_mean,
+            dataset.core_step_core_index,
+            dataset.core,
+        )
+
+        def calc_max_cooling_rate(step_bt, step_t):
+            argsort = np.argsort(step_t)
+            step_bt = step_bt[argsort]
+            step_t = step_t[argsort]
+            if len(step_bt) >= 2:
+                step_bt_diff = np.max(
+                    (step_bt[:-1] - step_bt[1:])
+                    / (
+                        (step_t[1:] - step_t[:-1])
+                        .astype("timedelta64[s]")
+                        .astype("int")
+                        / 60
+                    )
+                )
+            else:
+                step_bt_diff = (step_bt[0] - step_bt[-1]) / (
+                    (step_t[0] - step_t[-1]).astype("timedelta64[s]").astype("int") / 60
+                )
+            return step_bt_diff
+
+        def cooling_rate_groupby(BT, times, groups, coord):
+            return xr.DataArray(
+                [
+                    calc_max_cooling_rate(BT_group[1].data, time_group[1].data)
+                    for BT_group, time_group in zip(
+                        BT.groupby(groups), times.groupby(groups)
+                    )
+                ],
+                {coord.name: coord},
+            )
+
+        dataset["core_cooling_rate"] = cooling_rate_groupby(
+            dataset.core_step_ctt_mean,
+            dataset.core_step_t,
+            dataset.core_step_core_index,
+            dataset.core,
+        )
+
+    elif "core_step_BT_mean" in dataset.data_vars:
+        dataset["core_min_BT_t"] = argmin_groupby(
+            dataset.core_step_t,
+            dataset.core_step_BT_mean,
+            dataset.core_step_core_index,
+            dataset.core,
+        )
+
+        def calc_max_cooling_rate(step_bt, step_t):
+            argsort = np.argsort(step_t)
+            step_bt = step_bt[argsort]
+            step_t = step_t[argsort]
+            if len(step_bt) >= 4:
+                step_bt_diff = np.max(
+                    (step_bt[:-3] - step_bt[3:])
+                    / (
+                        (step_t[3:] - step_t[:-3])
+                        .astype("timedelta64[s]")
+                        .astype("int")
+                        / 60
+                    )
+                )
+            else:
+                step_bt_diff = (step_bt[0] - step_bt[-1]) / (
+                    (step_t[0] - step_t[-1]).astype("timedelta64[s]").astype("int") / 60
+                )
+            return step_bt_diff
+
+        def cooling_rate_groupby(BT, times, groups, coord):
+            return xr.DataArray(
+                [
+                    calc_max_cooling_rate(BT_group[1].data, time_group[1].data)
+                    for BT_group, time_group in zip(
+                        BT.groupby(groups), times.groupby(groups)
+                    )
+                ],
+                {coord.name: coord},
+            )
+
+        dataset["core_cooling_rate"] = cooling_rate_groupby(
+            dataset.core_step_BT_mean,
+            dataset.core_step_t,
+            dataset.core_step_core_index,
+            dataset.core,
+        )
+
+    for var in dataset.data_vars:
+        if dataset[var].dims == ("core_step",):
+            new_var = "core_" + var[10:]
+            if var.endswith("_mean"):
+                dataset[new_var] = combined_mean_groupby(
+                    dataset[var],
+                    dataset.core_step_area,
+                    dataset.core_step_core_index,
+                    dataset.core,
+                )
+            elif var.endswith("_std"):
+                mean_var = var[:-3] + "mean"
+                dataset[new_var] = combined_std_groupby(
+                    dataset[var],
+                    dataset[mean_var],
+                    dataset.core_step_area,
+                    dataset.core_step_core_index,
+                    dataset.core,
+                )
+            elif var.endswith("_min"):
+                dataset[new_var] = xr.DataArray(
+                    dataset[var].groupby(dataset.core_step_core_index).min().data,
+                    {"core": dataset.core},
+                )
+            elif var.endswith("_max"):
+                dataset[new_var] = xr.DataArray(
+                    dataset[var].groupby(dataset.core_step_core_index).max().data,
+                    {"core": dataset.core},
+                )
+            elif var.endswith("_mean_uncertainty"):
+                dataset[new_var] = weighted_average_uncertainty_groupby(
+                    dataset[var],
+                    dataset.core_step_area,
+                    dataset.core_step_core_index,
+                    dataset.core,
+                )
+            elif var.endswith("_mean_combined_error"):
+                mean_var = var[:-3] + "mean"
+                std_da = combined_std_groupby(
+                    dataset[var],
+                    dataset[mean_var],
+                    dataset.core_step_area,
+                    dataset.core_step_core_index,
+                    dataset.core,
+                )
+                uncertainty_da = weighted_average_uncertainty_groupby(
+                    dataset[var],
+                    dataset.core_step_area,
+                    dataset.core_step_core_index,
+                    dataset.core,
+                )
+                counts_da = counts_groupby(
+                    dataset.core_step_core_index,
+                    dataset.core,
+                )
+                combined_error = (
+                    (std_da.data / counts_da.data**0.5) ** 2
+                    + uncertainty_da.data**2
+                ) ** 0.5
+                dataset[new_var] = xr.DataArray(
+                    combined_error,
+                    {"core": dataset.core},
+                )
+            elif var.endswith("_min_error"):
+                min_var = var[:-6]
+                dataset[new_var] = argmin_groupby(
+                    dataset[var],
+                    dataset[min_var],
+                    dataset.core_step_core_index,
+                    dataset.core,
+                )
+            elif var.endswith("_max_error"):
+                max_var = var[:-6]
+                dataset[new_var] = argmax_groupby(
+                    dataset[var],
+                    dataset[max_var],
+                    dataset.core_step_core_index,
+                    dataset.core,
+                )
+
+    return dataset
+
+
+def process_thick_anvil_properties(dataset):
+    thick_anvil_start_step = argmin_groupby(
+        dataset.thick_anvil_step,
+        dataset.thick_anvil_step_t,
+        dataset.thick_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thick_anvil_start_x"] = dataset.thick_anvil_step_x.loc[
+        thick_anvil_start_step
+    ]
+    dataset["thick_anvil_start_y"] = dataset.thick_anvil_step_y.loc[
+        thick_anvil_start_step
+    ]
+    dataset["thick_anvil_start_lat"] = dataset.thick_anvil_step_lat.loc[
+        thick_anvil_start_step
+    ]
+    dataset["thick_anvil_start_lon"] = dataset.thick_anvil_step_lon.loc[
+        thick_anvil_start_step
+    ]
+    dataset["thick_anvil_start_t"] = dataset.thick_anvil_step_t.loc[
+        thick_anvil_start_step
+    ]
+
+    thick_anvil_end_step = argmax_groupby(
+        dataset.thick_anvil_step,
+        dataset.thick_anvil_step_t,
+        dataset.thick_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thick_anvil_end_x"] = dataset.thick_anvil_step_x.loc[thick_anvil_end_step]
+    dataset["thick_anvil_end_y"] = dataset.thick_anvil_step_y.loc[thick_anvil_end_step]
+    dataset["thick_anvil_end_lat"] = dataset.thick_anvil_step_lat.loc[
+        thick_anvil_end_step
+    ]
+    dataset["thick_anvil_end_lon"] = dataset.thick_anvil_step_lon.loc[
+        thick_anvil_end_step
+    ]
+    dataset["thick_anvil_end_t"] = dataset.thick_anvil_step_t.loc[thick_anvil_end_step]
+    dataset["thick_anvil_lifetime"] = (
+        dataset.thick_anvil_end_t - dataset.thick_anvil_start_t
+    )
+
+    dataset["thick_anvil_average_x"] = weighted_average_groupby(
+        dataset.thick_anvil_step_x,
+        dataset.thick_anvil_step_area,
+        dataset.thick_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thick_anvil_average_y"] = weighted_average_groupby(
+        dataset.thick_anvil_step_y,
+        dataset.thick_anvil_step_area,
+        dataset.thick_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thick_anvil_average_lat"] = weighted_average_groupby(
+        dataset.thick_anvil_step_lat,
+        dataset.thick_anvil_step_area,
+        dataset.thick_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thick_anvil_average_lon"] = weighted_average_groupby(
+        dataset.thick_anvil_step_lon,
+        dataset.thick_anvil_step_area,
+        dataset.thick_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thick_anvil_total_area"] = xr.DataArray(
+        dataset.thick_anvil_step_area.groupby(dataset.thick_anvil_step_anvil_index)
+        .sum()
+        .data,
+        {"anvil": dataset.anvil},
+    )
+
+    dataset["thick_anvil_max_area"] = xr.DataArray(
+        dataset.thick_anvil_step_area.groupby(dataset.thick_anvil_step_anvil_index)
+        .max()
+        .data,
+        {"anvil": dataset.anvil},
+    )
+
+    dataset["thick_anvil_max_area_t"] = argmax_groupby(
+        dataset.thick_anvil_step_t,
+        dataset.thick_anvil_step_area,
+        dataset.thick_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    for var in dataset.data_vars:
+        if dataset[var].dims == ("thick_anvil_step",):
+            new_var = "thick_anvil_" + var[10:]
+            if var.endswith("_mean"):
+                dataset[new_var] = combined_mean_groupby(
+                    dataset[var],
+                    dataset.thick_anvil_step_area,
+                    dataset.thick_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+            elif var.endswith("_std"):
+                mean_var = var[:-3] + "mean"
+                dataset[new_var] = combined_std_groupby(
+                    dataset[var],
+                    dataset[mean_var],
+                    dataset.thick_anvil_step_area,
+                    dataset.thick_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+            elif var.endswith("_min"):
+                dataset[new_var] = xr.DataArray(
+                    dataset[var]
+                    .groupby(dataset.thick_anvil_step_anvil_index)
+                    .min()
+                    .data,
+                    {"anvil": dataset.anvil},
+                )
+            elif var.endswith("_max"):
+                dataset[new_var] = xr.DataArray(
+                    dataset[var]
+                    .groupby(dataset.thick_anvil_step_anvil_index)
+                    .max()
+                    .data,
+                    {"anvil": dataset.anvil},
+                )
+            elif var.endswith("_mean_uncertainty"):
+                dataset[new_var] = weighted_average_uncertainty_groupby(
+                    dataset[var],
+                    dataset.thick_anvil_step_area,
+                    dataset.thick_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+            elif var.endswith("_mean_combined_error"):
+                mean_var = var[:-3] + "mean"
+                std_da = combined_std_groupby(
+                    dataset[var],
+                    dataset[mean_var],
+                    dataset.thick_anvil_step_area,
+                    dataset.thick_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+                uncertainty_da = weighted_average_uncertainty_groupby(
+                    dataset[var],
+                    dataset.thick_anvil_step_area,
+                    dataset.thick_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+                counts_da = counts_groupby(
+                    dataset.thick_anvil_step_anvil_index, dataset.anvil
+                )
+                combined_error = (
+                    (std_da.data / counts_da.data**0.5) ** 2
+                    + uncertainty_da.data**2
+                ) ** 0.5
+                dataset[new_var] = xr.DataArray(
+                    combined_error,
+                    {"anvil": dataset.anvil},
+                )
+            elif var.endswith("_min_error"):
+                min_var = var[:-6]
+                dataset[new_var] = argmin_groupby(
+                    dataset[var],
+                    dataset[min_var],
+                    dataset.thick_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+            elif var.endswith("_max_error"):
+                max_var = var[:-6]
+                dataset[new_var] = argmax_groupby(
+                    dataset[var],
+                    dataset[max_var],
+                    dataset.thick_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+
+    return dataset
+
+
+def process_thin_anvil_properties(dataset):
+    thin_anvil_start_step = argmin_groupby(
+        dataset.thin_anvil_step,
+        dataset.thin_anvil_step_t,
+        dataset.thin_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thin_anvil_start_x"] = dataset.thin_anvil_step_x.loc[thin_anvil_start_step]
+    dataset["thin_anvil_start_y"] = dataset.thin_anvil_step_y.loc[thin_anvil_start_step]
+    dataset["thin_anvil_start_lat"] = dataset.thin_anvil_step_lat.loc[
+        thin_anvil_start_step
+    ]
+    dataset["thin_anvil_start_lon"] = dataset.thin_anvil_step_lon.loc[
+        thin_anvil_start_step
+    ]
+    dataset["thin_anvil_start_t"] = dataset.thin_anvil_step_t.loc[thin_anvil_start_step]
+
+    thin_anvil_end_step = argmax_groupby(
+        dataset.thin_anvil_step,
+        dataset.thin_anvil_step_t,
+        dataset.thin_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thin_anvil_end_x"] = dataset.thin_anvil_step_x.loc[thin_anvil_end_step]
+    dataset["thin_anvil_end_y"] = dataset.thin_anvil_step_y.loc[thin_anvil_end_step]
+    dataset["thin_anvil_end_lat"] = dataset.thin_anvil_step_lat.loc[thin_anvil_end_step]
+    dataset["thin_anvil_end_lon"] = dataset.thin_anvil_step_lon.loc[thin_anvil_end_step]
+    dataset["thin_anvil_end_t"] = dataset.thin_anvil_step_t.loc[thin_anvil_end_step]
+    dataset["thin_anvil_lifetime"] = (
+        dataset.thin_anvil_end_t - dataset.thin_anvil_start_t
+    )
+
+    dataset["thin_anvil_average_x"] = weighted_average_groupby(
+        dataset.thin_anvil_step_x,
+        dataset.thin_anvil_step_area,
+        dataset.thin_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thin_anvil_average_y"] = weighted_average_groupby(
+        dataset.thin_anvil_step_y,
+        dataset.thin_anvil_step_area,
+        dataset.thin_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thin_anvil_average_lat"] = weighted_average_groupby(
+        dataset.thin_anvil_step_lat,
+        dataset.thin_anvil_step_area,
+        dataset.thin_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thin_anvil_average_lon"] = weighted_average_groupby(
+        dataset.thin_anvil_step_lon,
+        dataset.thin_anvil_step_area,
+        dataset.thin_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    dataset["thin_anvil_total_area"] = xr.DataArray(
+        dataset.thin_anvil_step_area.groupby(dataset.thin_anvil_step_anvil_index)
+        .sum()
+        .data,
+        {"anvil": dataset.anvil},
+    )
+
+    dataset["thin_anvil_max_area"] = xr.DataArray(
+        dataset.thin_anvil_step_area.groupby(dataset.thin_anvil_step_anvil_index)
+        .max()
+        .data,
+        {"anvil": dataset.anvil},
+    )
+
+    dataset["thin_anvil_max_area_t"] = argmax_groupby(
+        dataset.thin_anvil_step_t,
+        dataset.thin_anvil_step_area,
+        dataset.thin_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
+    for var in dataset.data_vars:
+        if dataset[var].dims == ("thin_anvil_step",):
+            new_var = "thin_anvil_" + var[10:]
+            if var.endswith("_mean"):
+                dataset[new_var] = combined_mean_groupby(
+                    dataset[var],
+                    dataset.thin_anvil_step_area,
+                    dataset.thin_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+            elif var.endswith("_std"):
+                mean_var = var[:-3] + "mean"
+                dataset[new_var] = combined_std_groupby(
+                    dataset[var],
+                    dataset[mean_var],
+                    dataset.thin_anvil_step_area,
+                    dataset.thin_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+            elif var.endswith("_min"):
+                dataset[new_var] = xr.DataArray(
+                    dataset[var]
+                    .groupby(dataset.thin_anvil_step_anvil_index)
+                    .min()
+                    .data,
+                    {"anvil": dataset.anvil},
+                )
+            elif var.endswith("_max"):
+                dataset[new_var] = xr.DataArray(
+                    dataset[var]
+                    .groupby(dataset.thin_anvil_step_anvil_index)
+                    .max()
+                    .data,
+                    {"anvil": dataset.anvil},
+                )
+            elif var.endswith("_mean_uncertainty"):
+                dataset[new_var] = weighted_average_uncertainty_groupby(
+                    dataset[var],
+                    dataset.thin_anvil_step_area,
+                    dataset.thin_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+            elif var.endswith("_mean_combined_error"):
+                mean_var = var[:-3] + "mean"
+                std_da = combined_std_groupby(
+                    dataset[var],
+                    dataset[mean_var],
+                    dataset.thin_anvil_step_area,
+                    dataset.thin_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+                uncertainty_da = weighted_average_uncertainty_groupby(
+                    dataset[var],
+                    dataset.thin_anvil_step_area,
+                    dataset.thin_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+                counts_da = counts_groupby(
+                    dataset.thin_anvil_step_anvil_index, dataset.anvil
+                )
+                combined_error = (
+                    (std_da.data / counts_da.data**0.5) ** 2
+                    + uncertainty_da.data**2
+                ) ** 0.5
+                dataset[new_var] = xr.DataArray(
+                    combined_error,
+                    {"anvil": dataset.anvil},
+                )
+            elif var.endswith("_min_error"):
+                min_var = var[:-6]
+                dataset[new_var] = argmin_groupby(
+                    dataset[var],
+                    dataset[min_var],
+                    dataset.thin_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+            elif var.endswith("_max_error"):
+                max_var = var[:-6]
+                dataset[new_var] = argmax_groupby(
+                    dataset[var],
+                    dataset[max_var],
+                    dataset.thin_anvil_step_anvil_index,
+                    dataset.anvil,
+                )
+
+    return dataset

@@ -1,4 +1,9 @@
+"""
+Utilities for calculating various statistical properties, inclduing weighted
+    statistics and statistics over labels
+"""
 import numpy as np
+import xarray as xr
 from scipy import stats
 
 
@@ -160,3 +165,99 @@ def get_weighted_proportions(data, weights, flag_values):
     else:
         proportions = np.asarray([np.nan] * len(flag_values))
     return proportions
+
+
+def calc_combined_mean(step_mean, step_area):
+    return np.sum(step_mean * step_area) / np.sum(step_area)
+
+
+def calc_combined_std(step_std, step_mean, step_area):
+    combined_mean = calc_combined_mean(step_mean, step_area)
+    return (
+        (
+            np.sum(step_area * step_std)
+            + np.sum(step_area * (step_mean - combined_mean) ** 2)
+        )
+        / np.sum(step_area)
+    ) ** 0.5
+
+
+def combined_mean_groupby(means, area, groups, coord):
+    return xr.DataArray(
+        [
+            calc_combined_mean(means_group[1].data, area_group[1].data)
+            for means_group, area_group in zip(
+                means.groupby(groups), area.groupby(groups)
+            )
+        ],
+        {coord.name: coord},
+    )
+
+
+def combined_std_groupby(stds, means, area, groups, coord):
+    return xr.DataArray(
+        [
+            calc_combined_std(
+                stds_group[1].data, means_group[1].data, area_group[1].data
+            )
+            for stds_group, means_group, area_group in zip(
+                stds.groupby(groups), means.groupby(groups), area.groupby(groups)
+            )
+        ],
+        {coord.name: coord},
+    )
+
+
+def weighted_average_uncertainty_groupby(field, area, groups, coord):
+    return xr.DataArray(
+        [
+            weighted_average_uncertainty(field_group[1], area_group[1])
+            for field_group, area_group in zip(
+                field.groupby(groups), area.groupby(groups)
+            )
+        ],
+        {coord.name: coord},
+    )
+
+
+def weighted_average_groupby(field, area, groups, coord):
+    return xr.DataArray(
+        [
+            np.average(field_group[1], weights=area_group[1])
+            for field_group, area_group in zip(
+                field.groupby(groups), area.groupby(groups)
+            )
+        ],
+        {coord.name: coord},
+    )
+
+
+def argmax_groupby(field, find_max, groups, coord):
+    return xr.DataArray(
+        [
+            field_group[1].data[np.argmax(max_group[1].data)]
+            for field_group, max_group in zip(
+                field.groupby(groups), find_max.groupby(groups)
+            )
+        ],
+        {coord.name: coord},
+    )
+
+
+def argmin_groupby(field, find_min, groups, coord):
+    return xr.DataArray(
+        [
+            field_group[1].data[np.argmin(min_group[1].data)]
+            for field_group, min_group in zip(
+                field.groupby(groups), find_min.groupby(groups)
+            )
+        ],
+        {coord.name: coord},
+    )
+
+
+def counts_groupby(groups, coord):
+    return xr.DataArray(
+        xr.ones_like(groups).groupby(groups).sum().data,
+        {coord.name: coord},
+    )
