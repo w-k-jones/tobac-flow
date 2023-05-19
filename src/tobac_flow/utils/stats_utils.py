@@ -168,17 +168,23 @@ def get_weighted_proportions(data, weights, flag_values):
 
 
 def calc_combined_mean(step_mean, step_area):
-    return np.sum(step_mean * step_area) / np.sum(step_area)
+    wh_finite = np.logical_and(np.isfinite(step_mean), np.isfinite(step_area))
+    return np.sum(step_mean[wh_finite] * step_area[wh_finite]) / np.sum(
+        step_area[wh_finite]
+    )
 
 
 def calc_combined_std(step_std, step_mean, step_area):
     combined_mean = calc_combined_mean(step_mean, step_area)
+    wh_finite = np.logical_and.reduce(
+        [np.isfinite(step_std), np.isfinite(step_mean), np.isfinite(step_area)]
+    )
     return (
         (
-            np.sum(step_area * step_std)
-            + np.sum(step_area * (step_mean - combined_mean) ** 2)
+            np.sum(step_area[wh_finite] * step_std[wh_finite])
+            + np.sum(step_area[wh_finite] * (step_mean[wh_finite] - combined_mean) ** 2)
         )
-        / np.sum(step_area)
+        / np.sum(step_area[wh_finite])
     ) ** 0.5
 
 
