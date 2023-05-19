@@ -171,8 +171,8 @@ def filter_anvils(dataset: xr.Dataset) -> xr.Dataset:
     )
     wh_core_no_anvil = dataset.core_anvil_index == 0
     anvil_max_core_area = xr.DataArray(
-        dataset.core_max_area[wh_core_no_anvil]
-        .groupby(dataset.core_anvil_index[wh_core_no_anvil])
+        dataset.core_max_area[np.logical_not(wh_core_no_anvil)]
+        .groupby(dataset.core_anvil_index[np.logical_not(wh_core_no_anvil)])
         .max()
         .data,
         {"anvil": dataset.anvil},
@@ -187,8 +187,8 @@ def filter_anvils(dataset: xr.Dataset) -> xr.Dataset:
         {"anvil": dataset.anvil},
     )
     anvil_core_start_t = xr.DataArray(
-        dataset.core_start_t[wh_core_no_anvil]
-        .groupby(dataset.core_anvil_index[wh_core_no_anvil])
+        dataset.core_start_t[np.logical_not(wh_core_no_anvil)]
+        .groupby(dataset.core_anvil_index[np.logical_not(wh_core_no_anvil)])
         .min()
         .data,
         {"anvil": dataset.anvil},
@@ -203,8 +203,8 @@ def filter_anvils(dataset: xr.Dataset) -> xr.Dataset:
         {"anvil": dataset.anvil},
     )
     anvil_core_end_t = xr.DataArray(
-        dataset.core_end_t[wh_core_no_anvil]
-        .groupby(dataset.core_anvil_index[wh_core_no_anvil])
+        dataset.core_end_t[np.logical_not(wh_core_no_anvil)]
+        .groupby(dataset.core_anvil_index[np.logical_not(wh_core_no_anvil)])
         .max()
         .data,
         {"anvil": dataset.anvil},
