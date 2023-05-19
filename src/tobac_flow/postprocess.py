@@ -648,7 +648,7 @@ def process_thick_anvil_properties(dataset):
 
     for var in dataset.data_vars:
         if dataset[var].dims == ("thick_anvil_step",):
-            new_var = "thick_anvil_" + var[10:]
+            new_var = "thick_anvil_" + var[17:]
             if var.endswith("_mean"):
                 dataset[new_var] = combined_mean_groupby(
                     dataset[var],
@@ -819,7 +819,7 @@ def process_thin_anvil_properties(dataset):
 
     for var in dataset.data_vars:
         if dataset[var].dims == ("thin_anvil_step",):
-            new_var = "thin_anvil_" + var[10:]
+            new_var = "thin_anvil_" + var[16:]
             if var.endswith("_mean"):
                 dataset[new_var] = combined_mean_groupby(
                     dataset[var],
