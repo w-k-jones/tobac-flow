@@ -120,12 +120,15 @@ for var, dtype in output_dtypes.items():
     dataset[var] = dataset[var].astype(dtype)
 
 # Filter invalid anvils and cores from dataset
+print(datetime.now(), "Removing orphaned items", flush=True)
 dataset = remove_orphan_coords(dataset)
 
 # Remove invalid cores and process core properties
+print(datetime.now(), "Filtering and processing cores", flush=True)
 dataset = filter_cores(dataset)
 dataset = process_core_properties(dataset)
 
+print(datetime.now(), "Filtering and processing anvils", flush=True)
 dataset = filter_anvils(dataset)
 dataset = process_thick_anvil_properties(dataset)
 dataset = process_thin_anvil_properties(dataset)

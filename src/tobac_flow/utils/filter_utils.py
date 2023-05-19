@@ -80,11 +80,11 @@ def filter_cores(dataset: xr.Dataset) -> xr.Dataset:
 
     if "core_step_BT_mean" in dataset.data_vars:
         core_any_nan_step = dataset.core_step_BT_mean.groupby(
-            dataset.core_step_anvil_index
+            dataset.core_step_core_index
         ).reduce(any_nan)
     elif "core_step_ctt_mean" in dataset.data_vars:
         core_any_nan_step = dataset.core_step_ctt_mean.groupby(
-            dataset.core_step_anvil_index
+            dataset.core_step_core_index
         ).reduce(any_nan)
     else:
         core_any_nan_step = xr.zeros_like(dataset.core_edge_label_flag)
