@@ -144,7 +144,7 @@ dataset["anvil_core_count"] = counts_groupby(
 )
 
 dataset["anvil_initial_core_index"] = argmin_groupby(
-    dataset.core_anvil_index[dataset.core_has_anvil_flag],
+    dataset.core[dataset.core_has_anvil_flag],
     dataset.core_start_t[dataset.core_has_anvil_flag],
     dataset.core_anvil_index[dataset.core_has_anvil_flag],
     dataset.anvil,

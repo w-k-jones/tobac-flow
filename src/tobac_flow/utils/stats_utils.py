@@ -169,9 +169,13 @@ def get_weighted_proportions(data, weights, flag_values):
 
 def calc_combined_mean(step_mean, step_area):
     wh_finite = np.logical_and(np.isfinite(step_mean), np.isfinite(step_area))
-    return np.sum(step_mean[wh_finite] * step_area[wh_finite]) / np.sum(
-        step_area[wh_finite]
-    )
+    if np.any(wh_finite):
+        result = np.sum(step_mean[wh_finite] * step_area[wh_finite]) / np.sum(
+            step_area[wh_finite]
+        )
+    else:
+        result = np.nan
+    return result
 
 
 def calc_combined_std(step_std, step_mean, step_area):
@@ -179,13 +183,19 @@ def calc_combined_std(step_std, step_mean, step_area):
     wh_finite = np.logical_and.reduce(
         [np.isfinite(step_std), np.isfinite(step_mean), np.isfinite(step_area)]
     )
-    return (
-        (
-            np.sum(step_area[wh_finite] * step_std[wh_finite])
-            + np.sum(step_area[wh_finite] * (step_mean[wh_finite] - combined_mean) ** 2)
-        )
-        / np.sum(step_area[wh_finite])
-    ) ** 0.5
+    if np.any(wh_finite):
+        result = (
+            (
+                np.sum(step_area[wh_finite] * step_std[wh_finite])
+                + np.sum(
+                    step_area[wh_finite] * (step_mean[wh_finite] - combined_mean) ** 2
+                )
+            )
+            / np.sum(step_area[wh_finite])
+        ) ** 0.5
+    else:
+        result = np.nan
+    return result
 
 
 def combined_mean_groupby(means, area, groups, coord):
