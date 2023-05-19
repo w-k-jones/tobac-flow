@@ -508,13 +508,7 @@ def process_core_properties(dataset):
                 )
             elif var.endswith("_mean_combined_error"):
                 mean_var = var[:-15]
-                std_da = combined_std_groupby(
-                    dataset[var],
-                    dataset[mean_var],
-                    dataset.core_step_area,
-                    dataset.core_step_core_index,
-                    dataset.core,
-                )
+                std_var = mean_var[:-4] + "std"
                 uncertainty_da = weighted_average_uncertainty_groupby(
                     dataset[var],
                     dataset.core_step_area,
@@ -526,7 +520,7 @@ def process_core_properties(dataset):
                     dataset.core,
                 )
                 combined_error = (
-                    (std_da.data / counts_da.data**0.5) ** 2
+                    (dataset[std_var].data / counts_da.data**0.5) ** 2
                     + uncertainty_da.data**2
                 ) ** 0.5
                 dataset[new_var] = xr.DataArray(
@@ -690,13 +684,7 @@ def process_thick_anvil_properties(dataset):
                 )
             elif var.endswith("_mean_combined_error"):
                 mean_var = var[:-15]
-                std_da = combined_std_groupby(
-                    dataset[var],
-                    dataset[mean_var],
-                    dataset.thick_anvil_step_area,
-                    dataset.thick_anvil_step_anvil_index,
-                    dataset.anvil,
-                )
+                std_var = mean_var[:-4] + "std"
                 uncertainty_da = weighted_average_uncertainty_groupby(
                     dataset[var],
                     dataset.thick_anvil_step_area,
@@ -707,7 +695,7 @@ def process_thick_anvil_properties(dataset):
                     dataset.thick_anvil_step_anvil_index, dataset.anvil
                 )
                 combined_error = (
-                    (std_da.data / counts_da.data**0.5) ** 2
+                    (dataset[std_var].data / counts_da.data**0.5) ** 2
                     + uncertainty_da.data**2
                 ) ** 0.5
                 dataset[new_var] = xr.DataArray(
