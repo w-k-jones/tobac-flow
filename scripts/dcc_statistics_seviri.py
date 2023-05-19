@@ -139,7 +139,9 @@ dataset["core_has_anvil_flag"] = xr.DataArray(
 
 dataset.core_anvil_index[np.logical_not(dataset.core_has_anvil_flag)] = 0
 
-dataset["anvil_core_count"] = counts_groupby(dataset.core_anvil_index, dataset.anvil)
+dataset["anvil_core_count"] = counts_groupby(
+    dataset.core_anvil_index[dataset.core_has_anvil_flag], dataset.anvil
+)
 
 dataset["anvil_initial_core_index"] = argmin_groupby(
     dataset.core_anvil_index[dataset.core_has_anvil_flag],
