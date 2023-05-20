@@ -74,10 +74,6 @@ def filter_cores(dataset: xr.Dataset) -> xr.Dataset:
     def any_nan(x, *args, **kwargs):
         return np.any(np.isnan(x))
 
-    core_any_nan_step = dataset.core_step_cot_mean.groupby(
-        dataset.core_step_core_index
-    ).reduce(any_nan)
-
     if "core_step_BT_mean" in dataset.data_vars:
         core_any_nan_step = dataset.core_step_BT_mean.groupby(
             dataset.core_step_core_index
