@@ -508,7 +508,7 @@ def process_core_properties(dataset):
                 )
             elif var.endswith("_mean_combined_error"):
                 mean_var = var[:-15]
-                std_var = mean_var[:-4] + "std"
+                std_var = "core_" + mean_var[10:-4] + "std"
                 uncertainty_da = weighted_average_uncertainty_groupby(
                     dataset[var],
                     dataset.core_step_area,
@@ -684,7 +684,7 @@ def process_thick_anvil_properties(dataset):
                 )
             elif var.endswith("_mean_combined_error"):
                 mean_var = var[:-15]
-                std_var = mean_var[:-4] + "std"
+                std_var = "thick_anvil_" + mean_var[17:-4] + "std"
                 uncertainty_da = weighted_average_uncertainty_groupby(
                     dataset[var],
                     dataset.thick_anvil_step_area,
@@ -849,7 +849,7 @@ def process_thin_anvil_properties(dataset):
                 )
             elif var.endswith("_mean_combined_error"):
                 mean_var = var[:-15]
-                std_var = mean_var[:-4] + "std"
+                std_var = "thin_anvil_" + mean_var[16:-4] + "std"
                 uncertainty_da = weighted_average_uncertainty_groupby(
                     dataset[var],
                     dataset.thin_anvil_step_area,
