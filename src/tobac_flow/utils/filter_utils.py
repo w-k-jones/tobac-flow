@@ -102,9 +102,6 @@ def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
 
     wh_core_invalid = np.logical_or.reduce(
         [
-            dataset.core_start_label_flag.data,
-            dataset.core_end_label_flag.data,
-            dataset.core_edge_label_flag.data,
             core_invalid_bt,
             core_invalid_time_diff,
             core_invalid_lifetime,
