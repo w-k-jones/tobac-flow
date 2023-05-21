@@ -189,7 +189,7 @@ def filter_anvils(dataset: xr.Dataset) -> xr.Dataset:
         .data,
         {"anvil": dataset.anvil},
     )
-    wh_anvil_start_t_invalid = anvil_start_t <= anvil_core_start_t
+    wh_anvil_start_t_invalid = anvil_start_t < anvil_core_start_t
 
     # Filter anvil ends before last core ends
     anvil_end_t = xr.DataArray(
