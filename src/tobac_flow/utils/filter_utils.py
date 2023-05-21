@@ -49,7 +49,7 @@ def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
     else:
         core_invalid_bt = xr.zeros_like(dataset.core_edge_label_flag)
     if verbose:
-        print(f"Valid BT cooling rate: {np.logical_not(core_invalid_bt).sum()}")
+        print(f"Valid core cooling: {np.logical_not(core_invalid_bt.data).sum()}")
 
     def max_t_diff(x, *args, **kwargs):
         if len(x) > 1:
@@ -65,7 +65,7 @@ def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
         timedelta(minutes=15, seconds=1)
     )
     if verbose:
-        print(f"Valid time gaps: {np.logical_not(core_invalid_time_diff).sum()}")
+        print(f"Valid time gaps: {np.logical_not(core_invalid_time_diff.data).sum()}")
 
     def end_start_diff(x, *args, **kwargs):
         return x[-1] - x[0]
@@ -78,7 +78,7 @@ def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
         timedelta(minutes=14, seconds=59)
     )
     if verbose:
-        print(f"Valid lifetime: {np.logical_not(core_invalid_lifetime).sum()}")
+        print(f"Valid lifetime: {np.logical_not(core_invalid_lifetime.data).sum()}")
 
     def any_nan(x, *args, **kwargs):
         return np.any(np.isnan(x))
@@ -155,7 +155,9 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
             thin_anvil_any_nan_step, dataset.thin_anvil_nan_flag.data
         )
     if verbose:
-        print(f"Valid NaN flagging: {np.logical_not(thin_anvil_any_nan_step).sum()}")
+        print(
+            f"Valid NaN flagging: {np.logical_not(thin_anvil_any_nan_step.data).sum()}"
+        )
 
     # Filter lifetimes less than 15 minutes
     def start_end_diff(x, *args, **kwargs):
@@ -169,7 +171,7 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
         timedelta(minutes=14, seconds=59)
     )
     if verbose:
-        print(f"Valid lifetime: {np.logical_not(anvil_invalid_lifetime).sum()}")
+        print(f"Valid lifetime: {np.logical_not(anvil_invalid_lifetime.data).sum()}")
 
     # Filter time gaps greater than 15 minutes
     def max_t_diff(x, *args, **kwargs):
@@ -186,7 +188,9 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
         timedelta(minutes=15, seconds=1)
     )
     if verbose:
-        print(f"Valid time gaps: {np.logical_not(thick_anvil_invalid_time_diff).sum()}")
+        print(
+            f"Valid time gaps: {np.logical_not(thick_anvil_invalid_time_diff.data).sum()}"
+        )
 
     # Filter max core area greater than max anvil area
     anvil_max_area = xr.DataArray(
@@ -205,7 +209,7 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
     )
     wh_anvil_area_invalid = anvil_max_area <= anvil_max_core_area
     if verbose:
-        print(f"Valid anvil area: {np.logical_not(wh_anvil_area_invalid).sum()}")
+        print(f"Valid anvil area: {np.logical_not(wh_anvil_area_invalid.data).sum()}")
 
     # Filter anvil starts before first core starts
     anvil_start_t = xr.DataArray(
@@ -224,7 +228,7 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
     wh_anvil_start_t_invalid = anvil_start_t < anvil_core_start_t
     if verbose:
         print(
-            f"Valid anvil start time: {np.logical_not(wh_anvil_start_t_invalid).sum()}"
+            f"Valid anvil start time: {np.logical_not(wh_anvil_start_t_invalid.data).sum()}"
         )
 
     # Filter anvil ends before last core ends
@@ -243,7 +247,9 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
     )
     wh_anvil_end_t_invalid = anvil_end_t <= anvil_core_end_t
     if verbose:
-        print(f"Valid anvil end time: {np.logical_not(wh_anvil_end_t_invalid).sum()}")
+        print(
+            f"Valid anvil end time: {np.logical_not(wh_anvil_end_t_invalid.data).sum()}"
+        )
 
     wh_anvil_invalid = np.logical_or.reduce(
         [

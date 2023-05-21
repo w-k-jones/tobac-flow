@@ -186,7 +186,7 @@ dataset["core_is_valid"] = xr.DataArray(
 )
 
 anvil_has_invalid_cores = (
-    dataset.core_is_valid.groubpy(dataset.core_anvil_index)
+    dataset.core_is_valid.groupby(dataset.core_anvil_index)
     .reduce(np.any)
     .loc[dataset.anvil.data]
 )
@@ -194,7 +194,7 @@ dataset["thick_anvil_is_valid"] = xr.DataArray(
     np.logical_not(
         np.logical_or.reduce(
             [
-                anvil_has_invalid_cores,
+                anvil_has_invalid_cores.data,
                 dataset.thick_anvil_edge_label_flag.data,
                 dataset.thick_anvil_start_label_flag.data,
                 dataset.thick_anvil_end_label_flag.data,
@@ -209,7 +209,7 @@ dataset["thin_anvil_is_valid"] = xr.DataArray(
     np.logical_not(
         np.logical_or.reduce(
             [
-                anvil_has_invalid_cores,
+                anvil_has_invalid_cores.data,
                 dataset.thin_anvil_edge_label_flag.data,
                 dataset.thin_anvil_start_label_flag.data,
                 dataset.thin_anvil_end_label_flag.data,
