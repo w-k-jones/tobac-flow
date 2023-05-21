@@ -640,6 +640,21 @@ def process_thick_anvil_properties(dataset):
         dataset.anvil,
     )
 
+    if "thick_anvil_step_ctt_mean" in dataset.data_vars:
+        dataset["thick_anvil_min_ctt_t"] = argmin_groupby(
+            dataset.thick_anvil_step_t,
+            dataset.thick_anvil_step_ctt_mean,
+            dataset.thick_anvil_step_anvil_index,
+            dataset.anvil,
+        )
+    elif "thick_anvil_step_BT_mean" in dataset.data_vars:
+        dataset["thick_anvil_min_BT_t"] = argmin_groupby(
+            dataset.thick_anvil_step_t,
+            dataset.thick_anvil_step_BT_mean,
+            dataset.thick_anvil_step_anvil_index,
+            dataset.anvil,
+        )
+
     for var in dataset.data_vars:
         if dataset[var].dims == ("thick_anvil_step",):
             new_var = "thick_anvil_" + var[17:]
@@ -804,6 +819,21 @@ def process_thin_anvil_properties(dataset):
         dataset.thin_anvil_step_anvil_index,
         dataset.anvil,
     )
+
+    if "thin_anvil_step_ctt_mean" in dataset.data_vars:
+        dataset["thin_anvil_min_ctt_t"] = argmin_groupby(
+            dataset.thin_anvil_step_t,
+            dataset.thin_anvil_step_ctt_mean,
+            dataset.thin_anvil_step_anvil_index,
+            dataset.anvil,
+        )
+    elif "thin_anvil_step_BT_mean" in dataset.data_vars:
+        dataset["thin_anvil_min_BT_t"] = argmin_groupby(
+            dataset.thin_anvil_step_t,
+            dataset.thin_anvil_step_BT_mean,
+            dataset.thin_anvil_step_anvil_index,
+            dataset.anvil,
+        )
 
     for var in dataset.data_vars:
         if dataset[var].dims == ("thin_anvil_step",):
