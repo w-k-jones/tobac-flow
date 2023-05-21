@@ -98,7 +98,7 @@ def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
             core_any_nan_step, dataset.core_nan_flag.data
         )
     if verbose:
-        print(f"Valid NaN flagging: {np.logical_not(core_any_nan_step).sum()}")
+        print(f"Valid NaN flagging: {np.logical_not(core_any_nan_step.data).sum()}")
 
     wh_core_invalid = np.logical_or.reduce(
         [
@@ -264,7 +264,7 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
 
     dataset = dataset.sel(anvil=dataset.anvil.data[np.logical_not(wh_anvil_invalid)])
     if verbose:
-        print(f"Final core count: {dataset.core.size}")
+        print(f"Final anvil count: {dataset.anvil.size}")
 
     wh_thick_anvil_step = np.isin(dataset.thick_anvil_step_anvil_index, dataset.anvil)
     wh_thin_anvil_step = np.isin(dataset.thin_anvil_step_anvil_index, dataset.anvil)
