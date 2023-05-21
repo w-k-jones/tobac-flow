@@ -125,11 +125,11 @@ dataset = remove_orphan_coords(dataset)
 
 # Remove invalid cores and process core properties
 print(datetime.now(), "Filtering and processing cores", flush=True)
-dataset = filter_cores(dataset)
+dataset = filter_cores(dataset, verbose=True)
 dataset = process_core_properties(dataset)
 
 print(datetime.now(), "Filtering and processing anvils", flush=True)
-dataset = filter_anvils(dataset)
+dataset = filter_anvils(dataset, verbose=True)
 dataset = process_thick_anvil_properties(dataset)
 dataset = process_thin_anvil_properties(dataset)
 
