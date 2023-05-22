@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 from scipy import ndimage as ndi
+from skimage.feature import peak_local_max
 from tobac_flow.analysis import (
     filter_labels_by_length,
     filter_labels_by_mask,
@@ -59,6 +60,8 @@ def get_curvature_filter(field, sigma=2, threshold=0, direction="negative"):
             ),
             structure=s_struct,
         )
+    else:
+        raise ValueError("Direction must be either positive or negative")
     return curvature_filter
 
 
@@ -112,6 +115,28 @@ def nan_gaussian_filter(a, *args, propagate_nan=True, **kwargs):
         result[wh_nan] = np.nan
 
     return result
+
+
+def get_peak_filter(field, sigma=2, min_distance=10, direction="negative"):
+    smoothed_field = ndi.gaussian_filter(field, (0, sigma, sigma))
+    peak_filter = np.zeros(field.shape, dtype=np.int32)
+    if direction == "negative":
+        for i in range(field.shape[0]):
+            peak_locs = peak_local_max(smoothed_field[i], min_distance=10).T
+            peak_filter[i][(peak_locs[0], peak_locs[1])] = 1
+            peak_filter[i] = (
+                ndi.distance_transform_edt(np.logical_not(peak_filter[i])) < 5
+            )
+    elif direction == "positive":
+        for i in range(field.shape[0]):
+            peak_locs = peak_local_max(-smoothed_field[i], min_distance=10).T
+            peak_filter[i][(peak_locs[0], peak_locs[1])] = 1
+            peak_filter[i] = (
+                ndi.distance_transform_edt(np.logical_not(peak_filter[i])) < 5
+            )
+    else:
+        raise ValueError("Direction must be either positive or negative")
+    return peak_filter
 
 
 def get_growth_rate(flow, field, method: str = "linear"):
