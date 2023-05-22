@@ -220,8 +220,9 @@ dataset["thin_anvil_is_valid"] = xr.DataArray(
     {"anvil": dataset.anvil},
 )
 
-print(f"Final core count: {dataset.core.size}")
-print(f"Final anvil count: {dataset.anvil.size}")
+print(f"Final valid core count: {dataset.core_is_valid.data.sum()}")
+print(f"Final valid thick anvil count: {dataset.thick_anvil_is_valid.data.sum()}")
+print(f"Final valid thin anvil count: {dataset.thin_anvil_is_valid.data.sum()}")
 
 print(datetime.now(), "Saving to %s" % (save_path), flush=True)
 # Add compression encoding
