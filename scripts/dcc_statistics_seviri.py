@@ -169,9 +169,9 @@ dataset["core_is_valid"] = xr.DataArray(
     {"core": dataset.core},
 )
 
-anvil_has_invalid_cores = (
+anvil_has_invalid_cores = np.logical_not(
     dataset.core_is_valid.groupby(dataset.core_anvil_index)
-    .reduce(np.any)
+    .reduce(np.all)
     .loc[dataset.anvil.data]
 )
 dataset["thick_anvil_is_valid"] = xr.DataArray(
@@ -202,6 +202,9 @@ dataset["thin_anvil_is_valid"] = xr.DataArray(
     {"anvil": dataset.anvil},
 )
 
+print(f"Final core count: {dataset.core.size}")
+print(f"Final anvil count: {dataset.anvil.size}")
+
 print(datetime.now(), "Saving to %s" % (save_path), flush=True)
 # Add compression encoding
 comp = dict(zlib=True, complevel=5, shuffle=True)
@@ -209,5 +212,7 @@ for var in dataset.data_vars:
     dataset[var].encoding.update(comp)
 
 dataset.to_netcdf(save_path)
+
+print(datetime.now(), "Saving complete, closing datasets", flush=True)
 
 dataset.close()
