@@ -3,7 +3,7 @@ import numpy as np
 from scipy import ndimage as ndi
 from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
-from tobac_flow.utils.label_utils import flat_label
+from tobac_flow.utils import flat_label, relabel_objects
 
 
 def subsegment_labels(
@@ -241,3 +241,90 @@ def find_neighbour_labels(
 
                 label_stack.append(new_label)
                 processed_labels[new_label] = True
+
+
+def make_step_labels(labels):
+    step_labels = flat_label(labels != 0)
+    step_labels += labels * step_labels.max()
+    return relabel_objects(step_labels)
+
+
+# implement minimum overlap for flow_label function
+def flow_link_overlap(
+    flow,
+    flat_labels,
+    structure=ndi.generate_binary_structure(3, 1),
+    dtype=np.int32,
+    overlap=0.0,
+    subsegment_shrink=0.0,
+    peak_min_distance=10,
+):
+    """
+    Label 3d connected objects in a semi-Lagrangian reference frame
+
+    Parameters
+    ----------
+    flow : tobac_flow.Flow object
+        The flow-field object corresponding to the mask being labelled
+    flat_labels : numpy.ndarray
+        A 3d array of in which non-zero values are treated as regions to be
+        labelled
+    structure : numpy.ndarray - optional
+        A (3,3,3) boolean array defining the connectivity between each point
+        and its neighbours. Defaults to square connectivity
+    dtype : dtype - optional
+        Dtype for the returned labelled array. Defaults to np.int32
+    overlap : float - optional
+        The required minimum overlap between subsequent labels (when accounting
+            for Lagrangian motion) to consider them a continous object. Defaults
+            to 0.
+    subsegment_shrink : float - optional
+        The proportion of each regions approximate radius to shrink it by when
+            performing subsegmentation. If 0 subsegmentation will not be
+            performed. Defaults to 0.
+    peak_min_distance : int - optional
+        The minimum distance between maxima allowed when performing
+            subsegmentation. Defaults to 5
+    """
+    label_struct = structure * np.array([1, 0, 1])[:, np.newaxis, np.newaxis]
+
+    back_labels, forward_labels = flow.convolve(
+        flat_labels, method="nearest", dtype=dtype, structure=label_struct
+    )
+
+    bins = np.cumsum(np.bincount(flat_labels.ravel()))
+    args = np.argsort(flat_labels.ravel())
+
+    processed_labels = np.zeros(bins.size, dtype=bool)
+    label_map = {}
+
+    for label in range(1, bins.size):
+        if not processed_labels[label]:
+            label_map[label] = [label]
+            processed_labels[label] = True
+
+            i = 0
+            while i < len(label_map[label]):
+                find_neighbour_labels(
+                    label_map[label][i],
+                    label_map[label],
+                    bins,
+                    args,
+                    processed_labels,
+                    forward_labels,
+                    back_labels,
+                    overlap=overlap,
+                )
+                i += 1
+
+    new_labels = np.zeros(flat_labels.shape, dtype=dtype)
+
+    for ik, k in enumerate(label_map):
+        for i in label_map[k]:
+            if bins[i] > bins[i - 1]:
+                new_labels.ravel()[args[bins[i - 1] : bins[i]]] = ik + 1
+
+    if not np.all(new_labels.astype(bool) == flat_labels.astype(bool)):
+        # This may occur if subsegmentation is over zealous
+        warnings.warn("Not all regions present in labeled array", RuntimeWarning)
+    return new_labels
