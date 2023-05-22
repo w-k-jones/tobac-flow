@@ -533,3 +533,38 @@ def smooth_flow_step(
     )
 
     return forward_flow, backward_flow
+
+
+def combine_flow(*args) -> Flow:
+    """
+    Combine multiple flow objects into one
+    """
+    forward_magnitudes = [
+        ((flow.forward_flow[..., 0] ** 2 + flow.forward_flow[..., 1] ** 2) ** 0.5)[
+            ..., np.newaxis
+        ]
+        for flow in args
+    ]
+
+    combined_flow_forward = sum(
+        [
+            flow.forward_flow * magnitude
+            for flow, magnitude in zip(args, forward_magnitudes)
+        ]
+    ) / sum(forward_magnitudes)
+
+    backward_magnitudes = [
+        ((flow.backward_flow[..., 0] ** 2 + flow.backward_flow[..., 1] ** 2) ** 0.5)[
+            ..., np.newaxis
+        ]
+        for flow in args
+    ]
+
+    combined_flow_backward = sum(
+        [
+            flow.backward_flow * magnitude
+            for flow, magnitude in zip(args, backward_magnitudes)
+        ]
+    ) / sum(backward_magnitudes)
+
+    return Flow(combined_flow_forward, combined_flow_backward)
