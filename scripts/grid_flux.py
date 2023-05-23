@@ -25,10 +25,7 @@ else:
 if not save_dir.exists():
     save_dir.mkdir()
 
-save_name = "flux_regrid_SEVIRI_S%s_E%s_X%04d_%04d_Y%04d_%04d.nc" % (
-    start_date.strftime("%Y%m%d_%H0000"),
-    end_date.strftime("%Y%m%d_%H0000"),
-)
+save_name = "flux_regrid_SEVIRI_S%s.nc" % (start_date.strftime("%Y%m%d_%H0000"))
 
 save_path = save_dir / save_name
 
