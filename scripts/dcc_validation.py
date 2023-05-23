@@ -1,15 +1,8 @@
 import os
-import sys
-import inspect
-import itertools
-import warnings
-
+from datetime import datetime
 import numpy as np
-from numpy import ma
 import pandas as pd
 import xarray as xr
-from datetime import datetime, timedelta
-from dateutil.parser import parse as parse_date
 from scipy import ndimage as ndi
 
 import argparse
@@ -56,15 +49,11 @@ if True:
     """
     from tobac_flow import io, abi, glm
     from tobac_flow.dataset import (
-        get_datetime_from_coord,
-        get_time_diff_from_coord,
         create_new_goes_ds,
         add_dataarray_to_ds,
         create_dataarray,
     )
     from tobac_flow.analysis import (
-        filter_labels_by_length,
-        filter_labels_by_length_and_mask,
         apply_func_to_labels,
     )
     from tobac_flow.validation import get_min_dist_for_objects, get_marker_distance
