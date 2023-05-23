@@ -40,7 +40,7 @@ if not os.path.isdir(save_dir):
     except (FileExistsError, OSError):
         pass
 
-save_name = "nexrad_regrid_G%02d_S%s_E%s_X%04d_%04d_Y%04d_%04d.nc" % (
+save_name = "glm_regrid_G%02d_S%s_E%s_X%04d_%04d_Y%04d_%04d.nc" % (
     satellite,
     start_date.strftime("%Y%m%d_%H0000"),
     end_date.strftime("%Y%m%d_%H0000"),
@@ -61,88 +61,81 @@ if not os.path.isdir(goes_data_path):
     except (FileExistsError, OSError):
         pass
 
-# def validation(file, margin, goes_data_path, save_dir):
-if True:
-    """
-    Validation process for detected DCCs in the given file
-    """
-    from tobac_flow import io, glm
-    from tobac_flow.dataset import (
-        create_new_goes_ds,
-        add_dataarray_to_ds,
-        create_dataarray,
-    )
+from tobac_flow import io, glm
+from tobac_flow.dataset import (
+    create_new_goes_ds,
+    add_dataarray_to_ds,
+    create_dataarray,
+)
 
-    bt, _, _, dataset = goes_dataloader(
-        start_date,
-        end_date,
-        n_pad_files=t_offset + 1,
-        x0=x0,
-        x1=x1,
-        y0=y0,
-        y1=y1,
-        return_new_ds=True,
-        satellite=satellite,
-        product="MCMIP",
-        view="C",
-        mode=[3, 4, 6],
-        save_dir=goes_data_path,
-        replicate_path=True,
-        check_download=True,
-        n_attempts=1,
-        download_missing=True,
-    )
+bt, _, _, dataset = goes_dataloader(
+    start_date,
+    end_date,
+    n_pad_files=t_offset + 1,
+    x0=x0,
+    x1=x1,
+    y0=y0,
+    y1=y1,
+    return_new_ds=True,
+    satellite=satellite,
+    product="MCMIP",
+    view="C",
+    mode=[3, 4, 6],
+    save_dir=goes_data_path,
+    replicate_path=True,
+    check_download=True,
+    n_attempts=1,
+    download_missing=True,
+)
 
-    dates = pd.date_range(start_date, end_date, freq="H", closed="left").to_pydatetime()
-    """
-    Start validation
-    """
-    gridded_flash_ds = create_new_goes_ds(dataset)
+dates = pd.date_range(start_date, end_date, freq="H", closed="left").to_pydatetime()
 
-    print(datetime.now(), "Processing GLM data", flush=True)
-    # Get GLM data
-    # Process new GLM data
-    glm_files = io.find_glm_files(
-        dates,
-        satellite=16,
-        save_dir=goes_data_path,
-        replicate_path=True,
-        check_download=True,
-        n_attempts=1,
-        download_missing=True,
-        verbose=False,
-        min_storage=2**30,
-    )
-    glm_files = {io.get_goes_date(i): i for i in glm_files}
-    print("%d files found" % len(glm_files), flush=True)
-    if len(glm_files) == 0:
-        raise ValueError("No GLM Files discovered, skipping validation")
-    else:
-        print(datetime.now(), "Regridding GLM data", flush=True)
-        glm_grid = glm.regrid_glm(glm_files, gridded_flash_ds, corrected=True)
+gridded_flash_ds = create_new_goes_ds(dataset)
 
-    add_dataarray_to_ds(
-        create_dataarray(
-            glm_grid.data,
-            ("t", "y", "x"),
-            "glm_flashes",
-            long_name="number of flashes detected by GLM",
-            units="",
-            dtype=np.int32,
-        ),
-        gridded_flash_ds,
-    )
+print(datetime.now(), "Processing GLM data", flush=True)
+# Get GLM data
+# Process new GLM data
+glm_files = io.find_glm_files(
+    dates,
+    satellite=16,
+    save_dir=goes_data_path,
+    replicate_path=True,
+    check_download=True,
+    n_attempts=1,
+    download_missing=True,
+    verbose=False,
+    min_storage=2**30,
+)
+glm_files = {io.get_goes_date(i): i for i in glm_files}
+print("%d files found" % len(glm_files), flush=True)
+if len(glm_files) == 0:
+    raise ValueError("No GLM Files discovered, skipping validation")
+else:
+    print(datetime.now(), "Regridding GLM data", flush=True)
+    glm_grid = glm.regrid_glm(glm_files, gridded_flash_ds, corrected=True)
 
-    add_dataarray_to_ds(
-        create_dataarray(
-            np.sum(glm_grid.data),
-            tuple(),
-            "glm_flash_count",
-            long_name="total number of GLM flashes",
-            dtype=np.int32,
-        ),
-        gridded_flash_ds,
-    )
+add_dataarray_to_ds(
+    create_dataarray(
+        glm_grid.data,
+        ("t", "y", "x"),
+        "glm_flashes",
+        long_name="number of flashes detected by GLM",
+        units="",
+        dtype=np.int32,
+    ),
+    gridded_flash_ds,
+)
 
-    print(datetime.now(), "Saving to %s" % (save_path), flush=True)
-    gridded_flash_ds.to_netcdf(save_path)
+add_dataarray_to_ds(
+    create_dataarray(
+        np.sum(glm_grid.data),
+        tuple(),
+        "glm_flash_count",
+        long_name="total number of GLM flashes",
+        dtype=np.int32,
+    ),
+    gridded_flash_ds,
+)
+
+print(datetime.now(), "Saving to %s" % (save_path), flush=True)
+gridded_flash_ds.to_netcdf(save_path)
