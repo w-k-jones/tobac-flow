@@ -460,9 +460,7 @@ def warp_flow(img: np.ndarray, flow: np.ndarray) -> np.ndarray:
     locs = flow.copy()
     locs[:, :, 0] += np.arange(w)
     locs[:, :, 1] += np.arange(h)[:, np.newaxis]
-    res = cv2.remap(
-        img, locs, None, cv2.INTER_LINEAR, None, cv2.BORDER_CONSTANT, np.nan
-    )
+    res = cv2.remap(img, locs, None, cv2.INTER_CUBIC, None, cv2.BORDER_CONSTANT, np.nan)
     return res
 
 
