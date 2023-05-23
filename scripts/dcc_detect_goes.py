@@ -170,8 +170,8 @@ def main() -> None:
     overlap = 0.5
     subsegment_shrink = 0.0
 
-    wvd_growth = get_growth_rate(flow, wvd)
-    bt_growth = get_growth_rate(flow, -bt)
+    wvd_growth = get_growth_rate(flow, wvd, method="cubic")
+    bt_growth = get_growth_rate(flow, -bt, method="cubic")
 
     wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
     bt_curvature_filter = get_curvature_filter(bt, direction="positive")
