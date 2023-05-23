@@ -37,7 +37,6 @@ lat_bins = np.arange(-90, 90)
 lons = lon_bins[1:] - 0.5
 lats = lat_bins[1:] - 0.5
 
-grid_ds = xr.Dataset(coords={"lat": lats, "lon": lons})
 
 print(datetime.now(), "Loading flux properties", flush=True)
 
@@ -57,6 +56,8 @@ flx_ds = flx_ds.assign_coords(t=[parse_date(f[-46:-34]) for f in flx_files])
 
 print(datetime.now(), "Processing flux properties", flush=True)
 flx_ds = add_cre_to_dataset(flx_ds)
+
+grid_ds = xr.Dataset(coords={"lat": lats, "lon": lons, "t": flx_ds.t})
 
 
 def weighted_binned_mean_2d(x, y, data, weights, bins=None):
