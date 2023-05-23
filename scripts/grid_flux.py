@@ -31,8 +31,8 @@ save_path = save_dir / save_name
 
 print("Saving to:", save_path)
 
-lon_bins = np.arange(-180, 180)
-lat_bins = np.arange(-90, 90)
+lon_bins = np.arange(-180, 181)
+lat_bins = np.arange(-90, 91)
 
 lons = lon_bins[1:] - 0.5
 lats = lat_bins[1:] - 0.5
