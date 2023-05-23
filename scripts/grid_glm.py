@@ -40,7 +40,7 @@ if not os.path.isdir(save_dir):
     except (FileExistsError, OSError):
         pass
 
-save_name = "glm_regrid_G%02d_S%s_E%s_X%04d_%04d_Y%04d_%04d.nc" % (
+save_name = "nexrad_regrid_G%02d_S%s_E%s_X%04d_%04d_Y%04d_%04d.nc" % (
     satellite,
     start_date.strftime("%Y%m%d_%H0000"),
     end_date.strftime("%Y%m%d_%H0000"),
@@ -94,14 +94,6 @@ if True:
     )
 
     dates = pd.date_range(start_date, end_date, freq="H", closed="left").to_pydatetime()
-
-    glm_save_name = "gridded_glm_flashes_%s.nc" % (dates[0].strftime("%Y%m%d_%H0000"))
-    glm_save_path = os.path.join(save_dir, glm_save_name)
-    validation_save_name = "validation_dccs_%s.nc" % (
-        dates[0].strftime("%Y%m%d_%H0000")
-    )
-    validation_save_path = os.path.join(save_dir, validation_save_name)
-
     """
     Start validation
     """
@@ -152,5 +144,5 @@ if True:
         gridded_flash_ds,
     )
 
-    print(datetime.now(), "Saving to %s" % (glm_save_path), flush=True)
-    gridded_flash_ds.to_netcdf(glm_save_path)
+    print(datetime.now(), "Saving to %s" % (save_path), flush=True)
+    gridded_flash_ds.to_netcdf(save_path)
