@@ -10,12 +10,12 @@ import xarray as xr
 import pyart
 
 from tobac_flow.abi import get_abi_x_y
-from tobac_flow.utils.xarray_utils import (
+from tobac_flow.utils import (
     get_ds_bin_edges,
     get_ds_shape,
     get_ds_core_coords,
+    get_datetime_from_coord,
 )
-from tobac_flow.utils.xarray_utils import get_datetime_from_coord
 
 
 def get_gates_from_tar(nexrad_archive):
