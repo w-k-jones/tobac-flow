@@ -81,7 +81,6 @@ for var in (
     "toa_lwup_clr",
     "toa_lwup_cre",
     "toa_net",
-    "toa_net_clr",
     "toa_net_cre",
     "boa_swdn",
     "boa_swdn_clr",
@@ -96,7 +95,6 @@ for var in (
     "boa_lwup_clr",
     "boa_lwup_cre",
     "boa_net",
-    "boa_net_clr",
     "boa_net_cre",
 ):
     print(f"Processing {var}", flush=True)
