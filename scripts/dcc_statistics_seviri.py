@@ -4,6 +4,7 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 from tobac_flow.postprocess import (
+    add_validity_flags,
     process_core_properties,
     process_thick_anvil_properties,
     process_thin_anvil_properties,
@@ -12,8 +13,6 @@ from tobac_flow.utils import (
     remove_orphan_coords,
     filter_cores,
     filter_anvils,
-    counts_groupby,
-    argmin_groupby,
 )
 
 parser = argparse.ArgumentParser(
@@ -133,80 +132,9 @@ dataset = filter_anvils(dataset, verbose=True)
 dataset = process_thick_anvil_properties(dataset)
 dataset = process_thin_anvil_properties(dataset)
 
-dataset["core_has_anvil_flag"] = xr.DataArray(
-    np.isin(dataset.core_anvil_index, dataset.anvil), {"core": dataset.core}
-)
-
-dataset["core_anvil_removed"] = xr.DataArray(
-    np.logical_and(
-        np.logical_not(dataset.core_has_anvil_flag), dataset.core_anvil_index != 0
-    ),
-    {"core": dataset.core},
-)
-dataset.core_anvil_index[np.logical_not(dataset.core_has_anvil_flag)] = 0
-
-dataset["anvil_core_count"] = counts_groupby(
-    dataset.core_anvil_index[dataset.core_has_anvil_flag], dataset.anvil
-)
-
-dataset["anvil_initial_core_index"] = argmin_groupby(
-    dataset.core[dataset.core_has_anvil_flag],
-    dataset.core_start_t[dataset.core_has_anvil_flag],
-    dataset.core_anvil_index[dataset.core_has_anvil_flag],
-    dataset.anvil,
-)
-
-dataset["anvil_no_growth_flag"] = (
-    dataset.thick_anvil_max_area_t
-    <= dataset.core_end_t.loc[dataset.anvil_initial_core_index]
-)
-
-# Add valid flags combining the exisiting data flags
-dataset["core_is_valid"] = xr.DataArray(
-    np.logical_not(
-        np.logical_or.reduce(
-            [
-                dataset.core_edge_label_flag.data,
-                dataset.core_start_label_flag.data,
-                dataset.core_end_label_flag.data,
-            ]
-        )
-    ),
-    {"core": dataset.core},
-)
-
-anvil_has_invalid_cores = np.logical_not(
-    dataset.core_is_valid.groupby(dataset.core_anvil_index)
-    .reduce(np.all)
-    .loc[dataset.anvil.data]
-)
-dataset["thick_anvil_is_valid"] = xr.DataArray(
-    np.logical_not(
-        np.logical_or.reduce(
-            [
-                anvil_has_invalid_cores.data,
-                dataset.thick_anvil_edge_label_flag.data,
-                dataset.thick_anvil_start_label_flag.data,
-                dataset.thick_anvil_end_label_flag.data,
-            ]
-        )
-    ),
-    {"anvil": dataset.anvil},
-)
-
-dataset["thin_anvil_is_valid"] = xr.DataArray(
-    np.logical_not(
-        np.logical_or.reduce(
-            [
-                anvil_has_invalid_cores.data,
-                dataset.thin_anvil_edge_label_flag.data,
-                dataset.thin_anvil_start_label_flag.data,
-                dataset.thin_anvil_end_label_flag.data,
-            ]
-        )
-    ),
-    {"anvil": dataset.anvil},
-)
+print(datetime.now(), "Flagging core and anvil quality", flush=True)
+dataset = remove_orphan_coords(dataset)
+dataset = add_validity_flags(dataset)
 
 print(f"Final core count: {dataset.core.size}")
 print(f"Final anvil count: {dataset.anvil.size}")
