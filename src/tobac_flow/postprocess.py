@@ -13,10 +13,14 @@ from tobac_flow.utils import (
     combined_mean_groupby,
     combined_std_groupby,
     weighted_average_groupby,
+    weighted_average_uncertainty_groupby,
     argmax_groupby,
     argmin_groupby,
-    weighted_average_uncertainty_groupby,
     counts_groupby,
+    idxmax_groupby,
+    idxmin_groupby,
+    cooling_rate_groupby,
+    idxmax_cooling_rate_groupby,
 )
 
 
@@ -378,6 +382,12 @@ def process_core_properties(dataset):
         dataset.core,
     )
 
+    dataset["core_max_area_core_step_index"] = idxmax_groupby(
+        dataset.core_step_area,
+        dataset.core_step_core_index,
+        dataset.core,
+    )
+
     if "core_step_ctt_mean" in dataset.data_vars:
         dataset["core_min_ctt_t"] = argmin_groupby(
             dataset.core_step_t,
@@ -386,42 +396,26 @@ def process_core_properties(dataset):
             dataset.core,
         )
 
-        def calc_max_cooling_rate(step_bt, step_t):
-            argsort = np.argsort(step_t)
-            step_bt = step_bt[argsort]
-            step_t = step_t[argsort]
-            if len(step_bt) >= 2:
-                step_bt_diff = np.max(
-                    (step_bt[:-1] - step_bt[1:])
-                    / (
-                        (step_t[1:] - step_t[:-1])
-                        .astype("timedelta64[s]")
-                        .astype("int")
-                        / 60
-                    )
-                )
-            else:
-                step_bt_diff = (step_bt[0] - step_bt[-1]) / (
-                    (step_t[0] - step_t[-1]).astype("timedelta64[s]").astype("int") / 60
-                )
-            return step_bt_diff
-
-        def cooling_rate_groupby(BT, times, groups, coord):
-            return xr.DataArray(
-                [
-                    calc_max_cooling_rate(BT_group[1].data, time_group[1].data)
-                    for BT_group, time_group in zip(
-                        BT.groupby(groups), times.groupby(groups)
-                    )
-                ],
-                {coord.name: coord},
-            )
+        dataset["core_min_ctt_core_step_index"] = idxmin_groupby(
+            dataset.core_step_ctt_mean,
+            dataset.core_step_core_index,
+            dataset.core,
+        )
 
         dataset["core_cooling_rate"] = cooling_rate_groupby(
             dataset.core_step_ctt_mean,
             dataset.core_step_t,
             dataset.core_step_core_index,
             dataset.core,
+            t_steps=1,
+        )
+
+        dataset["core_cooling_rate_core_step_index"] = idxmax_cooling_rate_groupby(
+            dataset.core_step_ctt_mean,
+            dataset.core_step_t,
+            dataset.core_step_core_index,
+            dataset.core,
+            t_steps=1,
         )
 
     elif "core_step_BT_mean" in dataset.data_vars:
@@ -432,42 +426,26 @@ def process_core_properties(dataset):
             dataset.core,
         )
 
-        def calc_max_cooling_rate(step_bt, step_t):
-            argsort = np.argsort(step_t)
-            step_bt = step_bt[argsort]
-            step_t = step_t[argsort]
-            if len(step_bt) >= 4:
-                step_bt_diff = np.max(
-                    (step_bt[:-3] - step_bt[3:])
-                    / (
-                        (step_t[3:] - step_t[:-3])
-                        .astype("timedelta64[s]")
-                        .astype("int")
-                        / 60
-                    )
-                )
-            else:
-                step_bt_diff = (step_bt[0] - step_bt[-1]) / (
-                    (step_t[0] - step_t[-1]).astype("timedelta64[s]").astype("int") / 60
-                )
-            return step_bt_diff
-
-        def cooling_rate_groupby(BT, times, groups, coord):
-            return xr.DataArray(
-                [
-                    calc_max_cooling_rate(BT_group[1].data, time_group[1].data)
-                    for BT_group, time_group in zip(
-                        BT.groupby(groups), times.groupby(groups)
-                    )
-                ],
-                {coord.name: coord},
-            )
+        dataset["core_min_BT_core_step_index"] = idxmin_groupby(
+            dataset.core_step_BT_mean,
+            dataset.core_step_core_index,
+            dataset.core,
+        )
 
         dataset["core_cooling_rate"] = cooling_rate_groupby(
             dataset.core_step_BT_mean,
             dataset.core_step_t,
             dataset.core_step_core_index,
             dataset.core,
+            t_steps=3,
+        )
+
+        dataset["core_cooling_rate_core_step_index"] = idxmax_cooling_rate_groupby(
+            dataset.core_step_BT_mean,
+            dataset.core_step_t,
+            dataset.core_step_core_index,
+            dataset.core,
+            t_steps=3,
         )
 
     for var in dataset.data_vars:
@@ -640,6 +618,12 @@ def process_thick_anvil_properties(dataset):
         dataset.anvil,
     )
 
+    dataset["thick_anvil_max_area_thick_anvil_step_index"] = idxmax_groupby(
+        dataset.thick_anvil_step_area,
+        dataset.thick_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
     if "thick_anvil_step_ctt_mean" in dataset.data_vars:
         dataset["thick_anvil_min_ctt_t"] = argmin_groupby(
             dataset.thick_anvil_step_t,
@@ -647,9 +631,22 @@ def process_thick_anvil_properties(dataset):
             dataset.thick_anvil_step_anvil_index,
             dataset.anvil,
         )
+
+        dataset["thick_anvil_min_ctt_thick_anvil_step_index"] = idxmin_groupby(
+            dataset.thick_anvil_step_ctt_mean,
+            dataset.thick_anvil_step_anvil_index,
+            dataset.anvil,
+        )
+
     elif "thick_anvil_step_BT_mean" in dataset.data_vars:
         dataset["thick_anvil_min_BT_t"] = argmin_groupby(
             dataset.thick_anvil_step_t,
+            dataset.thick_anvil_step_BT_mean,
+            dataset.thick_anvil_step_anvil_index,
+            dataset.anvil,
+        )
+
+        dataset["thick_anvil_min_BT__thick_anvil_step_index"] = idxmin_groupby(
             dataset.thick_anvil_step_BT_mean,
             dataset.thick_anvil_step_anvil_index,
             dataset.anvil,
@@ -820,6 +817,12 @@ def process_thin_anvil_properties(dataset):
         dataset.anvil,
     )
 
+    dataset["thin_anvil_max_area_thin_anvil_step_index"] = idxmax_groupby(
+        dataset.thin_anvil_step_area,
+        dataset.thin_anvil_step_anvil_index,
+        dataset.anvil,
+    )
+
     if "thin_anvil_step_ctt_mean" in dataset.data_vars:
         dataset["thin_anvil_min_ctt_t"] = argmin_groupby(
             dataset.thin_anvil_step_t,
@@ -827,9 +830,22 @@ def process_thin_anvil_properties(dataset):
             dataset.thin_anvil_step_anvil_index,
             dataset.anvil,
         )
+
+        dataset["thin_anvil_min_ctt_thin_anvil_step_index"] = idxmin_groupby(
+            dataset.thin_anvil_step_ctt_mean,
+            dataset.thin_anvil_step_anvil_index,
+            dataset.anvil,
+        )
+
     elif "thin_anvil_step_BT_mean" in dataset.data_vars:
         dataset["thin_anvil_min_BT_t"] = argmin_groupby(
             dataset.thin_anvil_step_t,
+            dataset.thin_anvil_step_BT_mean,
+            dataset.thin_anvil_step_anvil_index,
+            dataset.anvil,
+        )
+
+        dataset["thin_anvil_min_BT_thin_anvil_step_index"] = idxmin_groupby(
             dataset.thin_anvil_step_BT_mean,
             dataset.thin_anvil_step_anvil_index,
             dataset.anvil,
