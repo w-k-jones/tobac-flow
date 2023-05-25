@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 import cartopy.crs as ccrs
 import numpy as np
+from tobac_flow.utils import weighted_correlation
 
 
 def get_goes_ccrs(goes_ds):
@@ -119,7 +120,7 @@ def goes_subplot(goes_ds, *args, fig=None, cbar_size="5%", cbar_pad=0.1, **kwarg
                 u[slc, slc],
                 v[slc, slc],
                 *args,
-                **kwargs
+                **kwargs,
             )
         elif block_method == "reduce":
             from skimage.measure import block_reduce
@@ -149,3 +150,122 @@ def goes_figure(goes_ds, *args, **kwargs):
 
     fig.subplot = subplot.__get__(fig)
     return fig
+
+
+def add_gl_ticks(ax, gl):
+    x_tick_locs = []
+    if gl.bottom_labels:
+        x_tick_locs += [
+            artist.properties()["unitless_position"][0]
+            for artist in gl.bottom_label_artists
+            if artist.properties()["visible"]
+        ]
+    if gl.top_labels:
+        x_tick_locs += [
+            artist.properties()["unitless_position"][0]
+            for artist in gl.top_label_artists
+            if artist.properties()["visible"]
+        ]
+    x_tick_labels = [""] * len(x_tick_locs)
+    ax.set_xticks(x_tick_locs, crs=ax.projection)
+    ax.set_xticklabels(x_tick_labels)
+
+    y_tick_locs = []
+    if gl.left_labels:
+        y_tick_locs += [
+            artist.properties()["unitless_position"][1]
+            for artist in gl.left_label_artists
+            if artist.properties()["visible"]
+        ]
+    if gl.right_labels:
+        y_tick_locs += [
+            artist.properties()["unitless_position"][1]
+            for artist in gl.right_label_artists
+            if artist.properties()["visible"]
+        ]
+    y_tick_labels = [""] * len(y_tick_locs)
+    ax.set_yticks(y_tick_locs, crs=ax.projection)
+    ax.set_yticklabels(y_tick_labels)
+
+    ax.tick_params(
+        top=gl.top_labels,
+        bottom=gl.bottom_labels,
+        left=gl.left_labels,
+        right=gl.right_labels,
+    )
+
+
+def bias_plot(ax4, obs, truths, weights):
+    from scipy.stats import linregress
+    from sklearn.linear_model import LinearRegression
+    from tobac_flow.utils import weighted_average_and_std
+
+    # Plot points
+    ax4.scatter(truths.ravel(), obs.ravel(), alpha=0.05, c="b")
+    # 1-1 line
+    ax4.plot([-1e4, 1e4], [-1e4, 1e4], "k--")
+
+    # Find linear fit and plot
+    wh = np.isfinite(obs.ravel())
+    linear_fit = linregress(truths.ravel()[wh], obs.ravel()[wh])
+    print(f"All points -- Slope: {linear_fit.slope}, Intercept:{linear_fit.intercept}")
+    fit_equation = lambda x: linear_fit.slope * x + linear_fit.intercept
+    plt.plot(np.array([-1e4, 1e4]), fit_equation(np.array([-1e4, 1e4])), "b")
+
+    # Get info about fit/bias
+    wh = np.isfinite(obs)
+    bias = (obs[wh] - truths[wh]).mean()
+    std = (obs[wh] - truths[wh]).std()
+    std *= wh.sum() / (wh.sum() - 1)
+    rmse = ((obs[wh] - truths[wh]) ** 2).mean() ** 0.5
+    r_value = np.corrcoef(truths[wh], obs[wh])[0, 1]
+    n_points = wh.sum()
+    units = "$Wm^{-2}$"
+    print(f"Bias: {bias:.02f} {units}")
+    print(f"Std: {std:.02f} {units}")
+    print(f"RMSE: {rmse:.02f} {units}")
+    print(f"R: {r_value:.02f}")
+    print(f"N: {n_points}")
+    ax4.text(
+        0.975,
+        0.025,
+        f"All locations:\nBias: {bias:.02f} {units}\nStd: {std:.02f} {units}\nRMSE: {rmse:.02f} {units}\nR: {r_value:.02f}\nN: {n_points}",
+        color="b",
+        ha="right",
+        va="bottom",
+        transform=ax4.transAxes,
+    )
+
+    # Now weight by DCC anvil locations
+    wh = weights > 0
+    ax4.scatter(truths[wh], obs[wh], alpha=0.05, c="r")
+
+    regr = LinearRegression()
+    regr.fit(truths[wh].reshape(-1, 1), obs[wh].reshape(-1, 1), weights[wh])
+    print(f"DCC weighted -- Slope: {regr.coef_[0][0]}, Intercept:{regr.intercept_[0]}")
+    plt.plot(
+        np.array([-1e4, 1e4]), regr.predict(np.array([-1e4, 1e4]).reshape(-1, 1)), "r"
+    )
+
+    wh = weights > 0
+    weighted_bias, weighted_std = weighted_average_and_std(
+        (obs - truths)[wh], weights=weights[wh]
+    )
+    weighted_rmse = np.average((obs - truths)[wh] ** 2, weights=weights[wh]) ** 0.5
+    weighted_r = weighted_correlation(truths[wh], obs[wh], weights[wh])
+    weighted_n = wh.sum()
+    units = "$Wm^{-2}$"
+    print(f"Bias: {weighted_bias:.02f} {units}")
+    print(f"Std: {weighted_std:.02f} {units}")
+    print(f"RMSE: {weighted_rmse:.02f} {units}")
+    print(f"R: {weighted_r:.02f}")
+    print(f"N: {weighted_n}")
+    ax4.text(
+        0.025,
+        0.975,
+        f"DCC observation weighted:\nBias: {weighted_bias:.02f} {units}\nStd: {weighted_std:.02f} {units}\nRMSE: {weighted_rmse:.02f} {units}\nR: {weighted_r:.02f}\nN: {weighted_n}",
+        color="r",
+        ha="left",
+        va="top",
+        transform=ax4.transAxes,
+    )

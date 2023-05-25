@@ -353,3 +353,17 @@ def idxmax_cooling_rate_groupby(BT, times, groups, coord, t_steps=1):
         ],
         {coord.name: coord},
     )
+
+
+def weighted_covariance(x, y, w):
+    """Weighted Covariance"""
+    return np.sum(
+        w * (x - np.average(x, weights=w)) * (y - np.average(y, weights=w))
+    ) / np.sum(w)
+
+
+def weighted_correlation(x, y, w):
+    """Weighted Correlation"""
+    return weighted_covariance(x, y, w) / np.sqrt(
+        weighted_covariance(x, x, w) * weighted_covariance(y, y, w)
+    )
