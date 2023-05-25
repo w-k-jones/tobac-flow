@@ -4,12 +4,12 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 from tobac_flow.postprocess import (
+    add_validity_flags,
     process_core_properties,
     process_thick_anvil_properties,
     process_thin_anvil_properties,
 )
 from tobac_flow.utils import (
-    add_validity_flags,
     remove_orphan_coords,
     filter_cores,
     filter_anvils,
