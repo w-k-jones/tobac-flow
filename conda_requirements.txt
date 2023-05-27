@@ -14,6 +14,8 @@ pyproj
 cf_xarray
 python-dateutil
 scikit-image
+scikit-learn
+satpy
 cython
 
 # Plotting and vis
