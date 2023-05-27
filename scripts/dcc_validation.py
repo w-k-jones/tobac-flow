@@ -91,7 +91,9 @@ def main():
     x_str = file.stem.split("_X")[-1][:9]
     y_str = file.stem.split("_Y")[-1][:9]
     new_file_str = f"S{start_str}_E{end_str}_X{x_str}_Y{y_str}"
-    dates = pd.date_range(start_date, end_date, freq="H", closed="left").to_pydatetime()
+    dates = pd.date_range(
+        start_date, end_date, freq="H", inclusive="right"
+    ).to_pydatetime()
 
     glm_save_name = f"gridded_glm_flashes_{new_file_str}.nc"
     glm_save_path = glm_save_dir / glm_save_name
