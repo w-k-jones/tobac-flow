@@ -178,9 +178,9 @@ def main():
         gridded_flash_ds.to_netcdf(glm_save_path)
 
     if args.is_valid:
-        stats_file = stats_path.glob(
+        stats_file = list(stats_path.glob(
             f"dcc_statistics_G16_S{start_str[:6]}*_X{x_str}_Y{y_str}.nc"
-        )[0]
+        ))[0]
         stats_ds = xr.open_dataset(stats_file)
         core_label = detection_ds.core_label.data
         core_label = core_label[
