@@ -49,7 +49,7 @@ parser.add_argument("-cglm", help="clobber existing glm files", action="store_tr
 
 args = parser.parse_args()
 
-file = args.file
+file = pathlib.Path(args.file)
 margin = args.margin
 time_margin = args.time_margin
 clobber_glm = args.cglm
@@ -128,7 +128,7 @@ def main():
             raise ValueError("No GLM Files discovered, skipping validation")
         else:
             print(datetime.now(), "Regridding GLM data", flush=True)
-            glm_grid = glm.regrid_glm(glm_files, gridded_flash_ds, corrected=False)
+            glm_grid = glm.regrid_glm(glm_files, gridded_flash_ds, corrected=True)
 
         add_dataarray_to_ds(
             create_dataarray(
