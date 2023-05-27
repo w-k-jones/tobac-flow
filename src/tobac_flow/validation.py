@@ -1,27 +1,18 @@
 import numpy as np
 import xarray as xr
 from scipy import ndimage as ndi
+from tobac_flow.utils import apply_func_to_labels
 
 
-def get_min_dist_for_objects(distance_array, labels):
+def get_min_dist_for_objects(distance_array, labels, index=None):
     if isinstance(labels, xr.DataArray):
-        bins = np.cumsum(np.bincount(labels.data.ravel()))
-        args = np.argsort(labels.data.ravel())
-    else:
-        bins = np.cumsum(np.bincount(labels.ravel()))
-        args = np.argsort(labels.ravel())
-    dists = np.full(bins.size - 1, np.nan)
-    mask_count = np.full(bins.size - 1, np.nan)
-    for i in range(bins.size - 1):
-        if bins[i + 1] > bins[i]:
-            mask_count[i] = bins[i + 1] - bins[i]
-            if isinstance(distance_array, xr.DataArray):
-                dists[i] = np.min(
-                    distance_array.data.ravel()[args[bins[i] : bins[i + 1]]]
-                )
-            else:
-                dists[i] = np.min(distance_array.ravel()[args[bins[i] : bins[i + 1]]])
-    return dists, mask_count
+        labels = labels.to_numpy()
+    if isinstance(distance_array, xr.DataArray):
+        distance_array = distance_array.to_numpy()
+
+    return apply_func_to_labels(
+        labels, distance_array, np.nanmin, index=index, default=np.nan
+    )
 
 
 def get_marker_distance(labels, time_range=1):

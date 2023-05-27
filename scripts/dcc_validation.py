@@ -12,7 +12,7 @@ from tobac_flow.dataset import (
     add_dataarray_to_ds,
     create_dataarray,
 )
-from tobac_flow.analysis import (
+from tobac_flow.utils import (
     apply_func_to_labels,
 )
 from tobac_flow.validation import get_min_dist_for_objects, get_marker_distance
@@ -261,12 +261,12 @@ def main():
 
     # Calculate false alarm rate
     growth_margin_flag = apply_func_to_labels(
-        core_label, edge_filter_array, np.nanmin
-    ).astype("bool")[core_coord]
+        core_label, edge_filter_array, func=np.nanmin, index=core_coord, default=0
+    ).astype("bool")
     n_growth_in_margin = np.nansum(growth_margin_flag)
-    growth_min_distance = get_min_dist_for_objects(glm_distance, core_label)[0][
-        core_coord
-    ]
+    growth_min_distance = get_min_dist_for_objects(
+        glm_distance, core_label, index=core_coord
+    )
 
     if n_growth_in_margin > 0:
         growth_far = (
@@ -284,12 +284,16 @@ def main():
         growth_far_hist = np.zeros([40])
 
     anvil_margin_flag = apply_func_to_labels(
-        thick_anvil_label.data, edge_filter_array, np.nanmin
-    ).astype("bool")[anvil_coord]
+        thick_anvil_label.data,
+        edge_filter_array,
+        func=np.nanmin,
+        index=anvil_coord,
+        default=0,
+    ).astype("bool")
     n_anvil_in_margin = np.nansum(anvil_margin_flag)
-    anvil_min_distance = get_min_dist_for_objects(glm_distance, thick_anvil_label.data)[
-        0
-    ][anvil_coord]
+    anvil_min_distance = get_min_dist_for_objects(
+        glm_distance, thick_anvil_label, index=anvil_coord
+    )
     if n_anvil_in_margin > 0:
         anvil_far = (
             np.nansum(anvil_min_distance[anvil_margin_flag] > margin)
