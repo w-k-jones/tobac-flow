@@ -146,7 +146,7 @@ def main():
 
         add_dataarray_to_ds(
             create_dataarray(
-                np.sum(glm_grid.data),
+                np.nansum(glm_grid.data),
                 tuple(),
                 "glm_flash_count",
                 long_name="total number of GLM flashes",
@@ -187,17 +187,17 @@ def main():
         (glm_grid.data.astype(int) * edge_filter_array.astype(int)).ravel(),
     )
 
-    n_glm_in_margin = np.sum(glm_grid.data * edge_filter_array.astype(int))
+    n_glm_in_margin = np.nansum(glm_grid.data * edge_filter_array.astype(int))
 
     print(datetime.now(), "Validating detection accuracy", flush=True)
     # Calculate probability of detection for each case
     if n_glm_in_margin > 0:
-        growth_pod = np.sum(flash_distance_to_marker <= 10) / n_glm_in_margin
+        growth_pod = np.nansum(flash_distance_to_marker <= 10) / n_glm_in_margin
         growth_pod_hist = (
             np.histogram(flash_distance_to_marker, bins=40, range=[0, 40])[0]
             / n_glm_in_margin
         )
-        anvil_pod = np.sum(flash_distance_to_anvil <= 10) / n_glm_in_margin
+        anvil_pod = np.nansum(flash_distance_to_anvil <= 10) / n_glm_in_margin
         anvil_pod_hist = (
             np.histogram(flash_distance_to_anvil, bins=40, range=[0, 40])[0]
             / n_glm_in_margin
@@ -212,14 +212,14 @@ def main():
     growth_margin_flag = apply_func_to_labels(
         detection_ds.core_label.data, edge_filter_array, np.nanmin
     ).astype("bool")
-    n_growth_in_margin = np.sum(growth_margin_flag)
+    n_growth_in_margin = np.nansum(growth_margin_flag)
     growth_min_distance = get_min_dist_for_objects(
         glm_distance, detection_ds.core_label.data
     )[0]
 
     if n_growth_in_margin > 0:
         growth_far = (
-            np.sum(growth_min_distance[growth_margin_flag] > 10) / n_growth_in_margin
+            np.nansum(growth_min_distance[growth_margin_flag] > 10) / n_growth_in_margin
         )
         growth_far_hist = (
             np.histogram(
@@ -234,13 +234,13 @@ def main():
     anvil_margin_flag = apply_func_to_labels(
         detection_ds.thick_anvil_label.data, edge_filter_array, np.nanmin
     ).astype("bool")
-    n_anvil_in_margin = np.sum(anvil_margin_flag)
+    n_anvil_in_margin = np.nansum(anvil_margin_flag)
     anvil_min_distance = get_min_dist_for_objects(
         glm_distance, detection_ds.thick_anvil_label.data
     )[0]
     if n_anvil_in_margin > 0:
         anvil_far = (
-            np.sum(anvil_min_distance[anvil_margin_flag] > 10) / n_anvil_in_margin
+            np.nansum(anvil_min_distance[anvil_margin_flag] > 10) / n_anvil_in_margin
         )
         anvil_far_hist = (
             np.histogram(anvil_min_distance[anvil_margin_flag], bins=40, range=[0, 40])[
@@ -262,7 +262,7 @@ def main():
     print("POD =", anvil_pod, flush=True)
     print("FAR = ", anvil_far, flush=True)
 
-    print("total GLM flashes: ", np.sum(glm_grid.data), flush=True)
+    print("total GLM flashes: ", np.nansum(glm_grid.data), flush=True)
     print("total in margin: ", n_glm_in_margin, flush=True)
 
     """
