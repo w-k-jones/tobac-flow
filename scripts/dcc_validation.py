@@ -46,7 +46,17 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("-cglm", help="clobber existing glm files", action="store_true")
-
+parser.add_argument(
+    "-is_valid",
+    help="Check for valid cores/anvils from statistics file",
+    action="store_true",
+)
+parser.add_argument(
+    "-stats_path",
+    help="Directory of monthly statistics files",
+    default="/work/scratch-nopw2/wkjones/statistics/",
+    type=str,
+)
 args = parser.parse_args()
 
 file = pathlib.Path(args.file)
@@ -74,6 +84,10 @@ if not save_dir.exists():
         save_dir.mkdir()
     except (FileExistsError, OSError):
         pass
+
+stats_path = pathlib.Path(args.stats_path)
+if args.is_valid and (not stats_path.exists()):
+    raise ValueError("Stats path not valid")
 
 # def validation(file, margin, goes_data_path, save_dir):
 def main():
@@ -163,9 +177,41 @@ def main():
         print(datetime.now(), "Saving to %s" % (glm_save_path), flush=True)
         gridded_flash_ds.to_netcdf(glm_save_path)
 
+    if args.is_valid:
+        stats_file = stats_path.glob(
+            f"dcc_statistics_G16_S{start_str[:6]}*_X{x_str}_Y{y_str}.nc"
+        )
+        stats_ds = xr.open_dataset(stats_file)
+        core_label = detection_ds.core_label.data
+        core_label = core_label[
+            np.isin(core_label, stats_ds.core.data[stats_ds.core_is_valid.data])
+        ]
+        core_coord = detection_ds.core.data
+        core_coord = core_coord[
+            np.isin(core_coord, stats_ds.core.data[stats_ds.core_is_valid.data])
+        ]
+        thick_anvil_label = detection_ds.thick_anvil_label.data
+        thick_anvil_label = thick_anvil_label[
+            np.isin(
+                thick_anvil_label,
+                stats_ds.anvil.data[stats_ds.thin_anvil_is_valid.data],
+            )
+        ]
+        anvil_coord = detection_ds.anvil.data
+        anvil_coord = anvil_coord[
+            np.isin(anvil_coord, stats_ds.anvil.data[stats_ds.anvil_is_valid.data])
+        ]
+
+    else:
+        core_label = detection_ds.core_label.data
+        thick_anvil_label = detection_ds.thick_anvil_label.data
+        core_coord = detection_ds.core.data
+        anvil_coord = detection_ds.anvil.data
+
+    validation_ds = validation_ds.assign_coords(core=core_coord, anvil=anvil_coord)
     print(datetime.now(), "Calculating marker distances", flush=True)
-    marker_distance = get_marker_distance(detection_ds.core_label.data, time_range=3)
-    anvil_distance = get_marker_distance(detection_ds.thick_anvil_label, time_range=3)
+    marker_distance = get_marker_distance(core_label, time_range=3)
+    anvil_distance = get_marker_distance(thick_anvil_label, time_range=3)
     glm_distance = get_marker_distance(glm_grid, time_range=3)
     # wvd_distance = get_marker_distance(detection_ds.wvd_label, time_range=3)
 
@@ -215,16 +261,17 @@ def main():
 
     # Calculate false alarm rate
     growth_margin_flag = apply_func_to_labels(
-        detection_ds.core_label.data, edge_filter_array, np.nanmin
-    ).astype("bool")
+        core_label, edge_filter_array, np.nanmin
+    ).astype("bool")[core_coord]
     n_growth_in_margin = np.nansum(growth_margin_flag)
-    growth_min_distance = get_min_dist_for_objects(
-        glm_distance, detection_ds.core_label.data
-    )[0]
+    growth_min_distance = get_min_dist_for_objects(glm_distance, core_label)[0][
+        core_coord
+    ]
 
     if n_growth_in_margin > 0:
         growth_far = (
-            np.nansum(growth_min_distance[growth_margin_flag] > 10) / n_growth_in_margin
+            np.nansum(growth_min_distance[growth_margin_flag] > margin)
+            / n_growth_in_margin
         )
         growth_far_hist = (
             np.histogram(
@@ -237,15 +284,16 @@ def main():
         growth_far_hist = np.zeros([40])
 
     anvil_margin_flag = apply_func_to_labels(
-        detection_ds.thick_anvil_label.data, edge_filter_array, np.nanmin
-    ).astype("bool")
+        thick_anvil_label.data, edge_filter_array, np.nanmin
+    ).astype("bool")[anvil_coord]
     n_anvil_in_margin = np.nansum(anvil_margin_flag)
-    anvil_min_distance = get_min_dist_for_objects(
-        glm_distance, detection_ds.thick_anvil_label.data
-    )[0]
+    anvil_min_distance = get_min_dist_for_objects(glm_distance, thick_anvil_label.data)[
+        0
+    ][anvil_coord]
     if n_anvil_in_margin > 0:
         anvil_far = (
-            np.nansum(anvil_min_distance[anvil_margin_flag] > 10) / n_anvil_in_margin
+            np.nansum(anvil_min_distance[anvil_margin_flag] > margin)
+            / n_anvil_in_margin
         )
         anvil_far_hist = (
             np.histogram(anvil_min_distance[anvil_margin_flag], bins=40, range=[0, 40])[
