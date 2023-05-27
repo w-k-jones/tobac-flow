@@ -155,6 +155,11 @@ def main():
             gridded_flash_ds,
         )
 
+        # Add compression encoding
+        comp = dict(zlib=True, complevel=5, shuffle=True)
+        for var in gridded_flash_ds.data_vars:
+            gridded_flash_ds[var].encoding.update(comp)
+
         print(datetime.now(), "Saving to %s" % (glm_save_path), flush=True)
         gridded_flash_ds.to_netcdf(glm_save_path)
 
@@ -436,6 +441,10 @@ def main():
         validation_ds,
     )
 
+    # Add compression encoding
+    comp = dict(zlib=True, complevel=5, shuffle=True)
+    for var in validation_ds.data_vars:
+        validation_ds[var].encoding.update(comp)
     print(datetime.now(), "Saving to %s" % (validation_save_path), flush=True)
     validation_ds.to_netcdf(validation_save_path)
 
