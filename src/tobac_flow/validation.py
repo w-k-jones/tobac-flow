@@ -11,7 +11,7 @@ def get_min_dist_for_objects(distance_array, labels, index=None):
         distance_array = distance_array.to_numpy()
 
     return apply_func_to_labels(
-        labels, distance_array, np.nanmin, index=index, default=np.nan
+        labels, distance_array, func=np.nanmin, index=index, default=np.nan
     )
 
 
