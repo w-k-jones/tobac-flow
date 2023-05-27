@@ -199,7 +199,7 @@ def main():
         ]
         anvil_coord = detection_ds.anvil.data
         anvil_coord = anvil_coord[
-            np.isin(anvil_coord, stats_ds.anvil.data[stats_ds.anvil_is_valid.data])
+            np.isin(anvil_coord, stats_ds.anvil.data[stats_ds.thin_anvil_is_valid.data])
         ]
 
     else:
