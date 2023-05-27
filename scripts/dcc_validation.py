@@ -284,7 +284,7 @@ def main():
         growth_far_hist = np.zeros([40])
 
     anvil_margin_flag = apply_func_to_labels(
-        thick_anvil_label.data,
+        thick_anvil_label,
         edge_filter_array,
         func=np.nanmin,
         index=anvil_coord,
