@@ -54,21 +54,21 @@ margin = args.margin
 time_margin = args.time_margin
 clobber_glm = args.cglm
 
-goes_data_path = pathlib.path(args.gd)
+goes_data_path = pathlib.Path(args.gd)
 if not goes_data_path.exists():
     try:
         goes_data_path.mkdir()
     except (FileExistsError, OSError):
         pass
 
-glm_save_dir = pathlib.path(args.glmsd)
+glm_save_dir = pathlib.Path(args.glmsd)
 if not glm_save_dir.exists():
     try:
         glm_save_dir.mkdir()
     except (FileExistsError, OSError):
         pass
 
-save_dir = pathlib.path(args.sd)
+save_dir = pathlib.Path(args.sd)
 if not save_dir.exists():
     try:
         save_dir.mkdir()
