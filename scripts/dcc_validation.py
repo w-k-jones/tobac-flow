@@ -86,10 +86,10 @@ def main():
     validation_ds = xr.Dataset()
 
     start_date, end_date = get_dates_from_filename(file)
-    start_str = file[0].stem.split("_S")[-1][:15]
-    end_str = file[-1].stem.split("_E")[-1][:15]
-    x_str = file[0].stem.split("_X")[-1][:9]
-    y_str = file[0].stem.split("_Y")[-1][:9]
+    start_str = file.stem.split("_S")[-1][:15]
+    end_str = file.stem.split("_E")[-1][:15]
+    x_str = file.stem.split("_X")[-1][:9]
+    y_str = file.stem.split("_Y")[-1][:9]
     new_file_str = f"S{start_str}_E{end_str}_X{x_str}_Y{y_str}"
     dates = pd.date_range(start_date, end_date, freq="H", closed="left").to_pydatetime()
 
