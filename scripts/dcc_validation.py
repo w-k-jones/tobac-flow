@@ -1,3 +1,4 @@
+import argparse
 import pathlib
 from datetime import datetime
 import numpy as np
@@ -5,7 +6,17 @@ import pandas as pd
 import xarray as xr
 from scipy import ndimage as ndi
 
-import argparse
+from tobac_flow import io, glm
+from tobac_flow.dataset import (
+    create_new_goes_ds,
+    add_dataarray_to_ds,
+    create_dataarray,
+)
+from tobac_flow.analysis import (
+    apply_func_to_labels,
+)
+from tobac_flow.validation import get_min_dist_for_objects, get_marker_distance
+from tobac_flow.utils import get_dates_from_filename
 
 parser = argparse.ArgumentParser(
     description="""Validate detected DCCs using GOES-16 GLM data"""
@@ -69,29 +80,22 @@ def main():
     """
     Validation process for detected DCCs in the given file
     """
-    from tobac_flow import io, glm
-    from tobac_flow.dataset import (
-        create_new_goes_ds,
-        add_dataarray_to_ds,
-        create_dataarray,
-    )
-    from tobac_flow.analysis import (
-        apply_func_to_labels,
-    )
-    from tobac_flow.validation import get_min_dist_for_objects, get_marker_distance
-
     print(datetime.now(), "Loading detected DCCs", flush=True)
     print(file, flush=True)
     detection_ds = xr.open_dataset(file)
     validation_ds = xr.Dataset()
 
-    dates = pd.date_range(
-        detection_ds.t.data[0], detection_ds.t.data[-1], freq="H", closed="left"
-    ).to_pydatetime()
+    start_date, end_date = get_dates_from_filename(file)
+    start_str = file[0].stem.split("_S")[-1][:15]
+    end_str = file[-1].stem.split("_E")[-1][:15]
+    x_str = file[0].stem.split("_X")[-1][:9]
+    y_str = file[0].stem.split("_Y")[-1][:9]
+    new_file_str = f"S{start_str}_E{end_str}_X{x_str}_Y{y_str}"
+    dates = pd.date_range(start_date, end_date, freq="H", closed="left").to_pydatetime()
 
-    glm_save_name = f'gridded_glm_flashes_{dates[0].strftime("%Y%m%d_%H0000")}.nc'
+    glm_save_name = f"gridded_glm_flashes_{new_file_str}.nc"
     glm_save_path = glm_save_dir / glm_save_name
-    validation_save_name = f'validation_dccs_{dates[0].strftime("%Y%m%d_%H0000")}.nc'
+    validation_save_name = f"validation_dccs_{new_file_str}.nc"
     validation_save_path = save_dir / validation_save_name
 
     """
