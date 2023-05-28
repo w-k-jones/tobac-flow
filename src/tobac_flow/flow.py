@@ -70,7 +70,7 @@ class Flow(Abstract_Flow):
         self.backward_flow = backward_flow
 
     @property
-    def flow(self) -> tuple[np.ndarray[float], np.ndarray][float]:
+    def flow(self) -> tuple[np.ndarray[float], np.ndarray[float]]:
         """
         Return the flow vectors
         """

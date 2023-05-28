@@ -1,3 +1,7 @@
+"""
+Abstract base classes.
+"""
+
 from abc import ABC, abstractmethod
 from typing import Callable
 import numpy as np
@@ -70,4 +74,4 @@ class Abstract_Flow(ABC):
         pass
 
 
-__all__ = Abstract_Flow
+__all__ = ("Abstract_Flow",)
