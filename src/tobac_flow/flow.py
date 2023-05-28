@@ -9,6 +9,8 @@ from tobac_flow.label import flow_label
 from tobac_flow.sobel import sobel
 from tobac_flow.watershed import watershed
 
+from tobac_flow.core import Abstract_Flow
+
 
 def create_flow(
     data: np.ndarray, model: str = "DIS", vr_steps: int = 0, smoothing_passes: int = 0
@@ -43,12 +45,14 @@ def create_flow(
     return flow
 
 
-class Flow:
+class Flow(Abstract_Flow):
     """
     Class to perform semi-lagrangian operations using optical flow
     """
 
-    def __init__(self, forward_flow: np.ndarray, backward_flow: np.ndarray) -> None:
+    def __init__(
+        self, forward_flow: np.ndarray[float], backward_flow: np.ndarray[float]
+    ) -> None:
         """
         Initialise the flow object with a data array and calculate the optical
             flow vectors for that array
@@ -66,13 +70,13 @@ class Flow:
         self.backward_flow = backward_flow
 
     @property
-    def flow(self) -> tuple[np.ndarray, np.ndarray]:
+    def flow(self) -> tuple[np.ndarray[float], np.ndarray][float]:
         """
         Return the flow vectors
         """
         return self.forward_flow, self.backward_flow
 
-    def __getitem__(self, items) -> "Flow":
+    def __getitem__(self, items: tuple) -> "Flow":
         """
         Return a subset of the flow object
         """
@@ -80,8 +84,8 @@ class Flow:
 
     def convolve(
         self,
-        data: np.ndarray,
-        structure: np.ndarray = ndi.generate_binary_structure(3, 1),
+        data: np.ndarray[float],
+        structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
         method: str = "linear",
         fill_value: float = np.nan,
         dtype: type = np.float32,
@@ -133,8 +137,8 @@ class Flow:
         return output
 
     def diff(
-        self, data: np.ndarray, method: str = "linear", dtype: type = np.float32
-    ) -> np.ndarray:
+        self, data: np.ndarray[float], method: str = "linear", dtype: type = np.float32
+    ) -> np.ndarray[float]:
         """
         Calculate the gradient of a dataset along the leading dimension in a
             semi-Lagrangian framework
@@ -168,7 +172,7 @@ class Flow:
 
     def sobel(
         self,
-        data: np.ndarray,
+        data: np.ndarray[float],
         method: str = "linear",
         dtype: type = None,
         fill_value: float = np.nan,
@@ -211,7 +215,7 @@ class Flow:
 
     def watershed(
         self,
-        field: np.ndarray,
+        field: np.ndarray[float],
         markers: np.ndarray[int],
         mask: np.ndarray[bool] | None = None,
         structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
