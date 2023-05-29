@@ -275,6 +275,7 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
 
     return dataset
 
+
 __all__ = (
     "remove_orphan_coords",
     "filter_cores",

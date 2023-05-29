@@ -56,6 +56,7 @@ def add_area_to_dataset(dataset: xr.Dataset, squeeze: bool = False) -> xr.Datase
     dataset["area"] = area_da
     return dataset
 
+
 __all__ = (
     "get_grid_spacing_from_lat_lon",
     "get_area_from_lat_lon",

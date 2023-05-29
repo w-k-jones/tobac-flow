@@ -10,9 +10,15 @@ from tobac_flow.analysis import (
     filter_labels_by_length_and_multimask_legacy,
     find_object_lengths,
     mask_labels,
-    remap_labels
+    remap_labels,
 )
-from tobac_flow.utils import get_time_diff_from_coord, linearise_field, slice_labels, labeled_comprehension, make_step_labels
+from tobac_flow.utils import (
+    get_time_diff_from_coord,
+    linearise_field,
+    slice_labels,
+    labeled_comprehension,
+    make_step_labels,
+)
 
 
 # Filtering of the growth metric occurs in three steps:
@@ -274,6 +280,7 @@ def edge_watershed(
 
     return watershed
 
+
 def get_combined_filters(flow, bt, wvd, swd):
     wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
     bt_curvature_filter = get_curvature_filter(bt, direction="positive")
@@ -306,11 +313,17 @@ def get_combined_filters(flow, bt, wvd, swd):
 
     return combined_filter
 
-def detect_cores(flow, bt, wvd, swd, wvd_threshold = 0.25,
-    bt_threshold = 0.5,
-    overlap = 0.5,
-    subsegment_shrink = 0.0,
-    min_length = 3
+
+def detect_cores(
+    flow,
+    bt,
+    wvd,
+    swd,
+    wvd_threshold=0.25,
+    bt_threshold=0.5,
+    overlap=0.5,
+    subsegment_shrink=0.0,
+    min_length=3,
 ):
     wvd_growth = get_growth_rate(flow, wvd, method="cubic")
     bt_growth = get_growth_rate(flow, -bt, method="cubic")
@@ -399,7 +412,10 @@ def detect_cores(flow, bt, wvd, swd, wvd_threshold = 0.25,
 
     return core_labels
 
-def get_anvil_markers(flow, field, threshold=-5, overlap=0.5, subsegment_shrink=0, min_length=3):
+
+def get_anvil_markers(
+    flow, field, threshold=-5, overlap=0.5, subsegment_shrink=0, min_length=3
+):
     structure = ndi.generate_binary_structure(3, 1)
     s_struct = structure * np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
     mask = ndi.binary_opening(field > threshold, structure=s_struct)
@@ -407,39 +423,39 @@ def get_anvil_markers(flow, field, threshold=-5, overlap=0.5, subsegment_shrink=
         mask, overlap=overlap, subsegment_shrink=subsegment_shrink
     )
     marker_label_lengths = find_object_lengths(marker_labels)
-    marker_labels = remap_labels(
-        marker_labels,
-        marker_label_lengths
-    )
+    marker_labels = remap_labels(marker_labels, marker_label_lengths > min_length)
     return marker_labels
 
+
 def detect_anvils(
-    flow, field: np.ndarray[float], markers=None, upper_threshold=-5, lower_threshold=-15, erode_distance=2, min_length=3
+    flow,
+    field: np.ndarray[float],
+    markers=None,
+    upper_threshold=-5,
+    lower_threshold=-15,
+    erode_distance=2,
+    min_length=3,
 ):
-    field = linearise_field(
-        field, lower_threshold, upper_threshold
-    )
+    field = linearise_field(field, lower_threshold, upper_threshold)
     structure = ndi.generate_binary_structure(3, 1)
     s_struct = structure * np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
     if markers is None:
         markers = field >= 1
-    markers = ndi.binary_erosion(markers, structure=s_struct)
+    markers *= ndi.binary_erosion(markers, structure=s_struct).astype(int)
     mask = ndi.binary_erosion(
         field <= 0,
         structure=np.ones([3, 3, 3]),
         iterations=erode_distance,
         border_value=1,
     )
-    edges = flow.sobel(field, direction="uphill", method="linear")
+    edges = flow.sobel(field, direction="uphill", method="cubic")
     edges[markers != 0] = 0
     anvil_labels = flow.watershed(
         edges - field, markers, mask=mask, structure=ndi.generate_binary_structure(3, 1)
     )
-    anvil_labels *= ndi.binary_opening(
-        anvil_labels, structure=s_struct
-    ).astype(int)
+    anvil_labels *= ndi.binary_opening(anvil_labels, structure=s_struct).astype(int)
 
-    anvil_labels[markers!=0] = markers[markers!=0]
+    anvil_labels[markers != 0] = markers[markers != 0]
 
     marker_label_lengths = find_object_lengths(anvil_labels)
     marker_label_threshold = mask_labels(anvil_labels, markers != 0)
@@ -451,10 +467,9 @@ def detect_anvils(
 
     return anvil_labels
 
+
 def relabel_anvils(flow, anvil_labels, markers=None, overlap=0.5, min_length=3):
-    anvil_labels = flow.link_overlap(
-        make_step_labels(anvil_labels), overlap=overlap
-    )
+    anvil_labels = flow.link_overlap(make_step_labels(anvil_labels), overlap=overlap)
 
     marker_label_lengths = find_object_lengths(anvil_labels)
     if markers is not None:
@@ -468,3 +483,5 @@ def relabel_anvils(flow, anvil_labels, markers=None, overlap=0.5, min_length=3):
             anvil_labels,
             marker_label_lengths > min_length,
         )
+
+    return anvil_labels

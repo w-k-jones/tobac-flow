@@ -10,11 +10,20 @@ from tobac_flow.sobel import sobel
 from tobac_flow.watershed import watershed
 
 from tobac_flow.core import Abstract_Flow
-from tobac_flow.utils import to_8bit, select_normalisation_method, select_of_model, warp_flow
+from tobac_flow.utils import (
+    to_8bit,
+    select_normalisation_method,
+    select_of_model,
+    warp_flow,
+)
 
 
 def create_flow(
-    data: np.ndarray, model: str = "DIS", vr_steps: int = 0, smoothing_passes: int = 0, interp_method: str = "linear",
+    data: np.ndarray,
+    model: str = "DIS",
+    vr_steps: int = 0,
+    smoothing_passes: int = 0,
+    interp_method: str = "linear",
 ) -> "Flow":
     """
     Calculates forward and backward optical flow vectors for a given set of data
@@ -38,7 +47,11 @@ def create_flow(
         A Flow object with optical flow vectors calculated from the input data
     """
     forward_flow, backward_flow = calculate_flow(
-        data, model=model, vr_steps=vr_steps, smoothing_passes=smoothing_passes, interp_method=interp_method
+        data,
+        model=model,
+        vr_steps=vr_steps,
+        smoothing_passes=smoothing_passes,
+        interp_method=interp_method,
     )
 
     flow = Flow(forward_flow, backward_flow)
@@ -306,7 +319,7 @@ class Flow(Abstract_Flow):
         )
 
         return labels
-    
+
     def link_overlap(
         self,
         data: np.ndarray[bool],
@@ -359,7 +372,7 @@ def calculate_flow(
     normalisation_method : str, optional (default : linear)
         Normalisation method to apply to each pair of frames
     **normalisation_kwargs : dict, optional
-        Dictionary of keyword parameters to pass to the selected normalisation 
+        Dictionary of keyword parameters to pass to the selected normalisation
             method
 
     Returns
@@ -383,7 +396,7 @@ def calculate_flow(
 
     for i in range(data.shape[0] - 1):
         prev_frame, next_frame = to_8bit(
-            norm_method(data[i:i+2], **normalisation_kwargs), 0, 1
+            norm_method(data[i : i + 2], **normalisation_kwargs), 0, 1
         )
 
         forward_flow[i], backward_flow[i + 1] = calculate_flow_frame(
@@ -425,7 +438,9 @@ def calculate_flow_frame(
 
     if smoothing_steps > 0:
         for i in range(smoothing_steps):
-            forward_flow, backward_flow = smooth_flow_step(forward_flow, backward_flow, method=interp_method)
+            forward_flow, backward_flow = smooth_flow_step(
+                forward_flow, backward_flow, method=interp_method
+            )
 
     return forward_flow, backward_flow
 

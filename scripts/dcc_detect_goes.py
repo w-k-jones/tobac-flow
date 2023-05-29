@@ -18,7 +18,12 @@ from tobac_flow.analysis import (
     get_label_stats,
     weighted_statistics_on_labels,
 )
-from tobac_flow.detection import detect_cores, get_anvil_markers, detect_anvils, relabel_anvils
+from tobac_flow.detection import (
+    detect_cores,
+    get_anvil_markers,
+    detect_anvils,
+    relabel_anvils,
+)
 from tobac_flow.utils import (
     create_dataarray,
     add_dataarray_to_ds,
@@ -147,15 +152,29 @@ def main() -> None:
         y0=y0,
         y1=y1,
         return_new_ds=True,
-        **io_kwargs, 
+        **io_kwargs,
     )
 
     print(datetime.now(), "Calculating flow field", flush=True)
 
     flow = combine_flow(
-        create_flow(bt, model="Farneback", vr_steps=1, smoothing_passes=1, interp_method="cubic"),
-        create_flow(wvd, model="Farneback", vr_steps=1, smoothing_passes=1, interp_method="cubic"),
-        create_flow(swd, model="Farneback", vr_steps=1, smoothing_passes=1, interp_method="cubic"),
+        create_flow(
+            bt, model="Farneback", vr_steps=1, smoothing_passes=1, interp_method="cubic"
+        ),
+        create_flow(
+            wvd,
+            model="Farneback",
+            vr_steps=1,
+            smoothing_passes=1,
+            interp_method="cubic",
+        ),
+        create_flow(
+            swd,
+            model="Farneback",
+            vr_steps=1,
+            smoothing_passes=1,
+            interp_method="cubic",
+        ),
     )
 
     print(datetime.now(), "Detecting growth markers", flush=True)
@@ -164,12 +183,17 @@ def main() -> None:
     overlap = 0.5
     subsegment_shrink = 0.0
 
-    core_labels = detect_cores(flow, bt, wvd, swd, wvd_threshold=wvd_threshold,
+    core_labels = detect_cores(
+        flow,
+        bt,
+        wvd,
+        swd,
+        wvd_threshold=wvd_threshold,
         bt_threshold=bt_threshold,
-        overlap = overlap,
-        subsegment_shrink = subsegment_shrink,
-        min_length=t_offset
-    )   
+        overlap=overlap,
+        subsegment_shrink=subsegment_shrink,
+        min_length=t_offset,
+    )
 
     print("Final detected core count: n =", core_labels.max())
 
@@ -179,10 +203,25 @@ def main() -> None:
     lower_threshold = -15
     erode_distance = 2
 
-    anvil_markers = get_anvil_markers(flow, (wvd - swd), threshold=upper_threshold, overlap=overlap, subsegment_shrink=subsegment_shrink, min_length=t_offset)
+    anvil_markers = get_anvil_markers(
+        flow,
+        (wvd - swd),
+        threshold=upper_threshold,
+        overlap=overlap,
+        subsegment_shrink=subsegment_shrink,
+        min_length=t_offset,
+    )
 
-    thick_anvil_labels = detect_anvils(flow, (wvd - swd), markers=anvil_markers, upper_threshold=upper_threshold, lower_threshold=lower_threshold, erode_distance=erode_distance, min_length=t_offset)
-    
+    thick_anvil_labels = detect_anvils(
+        flow,
+        (wvd - swd),
+        markers=anvil_markers,
+        upper_threshold=upper_threshold,
+        lower_threshold=lower_threshold,
+        erode_distance=erode_distance,
+        min_length=t_offset,
+    )
+
     print(
         "Initial detected thick anvils: area =",
         np.sum(thick_anvil_labels != 0),
@@ -190,7 +229,13 @@ def main() -> None:
     )
     print("Initial detected thick anvils: n =", thick_anvil_labels.max(), flush=True)
 
-    thick_anvil_labels = relabel_anvils(flow, thick_anvil_labels, markers=anvil_markers, overlap=overlap, min_length=t_offset)
+    thick_anvil_labels = relabel_anvils(
+        flow,
+        thick_anvil_labels,
+        markers=anvil_markers,
+        overlap=overlap,
+        min_length=t_offset,
+    )
 
     print(
         "Final detected thick anvils: area =",
@@ -204,7 +249,15 @@ def main() -> None:
     upper_threshold = 0
     lower_threshold = -10
 
-    thin_anvil_labels = detect_anvils(flow, (wvd + swd), markers=thick_anvil_labels, upper_threshold=upper_threshold, lower_threshold=lower_threshold, erode_distance=erode_distance, min_length=t_offset)
+    thin_anvil_labels = detect_anvils(
+        flow,
+        (wvd + swd),
+        markers=thick_anvil_labels,
+        upper_threshold=upper_threshold,
+        lower_threshold=lower_threshold,
+        erode_distance=erode_distance,
+        min_length=t_offset,
+    )
 
     print("Detected thin anvils: area =", np.sum(thin_anvil_labels != 0), flush=True)
     print("Detected thin anvils: n =", np.max(thin_anvil_labels), flush=True)

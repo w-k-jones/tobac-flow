@@ -329,6 +329,7 @@ def flow_link_overlap(
         warnings.warn("Not all regions present in labeled array", RuntimeWarning)
     return new_labels
 
+
 def flow_link_overlap(
     flow,
     flat_labels: np.ndarray[int],

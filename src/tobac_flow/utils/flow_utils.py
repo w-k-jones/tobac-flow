@@ -11,11 +11,13 @@ border_modes = {
     "transparent": cv2.BORDER_TRANSPARENT,
 }
 
+
 def select_border_mode(mode: str):
     if mode not in border_modes:
         raise ValueError("Invalid border mode")
     else:
         return border_modes[mode]
+
 
 interp_modes = {
     "nearest": cv2.INTER_NEAREST,
@@ -24,12 +26,13 @@ interp_modes = {
     "lanczos": cv2.INTER_LANCZOS4,
 }
 
+
 def select_interp_mode(mode: str):
     if mode not in interp_modes:
         raise ValueError("Invalid border mode")
     else:
         return interp_modes[mode]
-    
+
 
 def select_of_model(model: str) -> cv2.DenseOpticalFlow:
     """
@@ -73,7 +76,10 @@ def select_of_model(model: str) -> cv2.DenseOpticalFlow:
 
     return of_model
 
-def warp_flow(img: np.ndarray, flow: np.ndarray, method: str = "linear", border: str = "constant") -> np.ndarray:
+
+def warp_flow(
+    img: np.ndarray, flow: np.ndarray, method: str = "linear", border: str = "constant"
+) -> np.ndarray:
     """
     Warp an image according to a given set of optical flow vectors
     """
@@ -81,7 +87,15 @@ def warp_flow(img: np.ndarray, flow: np.ndarray, method: str = "linear", border:
     locs = flow.copy()
     locs[:, :, 0] += np.arange(w)
     locs[:, :, 1] += np.arange(h)[:, np.newaxis]
-    res = cv2.remap(img, locs, None, select_interp_mode(method), None, select_border_mode(border), np.nan)
+    res = cv2.remap(
+        img,
+        locs,
+        None,
+        select_interp_mode(method),
+        None,
+        select_border_mode(border),
+        np.nan,
+    )
     return res
 
 

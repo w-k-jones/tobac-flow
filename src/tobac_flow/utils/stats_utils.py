@@ -368,6 +368,7 @@ def weighted_correlation(x, y, w):
         weighted_covariance(x, x, w) * weighted_covariance(y, y, w)
     )
 
+
 __all__ = (
     "find_overlap_mode",
     "n_unique_along_axis",
