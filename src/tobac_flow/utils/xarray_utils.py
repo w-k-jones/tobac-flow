@@ -89,3 +89,14 @@ def get_new_attrs_cell_method(attrs: dict, modifier: str, dim_name: str) -> dict
     # Add cell method
     new_attrs["cell_methods"] = f"area: {modifier} where {dim_name}"
     return new_attrs
+
+__all__ = (
+    "create_dataarray",
+    "add_dataarray_to_ds",
+    "get_coord_bin_edges",
+    "get_ds_bin_edges",
+    "get_ds_shape",
+    "get_ds_core_coords",
+    "get_new_attrs",
+    "get_new_attrs_cell_method",
+)

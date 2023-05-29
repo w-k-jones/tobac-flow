@@ -367,3 +367,31 @@ def weighted_correlation(x, y, w):
     return weighted_covariance(x, y, w) / np.sqrt(
         weighted_covariance(x, x, w) * weighted_covariance(y, y, w)
     )
+
+__all__ = (
+    "find_overlap_mode",
+    "n_unique_along_axis",
+    "weighted_average_and_std",
+    "weighted_stats",
+    "weighted_average_uncertainty",
+    "weighted_uncertainties",
+    "weighted_stats_and_uncertainties",
+    "get_weighted_proportions",
+    "calc_combined_mean",
+    "calc_combined_std",
+    "combined_mean_groupby",
+    "combined_std_groupby",
+    "weighted_average_uncertainty_groupby",
+    "weighted_average_groupby",
+    "argmax_groupby",
+    "argmin_groupby",
+    "counts_groupby",
+    "idxmin_groupby",
+    "idxmax_groupby",
+    "calc_max_cooling_rate",
+    "cooling_rate_groupby",
+    "calc_idxmax_cooling_rate",
+    "idxmax_cooling_rate_groupby",
+    "weighted_covariance",
+    "weighted_correlation",
+)

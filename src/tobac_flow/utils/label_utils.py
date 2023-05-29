@@ -226,3 +226,12 @@ def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
         step_labels[i][np.nonzero(step_labels[i])] += max_label
         max_label = step_labels.max()
     return step_labels
+
+__all__ = (
+    "labeled_comprehension",
+    "apply_func_to_labels",
+    "flat_label",
+    "get_step_labels_for_label",
+    "relabel_objects",
+    "slice_labels",
+)

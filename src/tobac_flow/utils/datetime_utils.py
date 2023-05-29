@@ -45,3 +45,12 @@ def time_diff(datetime_list: list[datetime]) -> list[float]:
 
 def get_time_diff_from_coord(coord: xr.DataArray) -> list[float]:
     return np.array(time_diff(get_datetime_from_coord(coord)))
+
+__all__ = (
+    "get_dates_from_filename",
+    "trim_file_start",
+    "trim_file_end",
+    "get_datetime_from_coord",
+    "time_diff",
+    "get_time_diff_from_coord",
+)
