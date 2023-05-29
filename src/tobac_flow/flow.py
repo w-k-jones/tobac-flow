@@ -4,13 +4,13 @@ import xarray as xr
 import cv2
 from scipy import ndimage as ndi
 
-from tobac_flow.convolve import warp_flow, convolve
+from tobac_flow.convolve import convolve
 from tobac_flow.label import flow_label
 from tobac_flow.sobel import sobel
 from tobac_flow.watershed import watershed
 
 from tobac_flow.core import Abstract_Flow
-from tobac_flow.utils import to_8bit, select_normalisation_method, select_of_model
+from tobac_flow.utils import to_8bit, select_normalisation_method, select_of_model, warp_flow
 
 
 def create_flow(
