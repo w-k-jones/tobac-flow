@@ -192,7 +192,7 @@ def main() -> None:
 
     anvil_markers = get_anvil_markers(
         flow,
-        (wvd - swd),
+        wvd - swd,
         threshold=upper_threshold,
         overlap=overlap,
         subsegment_shrink=subsegment_shrink,
@@ -201,11 +201,10 @@ def main() -> None:
 
     print("Final thick anvil markers: area =", np.sum(anvil_markers != 0), flush=True)
     print("Final thick anvil markers: n =", anvil_markers.max(), flush=True)
-    print(anvil_markers.shape, flush=True)
 
     thick_anvil_labels = detect_anvils(
         flow,
-        (wvd - swd),
+        wvd - swd,
         markers=anvil_markers,
         upper_threshold=upper_threshold,
         lower_threshold=lower_threshold,
@@ -242,7 +241,7 @@ def main() -> None:
 
     thin_anvil_labels = detect_anvils(
         flow,
-        (wvd + swd),
+        wvd + swd,
         markers=thick_anvil_labels,
         upper_threshold=upper_threshold,
         lower_threshold=lower_threshold,
