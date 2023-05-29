@@ -10,10 +10,11 @@ from tobac_flow.sobel import sobel
 from tobac_flow.watershed import watershed
 
 from tobac_flow.core import Abstract_Flow
+from tobac_flow.utils import to_8bit, select_normalisation_method, select_of_model
 
 
 def create_flow(
-    data: np.ndarray, model: str = "DIS", vr_steps: int = 0, smoothing_passes: int = 0
+    data: np.ndarray, model: str = "DIS", vr_steps: int = 0, smoothing_passes: int = 0, interp_method: str = "linear",
 ) -> "Flow":
     """
     Calculates forward and backward optical flow vectors for a given set of data
@@ -37,7 +38,7 @@ def create_flow(
         A Flow object with optical flow vectors calculated from the input data
     """
     forward_flow, backward_flow = calculate_flow(
-        data, model=model, vr_steps=vr_steps, smoothing_passes=smoothing_passes
+        data, model=model, vr_steps=vr_steps, smoothing_passes=smoothing_passes, interp_method=interp_method
     )
 
     flow = Flow(forward_flow, backward_flow)
@@ -307,77 +308,8 @@ class Flow(Abstract_Flow):
         return labels
 
 
-"""
-Dicts to convert keyword inputs to opencv flags for flow keywords
-TODO: consider enum?
-"""
-flow_flags = {"default": 0, "gaussian": cv2.OPTFLOW_FARNEBACK_GAUSSIAN}
-
-"""
-Dicts to convert keyword inputs to opencv flags for remap keywords
-"""
-border_modes = {
-    "constant": cv2.BORDER_CONSTANT,
-    "nearest": cv2.BORDER_REPLICATE,
-    "reflect": cv2.BORDER_REFLECT,
-    "mirror": cv2.BORDER_REFLECT_101,
-    "wrap": cv2.BORDER_WRAP,
-    "isolated": cv2.BORDER_ISOLATED,
-    "transparent": cv2.BORDER_TRANSPARENT,
-}
-
-interp_modes = {
-    "nearest": cv2.INTER_NEAREST,
-    "linear": cv2.INTER_LINEAR,
-    "cubic": cv2.INTER_CUBIC,
-    "lanczos": cv2.INTER_LANCZOS4,
-}
-
 # Let's create a new optical_flow derivation function
 vr_model = cv2.VariationalRefinement.create()
-
-
-def select_of_model(model: str) -> cv2.DenseOpticalFlow:
-    """
-    Initiates an opencv optical flow model
-
-    Parameters
-    ----------
-    model : string
-        The model to initatite. Must be one of 'Farneback', 'DeepFlow', 'PCA',
-            'SimpleFlow', 'SparseToDense', 'DIS', 'DenseRLOF', 'DualTVL1'
-
-    Returns
-    -------
-    of_model : cv2.DenseOpticalFlow
-        opencv optical flow model
-    """
-    if model == "Farneback":
-        of_model = cv2.optflow.createOptFlow_Farneback()
-    elif model == "DeepFlow":
-        of_model = cv2.optflow.createOptFlow_DeepFlow()
-    elif model == "PCA":
-        of_model = cv2.optflow.createOptFlow_PCAFlow()
-    elif model == "SimpleFlow":
-        of_model = cv2.optflow.createOptFlow_SimpleFlow()
-    elif model == "SparseToDense":
-        of_model = cv2.optflow.createOptFlow_SparseToDense()
-    elif model == "DIS":
-        of_model = cv2.DISOpticalFlow.create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM)
-        of_model.setUseSpatialPropagation(True)
-    elif model == "DenseRLOF":
-        of_model = cv2.optflow.createOptFlow_DenseRLOF()
-        raise NotImplementedError(
-            "DenseRLOF requires multi-channel input which is currently not implemented"
-        )
-    elif model == "DualTVL1":
-        of_model = cv2.optflow.createOptFlow_DualTVL1()
-    else:
-        raise ValueError(
-            "'model' parameter must be one of: 'Farneback', 'DeepFlow', 'PCA', 'SimpleFlow', 'SparseToDense', 'DIS', 'DenseRLOF', 'DualTVL1'"
-        )
-
-    return of_model
 
 
 def calculate_flow(
@@ -385,6 +317,9 @@ def calculate_flow(
     model: str = "DIS",
     vr_steps: int = 0,
     smoothing_passes: int = 0,
+    interp_method: str = "linear",
+    normalisation_method: str = "linear",
+    **normalisation_kwargs: None | dict
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Calculates forward and backward optical flow vectors for a given set of data
@@ -401,6 +336,11 @@ def calculate_flow(
     smoothing_passes : int, optional (default : 0)
         Number of smoothing operation between the forward and backward flow to
             perform
+    normalisation_method : str, optional (default : linear)
+        Normalisation method to apply to each pair of frames
+    **normalisation_kwargs : dict, optional
+        Dictionary of keyword parameters to pass to the selected normalisation 
+            method
 
     Returns
     -------
@@ -411,20 +351,20 @@ def calculate_flow(
         Array of optical flow vectors acting backwards along the leading
             dimension of data
     """
+    of_model = select_of_model(model)
+
+    norm_method = select_normalisation_method(normalisation_method)
+
     if isinstance(data, xr.DataArray):
         data = data.compute().data
-
-    vmax = np.nanmax(data)
-    vmin = np.nanmin(data)
 
     forward_flow = np.full(data.shape + (2,), np.nan, dtype=np.float32)
     backward_flow = np.full(data.shape + (2,), np.nan, dtype=np.float32)
 
-    of_model = select_of_model(model)
-
     for i in range(data.shape[0] - 1):
-        prev_frame = to_8bit(data[i], vmin, vmax)
-        next_frame = to_8bit(data[i + 1], vmin, vmax)
+        prev_frame, next_frame = to_8bit(
+            norm_method(data[i:i+2], **normalisation_kwargs), 0, 1
+        )
 
         forward_flow[i], backward_flow[i + 1] = calculate_flow_frame(
             prev_frame,
@@ -432,6 +372,7 @@ def calculate_flow(
             of_model,
             vr_steps=vr_steps,
             smoothing_steps=smoothing_passes,
+            interp_method=interp_method,
         )
 
     forward_flow[-1] = -backward_flow[-1]
@@ -440,40 +381,13 @@ def calculate_flow(
     return forward_flow, backward_flow
 
 
-def to_8bit(array: np.ndarray, vmin: float = None, vmax: float = None) -> np.ndarray:
-    """
-    Converts an array to an 8-bit range between 0 and 255
-    """
-    if vmin is None:
-        vmin = np.nanmin(array)
-    if vmax is None:
-        vmax = np.nanmax(array)
-    if vmin == vmax:
-        factor = 0
-    else:
-        factor = 255 / (vmax - vmin)
-    array_out = ((array - vmin) * factor).astype("uint8")
-    return array_out
-
-
-def warp_flow(img: np.ndarray, flow: np.ndarray) -> np.ndarray:
-    """
-    Warp an image according to a given set of optical flow vectors
-    """
-    h, w = flow.shape[:2]
-    locs = flow.copy()
-    locs[:, :, 0] += np.arange(w)
-    locs[:, :, 1] += np.arange(h)[:, np.newaxis]
-    res = cv2.remap(img, locs, None, cv2.INTER_CUBIC, None, cv2.BORDER_CONSTANT, np.nan)
-    return res
-
-
 def calculate_flow_frame(
     prev_frame: np.ndarray[np.uint8],
     next_frame: np.ndarray[np.uint8],
     of_model: cv2.DenseOpticalFlow,
     vr_steps: int = 0,
     smoothing_steps: int = 0,
+    interp_method: str = "linear",
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Calculate the forward and backward optical flow vectors between two
@@ -491,13 +405,13 @@ def calculate_flow_frame(
 
     if smoothing_steps > 0:
         for i in range(smoothing_steps):
-            forward_flow, backward_flow = smooth_flow_step(forward_flow, backward_flow)
+            forward_flow, backward_flow = smooth_flow_step(forward_flow, backward_flow, method=interp_method)
 
     return forward_flow, backward_flow
 
 
 def smooth_flow_step(
-    forward_flow: np.ndarray, backward_flow: np.ndarray
+    forward_flow: np.ndarray, backward_flow: np.ndarray, method: str = "linear"
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Smooth a set of flow vectors by warping and averaging the corresponding
@@ -511,8 +425,8 @@ def smooth_flow_step(
                 forward_flow,
                 np.stack(
                     [
-                        -warp_flow(backward_flow[..., 0], forward_flow),
-                        -warp_flow(backward_flow[..., 1], forward_flow),
+                        -warp_flow(backward_flow[..., 0], forward_flow, method=method),
+                        -warp_flow(backward_flow[..., 1], forward_flow, method=method),
                     ],
                     -1,
                 ),
@@ -524,8 +438,8 @@ def smooth_flow_step(
                 backward_flow,
                 np.stack(
                     [
-                        -warp_flow(forward_flow[..., 0], backward_flow),
-                        -warp_flow(forward_flow[..., 1], backward_flow),
+                        -warp_flow(forward_flow[..., 0], backward_flow, method=method),
+                        -warp_flow(forward_flow[..., 1], backward_flow, method=method),
                     ],
                     -1,
                 ),
@@ -537,7 +451,7 @@ def smooth_flow_step(
     return forward_flow, backward_flow
 
 
-def combine_flow(*args) -> Flow:
+def combine_flow(*args: tuple[Flow]) -> Flow:
     """
     Combine multiple flow objects into one
     """
