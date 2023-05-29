@@ -158,24 +158,8 @@ def main() -> None:
 
     print(datetime.now(), "Calculating flow field", flush=True)
 
-    flow = combine_flow(
-        create_flow(
-            bt, model="Farneback", vr_steps=1, smoothing_passes=1, interp_method="cubic"
-        ),
-        create_flow(
-            wvd,
-            model="Farneback",
-            vr_steps=1,
-            smoothing_passes=1,
-            interp_method="cubic",
-        ),
-        create_flow(
-            swd,
-            model="Farneback",
-            vr_steps=1,
-            smoothing_passes=1,
-            interp_method="cubic",
-        ),
+    flow = create_flow(
+        bt, model="Farneback", vr_steps=1, smoothing_passes=1, interp_method="cubic"
     )
 
     print(datetime.now(), "Detecting growth markers", flush=True)
@@ -204,6 +188,8 @@ def main() -> None:
     lower_threshold = -15
     erode_distance = 2
 
+    print((wvd - swd).shape, flush=True)
+
     anvil_markers = get_anvil_markers(
         flow,
         (wvd - swd),
@@ -212,6 +198,10 @@ def main() -> None:
         subsegment_shrink=subsegment_shrink,
         min_length=t_offset,
     )
+
+    print("Final thick anvil markers: area =", np.sum(anvil_markers != 0), flush=True)
+    print("Final thick anvil markers: n =", anvil_markers.max(), flush=True)
+    print(anvil_markers.shape, flush=True)
 
     thick_anvil_labels = detect_anvils(
         flow,

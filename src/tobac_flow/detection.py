@@ -437,22 +437,27 @@ def detect_anvils(
     min_length=3,
 ):
     field = linearise_field(field, lower_threshold, upper_threshold)
+    print(field.shape, flush=True)
     structure = ndi.generate_binary_structure(3, 1)
     s_struct = structure * np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
     if markers is None:
         markers = field >= 1
     markers *= ndi.binary_erosion(markers, structure=s_struct).astype(int)
+    print(markers.shape, flush=True)
     mask = ndi.binary_erosion(
         field <= 0,
         structure=np.ones([3, 3, 3]),
         iterations=erode_distance,
         border_value=1,
     )
+    print(mask.shape, flush=True)
     edges = flow.sobel(field, direction="uphill", method="cubic")
     edges[markers != 0] = 0
+    print(edges.shape, flush=True)
     anvil_labels = flow.watershed(
         edges - field, markers, mask=mask, structure=ndi.generate_binary_structure(3, 1)
     )
+    print(anvil_labels.shape, flush=True)
     anvil_labels *= ndi.binary_opening(anvil_labels, structure=s_struct).astype(int)
 
     anvil_labels[markers != 0] = markers[markers != 0]
