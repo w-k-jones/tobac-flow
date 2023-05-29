@@ -24,6 +24,7 @@ def create_flow(
     vr_steps: int = 0,
     smoothing_passes: int = 0,
     interp_method: str = "linear",
+    max_value=20,
 ) -> "Flow":
     """
     Calculates forward and backward optical flow vectors for a given set of data
@@ -53,6 +54,9 @@ def create_flow(
         smoothing_passes=smoothing_passes,
         interp_method=interp_method,
     )
+
+    forward_flow = np.minimum(np.maximum(forward_flow, -max_value), max_value)
+    backward_flow = np.minimum(np.maximum(backward_flow, -max_value), max_value)
 
     flow = Flow(forward_flow, backward_flow)
 
