@@ -1,14 +1,19 @@
+import warnings
+from functools import partial
 import numpy as np
 import xarray as xr
-from scipy import ndimage as ndi
+from scipy import ndimage as ndi, stats
 from skimage.feature import peak_local_max
 from tobac_flow.analysis import (
     filter_labels_by_length,
     filter_labels_by_mask,
     filter_labels_by_length_and_multimask_legacy,
+    find_object_lengths,
+    mask_labels,
+    remap_labels
 )
-from tobac_flow.utils.datetime_utils import get_time_diff_from_coord
-import warnings
+from tobac_flow.utils import get_time_diff_from_coord, linearise_field, slice_labels, labeled_comprehension
+
 
 # Filtering of the growth metric occurs in three steps:
 # 1. The mean of the growth is taken over 3 time periods (15 minutes)
@@ -268,3 +273,128 @@ def edge_watershed(
         watershed = xr.DataArray(watershed, field.coords, field.dims)
 
     return watershed
+
+def get_combined_filters(flow, bt, wvd, swd):
+    wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
+    bt_curvature_filter = get_curvature_filter(bt, direction="positive")
+
+    wvd_peak_filter = get_peak_filter(wvd, sigma=0.5, direction="negative")
+    bt_peak_filter = get_peak_filter(wvd, sigma=0.5, direction="positive")
+
+    t_struct = np.zeros([3, 3, 3], dtype=bool)
+    t_struct[:, 1, 1] = True
+    bt_filter = flow.convolve(
+        np.logical_or(bt_curvature_filter, bt_peak_filter).astype(int),
+        structure=t_struct,
+        method="nearest",
+        fill_value=False,
+        dtype=np.int32,
+        func=partial(np.any, axis=0),
+    )
+    wvd_filter = flow.convolve(
+        np.logical_or(wvd_curvature_filter, wvd_peak_filter).astype(int),
+        structure=t_struct,
+        method="nearest",
+        fill_value=False,
+        dtype=np.int32,
+        func=partial(np.any, axis=0),
+    )
+
+    swd_filter = 1 - linearise_field(swd.data, 2.5, 7.5)
+
+    combined_filter = np.logical_or(bt_filter, wvd_filter).astype(int) * swd_filter
+
+    return combined_filter
+
+def detect_cores(flow, bt, wvd, swd, wvd_threshold = 0.25,
+    bt_threshold = 0.5,
+    overlap = 0.5,
+    subsegment_shrink = 0.0,
+    min_length = 3
+):
+    wvd_growth = get_growth_rate(flow, wvd, method="cubic")
+    bt_growth = get_growth_rate(flow, -bt, method="cubic")
+
+    filter = get_combined_filters(flow, bt, wvd, swd)
+
+    wvd_markers = (wvd_growth * filter) > wvd_threshold
+    bt_markers = (bt_growth * filter) > bt_threshold
+
+    s_struct = ndi.generate_binary_structure(3, 1)
+    s_struct *= np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
+
+    combined_markers = ndi.binary_opening(
+        np.logical_or.reduce([wvd_markers, bt_markers]), structure=s_struct
+    )
+
+    print("WVD growth above threshold: area =", np.sum(wvd_markers))
+    print("BT growth above threshold: area =", np.sum(bt_markers))
+    print("Detected markers: area =", np.sum(combined_markers))
+
+    core_labels = flow.label(
+        combined_markers, overlap=overlap, subsegment_shrink=subsegment_shrink
+    )
+
+    print("Initial core count:", np.max(core_labels))
+
+    # Filter labels by length and wvd growth threshold
+    core_label_lengths = find_object_lengths(core_labels)
+
+    print(
+        "Core labels meeting length threshold:", np.sum(core_label_lengths > min_length)
+    )
+
+    core_label_wvd_mask = mask_labels(core_labels, wvd > -5)
+
+    print("Core labels meeting WVD threshold:", np.sum(core_label_wvd_mask))
+
+    combined_mask = np.logical_and(core_label_lengths > min_length, core_label_wvd_mask)
+
+    core_labels = remap_labels(core_labels, combined_mask)
+
+    core_step_labels = slice_labels(core_labels)
+
+    mode = lambda x: stats.mode(x, keepdims=False)[0]
+    core_step_core_index = labeled_comprehension(
+        core_labels, core_step_labels, mode, default=0
+    )
+
+    core_step_bt_mean = labeled_comprehension(
+        bt, core_step_labels, np.nanmean, default=np.nan
+    )
+
+    core_step_t = labeled_comprehension(
+        bt.t.data[:, np.newaxis, np.newaxis], core_step_labels, np.nanmin, default=0
+    )
+
+    def bt_diff_func(step_bt, pos):
+        step_t = core_step_t[pos]
+        args = np.argsort(step_t)
+
+        step_bt = step_bt[args]
+        step_t = step_t[args]
+
+        step_bt_diff = (step_bt[:-min_length] - step_bt[min_length:]) / (
+            (step_t[min_length:] - step_t[:-min_length])
+            .astype("timedelta64[s]")
+            .astype("int")
+            / 60
+        )
+
+        return np.nanmax(step_bt_diff)
+
+    core_bt_diff_mean = labeled_comprehension(
+        core_step_bt_mean,
+        core_step_core_index,
+        bt_diff_func,
+        default=0,
+        pass_positions=True,
+    )
+
+    wh_valid_core = core_bt_diff_mean >= 0.5
+
+    print("Core labels meeting cooling rate threshold:", np.sum(wh_valid_core))
+
+    core_labels = remap_labels(core_labels, wh_valid_core)
+
+    return core_labels

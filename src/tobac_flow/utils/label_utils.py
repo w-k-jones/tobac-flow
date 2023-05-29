@@ -139,6 +139,11 @@ def flat_label(
     output = ndi.label(mask, structure=label_struct, output=dtype)[0]
     return output
 
+def make_step_labels(labels):
+    step_labels = flat_label(labels!=0)
+    step_labels += labels * step_labels.max()
+    return relabel_objects(step_labels)
+
 
 def get_step_labels_for_label(
     labels: np.ndarray[int], step_labels: np.ndarray[int]
@@ -231,6 +236,7 @@ __all__ = (
     "labeled_comprehension",
     "apply_func_to_labels",
     "flat_label",
+    "make_step_labels",
     "get_step_labels_for_label",
     "relabel_objects",
     "slice_labels",

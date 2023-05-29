@@ -25,12 +25,10 @@ from tobac_flow.analysis import (
     mask_labels,
 )
 from tobac_flow.label import flow_link_overlap, make_step_labels
-from tobac_flow.detection import get_curvature_filter, get_growth_rate, get_peak_filter
+from tobac_flow.detection import detect_cores
 from tobac_flow.utils import (
     create_dataarray,
     add_dataarray_to_ds,
-    labeled_comprehension,
-    slice_labels,
     linearise_field,
 )
 
@@ -136,15 +134,7 @@ def main() -> None:
     print(datetime.now(), "Loading ABI data", flush=True)
     print("Loading goes data from:", goes_data_path, flush=True)
 
-    bt, wvd, swd, dataset = goes_dataloader(
-        start_date,
-        end_date,
-        n_pad_files=t_offset + 1,
-        x0=x0,
-        x1=x1,
-        y0=y0,
-        y1=y1,
-        return_new_ds=True,
+    io_kwargs = dict(
         satellite=satellite,
         product="MCMIP",
         view="C",
@@ -156,12 +146,24 @@ def main() -> None:
         download_missing=True,
     )
 
+    bt, wvd, swd, dataset = goes_dataloader(
+        start_date,
+        end_date,
+        n_pad_files=t_offset + 1,
+        x0=x0,
+        x1=x1,
+        y0=y0,
+        y1=y1,
+        return_new_ds=True,
+        **io_kwargs, 
+    )
+
     print(datetime.now(), "Calculating flow field", flush=True)
 
     flow = combine_flow(
-        create_flow(bt, model="Farneback", vr_steps=1, smoothing_passes=1),
-        create_flow(wvd, model="Farneback", vr_steps=1, smoothing_passes=1),
-        create_flow(swd, model="Farneback", vr_steps=1, smoothing_passes=1),
+        create_flow(bt, model="Farneback", vr_steps=1, smoothing_passes=1, interp_method="cubic"),
+        create_flow(wvd, model="Farneback", vr_steps=1, smoothing_passes=1, interp_method="cubic"),
+        create_flow(swd, model="Farneback", vr_steps=1, smoothing_passes=1, interp_method="cubic"),
     )
 
     print(datetime.now(), "Detecting growth markers", flush=True)
@@ -170,131 +172,14 @@ def main() -> None:
     overlap = 0.5
     subsegment_shrink = 0.0
 
-    wvd_growth = get_growth_rate(flow, wvd, method="cubic")
-    bt_growth = get_growth_rate(flow, -bt, method="cubic")
-
-    wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
-    bt_curvature_filter = get_curvature_filter(bt, direction="positive")
-
-    wvd_peak_filter = get_peak_filter(wvd, sigma=0.5, direction="negative")
-    bt_peak_filter = get_peak_filter(wvd, sigma=0.5, direction="positive")
-
-    t_struct = np.zeros([3, 3, 3], dtype=bool)
-    t_struct[:, 1, 1] = True
-    bt_filter = flow.convolve(
-        np.logical_or(bt_curvature_filter, bt_peak_filter).astype(int),
-        structure=t_struct,
-        method="nearest",
-        fill_value=False,
-        dtype=np.int32,
-        func=partial(np.any, axis=0),
-    )
-    wvd_filter = flow.convolve(
-        np.logical_or(wvd_curvature_filter, wvd_peak_filter).astype(int),
-        structure=t_struct,
-        method="nearest",
-        fill_value=False,
-        dtype=np.int32,
-        func=partial(np.any, axis=0),
-    )
-
-    swd_filter = 1 - linearise_field(swd.data, 2.5, 7.5)
-
-    wvd_markers = np.logical_and((wvd_growth * swd_filter) > wvd_threshold, wvd_filter)
-    bt_markers = np.logical_and((bt_growth * swd_filter) > bt_threshold, bt_filter)
-
-    s_struct = ndi.generate_binary_structure(3, 1)
-    s_struct *= np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
-
-    combined_markers = ndi.binary_opening(
-        np.logical_or.reduce([wvd_markers, bt_markers]), structure=s_struct
-    )
-
-    print("WVD growth above threshold: area =", np.sum(wvd_markers))
-    print("BT growth above threshold: area =", np.sum(bt_markers))
-    print("Detected markers: area =", np.sum(combined_markers))
-
-    core_labels = flow.label(
-        combined_markers, overlap=overlap, subsegment_shrink=subsegment_shrink
-    )
-
-    print("Initial core count:", np.max(core_labels))
-
-    # Filter labels by length and wvd growth threshold
-    core_label_lengths = find_object_lengths(core_labels)
-
-    print(
-        "Core labels meeting length threshold:", np.sum(core_label_lengths > t_offset)
-    )
-
-    core_label_wvd_mask = mask_labels(core_labels, wvd > -5)
-
-    print("Core labels meeting WVD threshold:", np.sum(core_label_wvd_mask))
-
-    combined_mask = np.logical_and(core_label_lengths > t_offset, core_label_wvd_mask)
-
-    core_labels = remap_labels(core_labels, combined_mask)
-
-    core_step_labels = slice_labels(core_labels)
-
-    mode = lambda x: stats.mode(x, keepdims=False)[0]
-    core_step_core_index = labeled_comprehension(
-        core_labels, core_step_labels, mode, default=0
-    )
-
-    core_step_bt_mean = labeled_comprehension(
-        bt, core_step_labels, np.nanmean, default=np.nan
-    )
-
-    core_step_t = labeled_comprehension(
-        bt.t.data[:, np.newaxis, np.newaxis], core_step_labels, np.nanmin, default=0
-    )
-
-    def bt_diff_func(step_bt, pos):
-        step_t = core_step_t[pos]
-        args = np.argsort(step_t)
-
-        step_bt = step_bt[args]
-        step_t = step_t[args]
-
-        step_bt_diff = (step_bt[:-t_offset] - step_bt[t_offset:]) / (
-            (step_t[t_offset:] - step_t[:-t_offset])
-            .astype("timedelta64[s]")
-            .astype("int")
-            / 60
-        )
-
-        return np.nanmax(step_bt_diff)
-
-    core_bt_diff_mean = labeled_comprehension(
-        core_step_bt_mean,
-        core_step_core_index,
-        bt_diff_func,
-        default=0,
-        pass_positions=True,
-    )
-
-    wh_valid_core = core_bt_diff_mean >= 0.5
-
-    print("Core labels meeting cooling rate threshold:", np.sum(wh_valid_core))
-
-    core_labels = remap_labels(core_labels, wh_valid_core)
+    core_labels = detect_cores(flow, bt, wvd, swd, wvd_threshold=wvd_threshold,
+        bt_threshold=bt_threshold,
+        overlap = overlap,
+        subsegment_shrink = subsegment_shrink,
+        min_length=t_offset
+    )   
 
     print("Final detected core count: n =", core_labels.max())
-
-    # Now clean up used variables after core detection
-    del (
-        wvd_growth,
-        bt_growth,
-        wvd_curvature_filter,
-        bt_curvature_filter,
-        wvd_markers,
-        bt_markers,
-        combined_markers,
-    )
-    import gc
-
-    gc.collect()
 
     print(datetime.now(), "Detecting thick anvil region", flush=True)
     # Detect anvil regions
@@ -312,7 +197,7 @@ def main() -> None:
     # markers = np.logical_or(field>=upper_threshold, core_labels!=0)
     markers = field >= 1
     markers = ndi.binary_erosion(markers, structure=s_struct)
-    field[markers] = 1
+    # field[markers] = 1
     mask = ndi.binary_erosion(
         field <= 0,
         structure=np.ones([3, 3, 3]),
@@ -359,7 +244,7 @@ def main() -> None:
     print("Initial detected thick anvils: n =", thick_anvil_labels.max(), flush=True)
 
     marker_label_lengths = find_object_lengths(thick_anvil_labels)
-    marker_label_threshold = mask_labels(thick_anvil_labels, core_labels != 0)
+    marker_label_threshold = mask_labels(thick_anvil_labels, marker_labels != 0)
 
     thick_anvil_labels = remap_labels(
         thick_anvil_labels,
@@ -375,7 +260,7 @@ def main() -> None:
 
     print(datetime.now(), "Detecting thin anvil region", flush=True)
     # Detect thin anvil regions
-    upper_threshold = -5
+    upper_threshold = 0
     lower_threshold = -10
     erode_distance = 2
 
@@ -389,7 +274,7 @@ def main() -> None:
     # markers = np.logical_or(field>=upper_threshold, core_labels!=0)
     markers = thick_anvil_labels
     markers *= ndi.binary_erosion(markers != 0, structure=s_struct).astype(int)
-    field[markers != 0] = 1
+    # field[markers != 0] = 1
 
     mask = ndi.binary_erosion(
         field <= 0,
@@ -407,6 +292,8 @@ def main() -> None:
     thin_anvil_labels *= ndi.binary_opening(
         thin_anvil_labels, structure=s_struct
     ).astype(int)
+
+    thin_anvil_labels[thick_anvil_labels!=0] = thick_anvil_labels[thick_anvil_labels!=0]
 
     print("Detected thin anvils: area =", np.sum(thin_anvil_labels != 0), flush=True)
     print("Detected thin anvils: n =", np.max(thin_anvil_labels), flush=True)
