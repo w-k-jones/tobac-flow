@@ -1,4 +1,4 @@
-import os
+import pathlib
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 import numpy as np
@@ -97,10 +97,10 @@ y0 = int(args.y0)
 y1 = int(args.y1)
 t_offset = 3
 
-save_dir = args.sd
-if not os.path.isdir(save_dir):
+save_dir = pathlib.Path(args.sd)
+if not save_dir.exists():
     try:
-        os.makedirs(save_dir)
+        save_dir.mkdir()
     except (FileExistsError, OSError):
         pass
 
@@ -114,14 +114,14 @@ save_name = "detected_dccs_G%02d_S%s_E%s_X%04d_%04d_Y%04d_%04d.nc" % (
     y1,
 )
 
-save_path = os.path.join(save_dir, save_name)
+save_path = save_dir / save_name
 
 print("Saving output to:", save_path)
 
-goes_data_path = args.gd
-if not os.path.isdir(goes_data_path):
+goes_data_path = pathlib.Path(args.gd)
+if not goes_data_path.exists():
     try:
-        os.makedirs(goes_data_path)
+        goes_data_path.mkdir()
     except (FileExistsError, OSError):
         pass
 
