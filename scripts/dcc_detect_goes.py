@@ -1,10 +1,7 @@
 import os
-from functools import partial
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 import numpy as np
-from scipy import ndimage as ndi
-from scipy import stats
 
 from tobac_flow.flow import create_flow, combine_flow
 from tobac_flow.dataloader import goes_dataloader
@@ -20,16 +17,11 @@ from tobac_flow.dataset import (
 from tobac_flow.analysis import (
     get_label_stats,
     weighted_statistics_on_labels,
-    find_object_lengths,
-    remap_labels,
-    mask_labels,
 )
-from tobac_flow.label import flow_link_overlap, make_step_labels
-from tobac_flow.detection import detect_cores
+from tobac_flow.detection import detect_cores, get_anvil_markers, detect_anvils, relabel_anvils
 from tobac_flow.utils import (
     create_dataarray,
     add_dataarray_to_ds,
-    linearise_field,
 )
 
 import argparse
@@ -187,55 +179,10 @@ def main() -> None:
     lower_threshold = -15
     erode_distance = 2
 
-    field = linearise_field(
-        (wvd - (2 * np.maximum(swd - 5, 0))).data, lower_threshold, upper_threshold
-    )
+    anvil_markers = get_anvil_markers(flow, (wvd - swd), threshold=upper_threshold, overlap=overlap, subsegment_shrink=subsegment_shrink, min_length=t_offset)
 
-    structure = ndi.generate_binary_structure(3, 1)
-    s_struct = structure * np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
-
-    # markers = np.logical_or(field>=upper_threshold, core_labels!=0)
-    markers = field >= 1
-    markers = ndi.binary_erosion(markers, structure=s_struct)
-    # field[markers] = 1
-    mask = ndi.binary_erosion(
-        field <= 0,
-        structure=np.ones([3, 3, 3]),
-        iterations=erode_distance,
-        border_value=1,
-    )
-
-    edges = flow.sobel(field, direction="uphill", method="linear")
-    marker_labels = flow.label(
-        markers, overlap=overlap, subsegment_shrink=subsegment_shrink
-    )
-
-    print("Initial thick anvil markers: area =", np.sum(marker_labels != 0), flush=True)
-    print("Initial thick anvil markers: n =", marker_labels.max(), flush=True)
-
-    marker_label_lengths = find_object_lengths(marker_labels)
-    marker_label_threshold = mask_labels(marker_labels, core_labels != 0)
-
-    marker_labels = remap_labels(
-        marker_labels,
-        np.logical_and(marker_label_lengths > t_offset, marker_label_threshold),
-    )
-
-    print("Final thick anvil markers: area =", np.sum(marker_labels != 0), flush=True)
-    print("Final thick anvil markers: n =", marker_labels.max(), flush=True)
-
-    thick_anvil_labels = flow.watershed(
-        edges - field, marker_labels, mask=mask, structure=structure
-    )
-    thick_anvil_labels *= ndi.binary_opening(
-        thick_anvil_labels, structure=s_struct
-    ).astype(int)
-
-    print(datetime.now(), "Labelling thick anvil region", flush=True)
-    thick_anvil_labels = flow_link_overlap(
-        flow, make_step_labels(thick_anvil_labels), overlap=overlap
-    )
-
+    thick_anvil_labels = detect_anvils(flow, (wvd - swd), markers=anvil_markers, upper_threshold=upper_threshold, lower_threshold=lower_threshold, erode_distance=erode_distance, min_length=t_offset)
+    
     print(
         "Initial detected thick anvils: area =",
         np.sum(thick_anvil_labels != 0),
@@ -243,13 +190,7 @@ def main() -> None:
     )
     print("Initial detected thick anvils: n =", thick_anvil_labels.max(), flush=True)
 
-    marker_label_lengths = find_object_lengths(thick_anvil_labels)
-    marker_label_threshold = mask_labels(thick_anvil_labels, marker_labels != 0)
-
-    thick_anvil_labels = remap_labels(
-        thick_anvil_labels,
-        np.logical_and(marker_label_lengths > t_offset, marker_label_threshold),
-    )
+    thick_anvil_labels = relabel_anvils(flow, thick_anvil_labels, markers=anvil_markers, overlap=overlap, min_length=t_offset)
 
     print(
         "Final detected thick anvils: area =",
@@ -262,38 +203,8 @@ def main() -> None:
     # Detect thin anvil regions
     upper_threshold = 0
     lower_threshold = -10
-    erode_distance = 2
 
-    field = linearise_field(
-        (wvd + (2 * np.maximum(swd - 5, 0))).data, lower_threshold, upper_threshold
-    )
-
-    structure = ndi.generate_binary_structure(3, 1)
-    s_struct = structure * np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
-
-    # markers = np.logical_or(field>=upper_threshold, core_labels!=0)
-    markers = thick_anvil_labels
-    markers *= ndi.binary_erosion(markers != 0, structure=s_struct).astype(int)
-    # field[markers != 0] = 1
-
-    mask = ndi.binary_erosion(
-        field <= 0,
-        structure=np.ones([3, 3, 3]),
-        iterations=erode_distance,
-        border_value=1,
-    )
-
-    edges = flow.sobel(field, direction="uphill", method="linear")
-
-    thin_anvil_labels = flow.watershed(
-        edges - field, markers, mask=mask, structure=structure
-    )
-
-    thin_anvil_labels *= ndi.binary_opening(
-        thin_anvil_labels, structure=s_struct
-    ).astype(int)
-
-    thin_anvil_labels[thick_anvil_labels!=0] = thick_anvil_labels[thick_anvil_labels!=0]
+    thin_anvil_labels = detect_anvils(flow, (wvd + swd), markers=thick_anvil_labels, upper_threshold=upper_threshold, lower_threshold=lower_threshold, erode_distance=erode_distance, min_length=t_offset)
 
     print("Detected thin anvils: area =", np.sum(thin_anvil_labels != 0), flush=True)
     print("Detected thin anvils: n =", np.max(thin_anvil_labels), flush=True)
