@@ -5,7 +5,7 @@ import cv2
 from scipy import ndimage as ndi
 
 from tobac_flow.convolve import convolve
-from tobac_flow.label import flow_label
+from tobac_flow.label import flow_label, flow_link_overlap
 from tobac_flow.sobel import sobel
 from tobac_flow.watershed import watershed
 
@@ -303,6 +303,26 @@ class Flow(Abstract_Flow):
             dtype=dtype,
             overlap=overlap,
             subsegment_shrink=subsegment_shrink,
+        )
+
+        return labels
+    
+    def link_overlap(
+        self,
+        data: np.ndarray[bool],
+        structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
+        dtype: type = np.int32,
+        overlap: float = 0,
+    ) -> np.ndarray[int]:
+        """
+        Link existing labels to form new, contiguous labels
+        """
+        labels = flow_link_overlap(
+            self,
+            data,
+            structure=structure,
+            dtype=dtype,
+            overlap=overlap,
         )
 
         return labels

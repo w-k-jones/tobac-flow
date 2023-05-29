@@ -355,19 +355,19 @@ def main() -> None:
     flag_edge_labels(dataset, start_date, end_date)
     flag_nan_adjacent_labels(dataset, bt.sel(t=dataset.t))
 
-    core_max_bt_diff = core_bt_diff_mean[wh_valid_core]
+    # core_max_bt_diff = core_bt_diff_mean[wh_valid_core]
 
-    add_dataarray_to_ds(
-        create_dataarray(
-            core_max_bt_diff,
-            ("core"),
-            "core_max_BT_diff",
-            long_name="Maximum change in core brightness temperature per minute",
-            units="K/minute",
-            dtype=np.float32,
-        ),
-        dataset,
-    )
+    # add_dataarray_to_ds(
+    #     create_dataarray(
+    #         core_max_bt_diff,
+    #         ("core"),
+    #         "core_max_BT_diff",
+    #         long_name="Maximum change in core brightness temperature per minute",
+    #         units="K/minute",
+    #         dtype=np.float32,
+    #     ),
+    #     dataset,
+    # )
 
     if args.save_label_props:
         calculate_label_properties(dataset)

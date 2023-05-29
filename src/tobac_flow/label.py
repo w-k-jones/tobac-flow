@@ -335,8 +335,6 @@ def flow_link_overlap(
     structure=ndi.generate_binary_structure(3, 1),
     dtype=np.int32,
     overlap=0.0,
-    subsegment_shrink=0.0,
-    peak_min_distance=10,
 ):
     """
     Label 3d connected objects in a semi-Lagrangian reference frame

@@ -73,5 +73,15 @@ class Abstract_Flow(ABC):
     ) -> np.ndarray[int]:
         pass
 
+    @abstractmethod
+    def link_overlap(
+        self,
+        data: np.ndarray[bool],
+        structure: np.ndarray[bool] = None,
+        dtype: type = np.int32,
+        overlap: float = 0,
+    ) -> np.ndarray[int]:
+        pass
+
 
 __all__ = ("Abstract_Flow",)
