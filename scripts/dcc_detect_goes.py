@@ -188,8 +188,6 @@ def main() -> None:
     lower_threshold = -15
     erode_distance = 2
 
-    print((wvd - swd).shape, flush=True)
-
     anvil_markers = get_anvil_markers(
         flow,
         wvd - swd,
