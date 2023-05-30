@@ -143,7 +143,7 @@ def get_glm_parallax_offsets(lon, lat, goes_ds):
 
 def get_corrected_glm_x_y(glm_filename, goes_ds):
     try:
-        print(glm_filename, end="\r")
+        # print(glm_filename, end="\r")
         with xr.open_dataset(glm_filename) as glm_ds:
             if glm_ds.flash_lat.data.size > 0 and glm_ds.flash_lon.data.size > 0:
                 lon_offset, lat_offset = get_glm_parallax_offsets(
@@ -163,7 +163,7 @@ def get_corrected_glm_x_y(glm_filename, goes_ds):
 
 def get_uncorrected_glm_x_y(glm_filename, goes_ds):
     try:
-        print(glm_filename, end="\r")
+        # print(glm_filename, end="\r")
         with xr.open_dataset(glm_filename) as glm_ds:
             if glm_ds.flash_lat.data.size > 0 and glm_ds.flash_lon.data.size > 0:
                 glm_lon = glm_ds.flash_lon.data
