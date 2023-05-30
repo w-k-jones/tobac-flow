@@ -219,7 +219,7 @@ def main():
     print(datetime.now(), "Calculating marker distances", flush=True)
     # marker_distance = get_marker_distance(core_label, time_range=3)
     # anvil_distance = get_marker_distance(thick_anvil_label, time_range=3)
-    glm_distance = get_marker_distance(glm_grid, time_range=3)
+    glm_distance = get_marker_distance(glm_grid, time_range=time_margin)
     # wvd_distance = get_marker_distance(detection_ds.wvd_label, time_range=3)
 
     # Create an array to filter objects near to boundaries

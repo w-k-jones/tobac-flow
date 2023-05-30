@@ -58,4 +58,4 @@ def validate_markers(
     else:
         far = np.nan
 
-    return flash_distance_to_marker, marker_distance_to_flash, pod, far
+    return flash_distance_to_marker, marker_distance_to_flash, pod, far, n_marker_in_margin, n_glm_in_margin, margin_flag
