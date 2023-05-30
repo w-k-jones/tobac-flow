@@ -15,7 +15,11 @@ from tobac_flow.dataset import (
 from tobac_flow.utils import (
     apply_func_to_labels,
 )
-from tobac_flow.validation import get_min_dist_for_objects, get_marker_distance
+from tobac_flow.validation import (
+    get_min_dist_for_objects,
+    get_marker_distance,
+    validate_markers,
+)
 from tobac_flow.utils import get_dates_from_filename
 
 parser = argparse.ArgumentParser(
@@ -177,46 +181,48 @@ def main():
         print(datetime.now(), "Saving to %s" % (glm_save_path), flush=True)
         gridded_flash_ds.to_netcdf(glm_save_path)
 
-    if args.is_valid:
-        stats_file = list(
-            stats_path.glob(
-                f"dcc_statistics_G16_S{start_str[:6]}*_X{x_str}_Y{y_str}.nc"
-            )
-        )[0]
-        stats_ds = xr.open_dataset(stats_file)
-        core_label = detection_ds.core_label.data
-        core_label *= np.isin(
-            core_label, stats_ds.core.data[stats_ds.core_is_valid.data]
-        ).astype(int)
-        core_coord = detection_ds.core.data
-        core_coord = core_coord[
-            np.isin(core_coord, stats_ds.core.data[stats_ds.core_is_valid.data])
-        ]
-        thick_anvil_label = detection_ds.thick_anvil_label.data
-        thick_anvil_label *= np.isin(
-            thick_anvil_label,
-            stats_ds.anvil.data[stats_ds.thin_anvil_is_valid.data],
-        ).astype(int)
-        anvil_coord = detection_ds.anvil.data
-        anvil_coord = anvil_coord[
-            np.isin(anvil_coord, stats_ds.anvil.data[stats_ds.thin_anvil_is_valid.data])
-        ]
+    # if args.is_valid:
+    #     stats_file = list(
+    #         stats_path.glob(
+    #             f"dcc_statistics_G16_S{start_str[:6]}*_X{x_str}_Y{y_str}.nc"
+    #         )
+    #     )[0]
+    #     stats_ds = xr.open_dataset(stats_file)
+    #     core_label = detection_ds.core_label.data
+    #     core_label *= np.isin(
+    #         core_label, stats_ds.core.data[stats_ds.core_is_valid.data]
+    #     ).astype(int)
+    #     core_coord = detection_ds.core.data
+    #     core_coord = core_coord[
+    #         np.isin(core_coord, stats_ds.core.data[stats_ds.core_is_valid.data])
+    #     ]
+    #     thick_anvil_label = detection_ds.thick_anvil_label.data
+    #     thick_anvil_label *= np.isin(
+    #         thick_anvil_label,
+    #         stats_ds.anvil.data[stats_ds.thin_anvil_is_valid.data],
+    #     ).astype(int)
+    #     anvil_coord = detection_ds.anvil.data
+    #     anvil_coord = anvil_coord[
+    #         np.isin(anvil_coord, stats_ds.anvil.data[stats_ds.thin_anvil_is_valid.data])
+    #     ]
 
-    else:
-        core_label = detection_ds.core_label.data
-        thick_anvil_label = detection_ds.thick_anvil_label.data
-        core_coord = detection_ds.core.data
-        anvil_coord = detection_ds.anvil.data
+    # else:
+    #     core_label = detection_ds.core_label.data
+    #     thick_anvil_label = detection_ds.thick_anvil_label.data
+    #     core_coord = detection_ds.core.data
+    #     anvil_coord = detection_ds.anvil.data
 
-    validation_ds = validation_ds.assign_coords(core=core_coord, anvil=anvil_coord)
+    validation_ds = validation_ds.assign_coords(
+        core=detection_ds.core.data, anvil=detection_ds.anvil.data
+    )
     print(datetime.now(), "Calculating marker distances", flush=True)
-    marker_distance = get_marker_distance(core_label, time_range=3)
-    anvil_distance = get_marker_distance(thick_anvil_label, time_range=3)
+    # marker_distance = get_marker_distance(core_label, time_range=3)
+    # anvil_distance = get_marker_distance(thick_anvil_label, time_range=3)
     glm_distance = get_marker_distance(glm_grid, time_range=3)
     # wvd_distance = get_marker_distance(detection_ds.wvd_label, time_range=3)
 
     # Create an array to filter objects near to boundaries
-    edge_filter_array = np.full(marker_distance.shape, 1).astype("bool")
+    edge_filter_array = np.full(glm_distance.shape, 1).astype("bool")
     edge_filter_array[:time_margin] = 0
     edge_filter_array[-time_margin:] = 0
     edge_filter_array[:, :margin] = 0
@@ -228,91 +234,46 @@ def main():
     wh_missing_glm = ndi.binary_dilation(glm_grid == -1, iterations=time_margin)
     edge_filter_array[wh_missing_glm] = 0
 
-    flash_distance_to_marker = np.repeat(
-        marker_distance.ravel(),
-        (glm_grid.data.astype(int) * edge_filter_array.astype(int)).ravel(),
-    )
-    # flash_distance_to_wvd = np.repeat(wvd_distance.ravel(), (glm_grid.data.astype(int)*edge_filter_array.astype(int)).ravel())
-    flash_distance_to_anvil = np.repeat(
-        anvil_distance.ravel(),
-        (glm_grid.data.astype(int) * edge_filter_array.astype(int)).ravel(),
-    )
-
-    n_glm_in_margin = np.nansum(glm_grid.data * edge_filter_array.astype(int))
-
-    print(datetime.now(), "Validating detection accuracy", flush=True)
-    # Calculate probability of detection for each case
-    if n_glm_in_margin > 0:
-        growth_pod = np.nansum(flash_distance_to_marker <= 10) / n_glm_in_margin
-        growth_pod_hist = (
-            np.histogram(flash_distance_to_marker, bins=40, range=[0, 40])[0]
-            / n_glm_in_margin
-        )
-        anvil_pod = np.nansum(flash_distance_to_anvil <= 10) / n_glm_in_margin
-        anvil_pod_hist = (
-            np.histogram(flash_distance_to_anvil, bins=40, range=[0, 40])[0]
-            / n_glm_in_margin
-        )
-    else:
-        growth_pod = np.float64(np.nan)
-        growth_pod_hist = np.zeros([40])
-        anvil_pod = np.float64(np.nan)
-        anvil_pod_hist = np.zeros([40])
-
-    # Calculate false alarm rate
-    growth_margin_flag = apply_func_to_labels(
-        core_label, edge_filter_array, func=np.nanmin, index=core_coord, default=0
-    ).astype("bool")
-    n_growth_in_margin = np.nansum(growth_margin_flag)
-    growth_min_distance = get_min_dist_for_objects(
-        glm_distance, core_label, index=core_coord
-    )
-
-    if n_growth_in_margin > 0:
-        growth_far = (
-            np.nansum(growth_min_distance[growth_margin_flag] > margin)
-            / n_growth_in_margin
-        )
-        growth_far_hist = (
-            np.histogram(
-                growth_min_distance[growth_margin_flag], bins=40, range=[0, 40]
-            )[0]
-            / n_growth_in_margin
-        )
-    else:
-        growth_far = np.float64(np.nan)
-        growth_far_hist = np.zeros([40])
-
-    anvil_margin_flag = apply_func_to_labels(
-        thick_anvil_label,
+    (
+        flash_distance_to_marker,
+        core_min_distance,
+        core_pod,
+        core_far,
+        n_growth_in_margin,
+        n_glm_in_margin,
+        core_margin_flag,
+    ) = validate_markers(
+        detection_ds.core_label.data,
+        glm_grid,
+        glm_distance,
         edge_filter_array,
-        func=np.nanmin,
-        index=anvil_coord,
-        default=0,
-    ).astype("bool")
-    n_anvil_in_margin = np.nansum(anvil_margin_flag)
-    anvil_min_distance = get_min_dist_for_objects(
-        glm_distance, thick_anvil_label, index=anvil_coord
+        coord=detection_ds.core.data,
+        margin=margin,
+        time_margin=time_margin,
     )
-    if n_anvil_in_margin > 0:
-        anvil_far = (
-            np.nansum(anvil_min_distance[anvil_margin_flag] > margin)
-            / n_anvil_in_margin
-        )
-        anvil_far_hist = (
-            np.histogram(anvil_min_distance[anvil_margin_flag], bins=40, range=[0, 40])[
-                0
-            ]
-            / n_anvil_in_margin
-        )
-    else:
-        anvil_far = np.float64(np.nan)
-        anvil_far_hist = np.zeros([40])
+
+    (
+        flash_distance_to_anvil,
+        anvil_min_distance,
+        anvil_pod,
+        anvil_far,
+        n_anvil_in_margin,
+        n_glm_in_margin,
+        anvil_margin_flag,
+    ) = validate_markers(
+        detection_ds.core_label.data,
+        glm_grid,
+        glm_distance,
+        edge_filter_array,
+        coord=detection_ds.core.data,
+        margin=margin,
+        time_margin=time_margin,
+    )
 
     print("markers:", flush=True)
     print("n =", n_growth_in_margin, flush=True)
-    print("POD =", growth_pod, flush=True)
-    print("FAR = ", growth_far, flush=True)
+    print("POD =", core_pod, flush=True)
+    print("FAR = ", core_far, flush=True)
 
     print("anvil:", flush=True)
     print("n =", n_anvil_in_margin, flush=True)
@@ -381,26 +342,6 @@ def main():
     )
     add_dataarray_to_ds(
         create_dataarray(
-            anvil_far_hist,
-            ("bins",),
-            "anvil_far_histogram",
-            long_name="FAR histogram for anvils",
-            dtype=np.float32,
-        ),
-        validation_ds,
-    )
-    add_dataarray_to_ds(
-        create_dataarray(
-            anvil_pod_hist,
-            ("bins",),
-            "anvil_pod_histogram",
-            long_name="POD histogram for anvils",
-            dtype=np.float32,
-        ),
-        validation_ds,
-    )
-    add_dataarray_to_ds(
-        create_dataarray(
             anvil_pod,
             tuple(),
             "anvil_pod",
@@ -432,7 +373,7 @@ def main():
     # growth validation
     add_dataarray_to_ds(
         create_dataarray(
-            growth_min_distance,
+            core_min_distance,
             ("core",),
             "core_glm_distance",
             long_name="closest distance from core to GLM flash",
@@ -442,7 +383,7 @@ def main():
     )
     add_dataarray_to_ds(
         create_dataarray(
-            growth_margin_flag,
+            core_margin_flag,
             ("core",),
             "core_margin_flag",
             long_name="margin flag for core",
@@ -452,33 +393,13 @@ def main():
     )
     add_dataarray_to_ds(
         create_dataarray(
-            growth_far_hist,
-            ("bins",),
-            "core_far_histogram",
-            long_name="FAR histogram for cores",
-            dtype=np.float32,
+            core_pod, tuple(), "core_pod", long_name="POD for cores", dtype=np.float32
         ),
         validation_ds,
     )
     add_dataarray_to_ds(
         create_dataarray(
-            growth_pod_hist,
-            ("bins",),
-            "core_pod_histogram",
-            long_name="POD histogram for cores",
-            dtype=np.float32,
-        ),
-        validation_ds,
-    )
-    add_dataarray_to_ds(
-        create_dataarray(
-            growth_pod, tuple(), "core_pod", long_name="POD for cores", dtype=np.float32
-        ),
-        validation_ds,
-    )
-    add_dataarray_to_ds(
-        create_dataarray(
-            growth_far, tuple(), "core_far", long_name="FAR for cores", dtype=np.float32
+            core_far, tuple(), "core_far", long_name="FAR for cores", dtype=np.float32
         ),
         validation_ds,
     )
