@@ -17,12 +17,12 @@ from tobac_flow.utils import (
     remove_orphan_coords,
     filter_cores,
     filter_anvils,
-    add_validity_flags,
 )
 from tobac_flow.validation import (
     get_marker_distance,
     validate_markers,
 )
+from tobac_flow.postprocess import add_validity_flags
 
 parser = argparse.ArgumentParser(
     description="""Validate detected DCCs using GOES-16 GLM data"""
