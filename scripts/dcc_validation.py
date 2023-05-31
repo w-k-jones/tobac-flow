@@ -217,7 +217,7 @@ def main():
     validation_ds = validation_ds.assign_coords(
         core=detection_ds.core.data, anvil=detection_ds.anvil.data
     )
-    print(datetime.now(), "Calculating marker distances", flush=True)
+    print(datetime.now(), "Calculating flash distance", flush=True)
     # marker_distance = get_marker_distance(core_label, time_range=3)
     # anvil_distance = get_marker_distance(thick_anvil_label, time_range=3)
     glm_distance = get_marker_distance(glm_grid, time_range=time_margin)
@@ -235,8 +235,10 @@ def main():
     # Filter objects near to missing glm data
     wh_missing_glm = ndi.binary_dilation(glm_grid == -1, iterations=time_margin)
     edge_filter_array[wh_missing_glm] = 0
+    glm_grid[edge_filter_array == 0] = 0
     n_glm_in_margin = np.nansum(glm_grid[edge_filter_array])
 
+    print(datetime.now(), "Validating cores", flush=True)
     (
         flash_distance_to_marker,
         core_min_distance,
@@ -255,6 +257,7 @@ def main():
         time_margin=time_margin,
     )
 
+    print(datetime.now(), "Validating anvils", flush=True)
     (
         flash_distance_to_anvil,
         anvil_min_distance,
