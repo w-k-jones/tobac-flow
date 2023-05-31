@@ -14,14 +14,16 @@ from tobac_flow.dataset import (
     create_dataarray,
 )
 from tobac_flow.utils import (
-    apply_func_to_labels,
+    get_dates_from_filename,
+    remove_orphan_coords,
+    filter_cores,
+    filter_anvils,
+    add_validity_flags,
 )
 from tobac_flow.validation import (
-    get_min_dist_for_objects,
     get_marker_distance,
     validate_markers,
 )
-from tobac_flow.utils import get_dates_from_filename
 
 parser = argparse.ArgumentParser(
     description="""Validate detected DCCs using GOES-16 GLM data"""
@@ -52,8 +54,8 @@ parser.add_argument(
 )
 parser.add_argument("-cglm", help="clobber existing glm files", action="store_true")
 parser.add_argument(
-    "-is_valid",
-    help="Check for valid cores/anvils from statistics file",
+    "--filter",
+    help="Filter valid cores/anvils",
     action="store_true",
 )
 parser.add_argument(
@@ -102,6 +104,13 @@ def main():
     print(datetime.now(), "Loading detected DCCs", flush=True)
     print(file, flush=True)
     detection_ds = xr.open_dataset(file)
+    if args.filter:
+        detection_ds = remove_orphan_coords(detection_ds)
+        detection_ds = filter_cores(detection_ds, verbose=True)
+        detection_ds = filter_anvils(detection_ds, verbose=True)
+        detection_ds = remove_orphan_coords(detection_ds)
+        detection_ds = add_validity_flags(detection_ds)
+
     validation_ds = xr.Dataset()
 
     start_date, end_date = get_dates_from_filename(file)
