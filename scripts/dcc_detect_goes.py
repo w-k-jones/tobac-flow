@@ -216,13 +216,13 @@ def main() -> None:
     )
     print("Initial detected thick anvils: n =", thick_anvil_labels.max(), flush=True)
 
-    thick_anvil_labels = relabel_anvils(
-        flow,
-        thick_anvil_labels,
-        markers=anvil_markers,
-        overlap=overlap,
-        min_length=t_offset,
-    )
+    # thick_anvil_labels = relabel_anvils(
+    #     flow,
+    #     thick_anvil_labels,
+    #     markers=anvil_markers,
+    #     overlap=overlap,
+    #     min_length=t_offset,
+    # )
 
     print(
         "Final detected thick anvils: area =",
