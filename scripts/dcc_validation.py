@@ -121,11 +121,7 @@ def main():
     """
     Start validation
     """
-    if glm_save_path.exists() and not clobber_glm:
-        print(datetime.now(), "Loading from %s" % (glm_save_path), flush=True)
-        gridded_flash_ds = xr.open_dataset(glm_save_path)
-        glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
-    else:
+    if clobber_glm or not glm_save_path.exists():
         gridded_flash_ds = create_new_goes_ds(detection_ds)
 
         print(datetime.now(), "Processing GLM data", flush=True)
@@ -180,6 +176,12 @@ def main():
 
         print(datetime.now(), "Saving to %s" % (glm_save_path), flush=True)
         gridded_flash_ds.to_netcdf(glm_save_path)
+        glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
+
+    else:
+        print(datetime.now(), "Loading from %s" % (glm_save_path), flush=True)
+        gridded_flash_ds = xr.open_dataset(glm_save_path)
+        glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
 
     # if args.is_valid:
     #     stats_file = list(
@@ -233,7 +235,7 @@ def main():
     # Filter objects near to missing glm data
     wh_missing_glm = ndi.binary_dilation(glm_grid == -1, iterations=time_margin)
     edge_filter_array[wh_missing_glm] = 0
-    n_glm_in_margin = np.nansum(glm_grid.data[edge_filter_array])
+    n_glm_in_margin = np.nansum(glm_grid[edge_filter_array])
 
     (
         flash_distance_to_marker,
