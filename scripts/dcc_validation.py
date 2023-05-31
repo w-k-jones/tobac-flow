@@ -286,9 +286,7 @@ def main():
     print("POD =", anvil_pod, flush=True)
     print("FAR = ", anvil_far, flush=True)
 
-    print(
-        "total GLM flashes: ", np.nansum(glm_grid.data[glm_grid.data > 0]), flush=True
-    )
+    print("total GLM flashes: ", np.nansum(glm_grid[glm_grid > 0]), flush=True)
     print("total in margin: ", n_glm_in_margin, flush=True)
 
     """
