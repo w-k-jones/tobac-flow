@@ -234,6 +234,7 @@ def main():
     # Filter objects near to missing glm data
     wh_missing_glm = ndi.binary_dilation(glm_grid == -1, iterations=time_margin)
     edge_filter_array[wh_missing_glm] = 0
+    n_glm_in_margin = np.nansum(glm_grid.data[edge_filter_array])
 
     (
         flash_distance_to_marker,
@@ -241,13 +242,13 @@ def main():
         core_pod,
         core_far,
         n_growth_in_margin,
-        n_glm_in_margin,
         core_margin_flag,
     ) = validate_markers(
         detection_ds.core_label.data,
         glm_grid,
         glm_distance,
         edge_filter_array,
+        n_glm_in_margin,
         coord=detection_ds.core.data,
         margin=margin,
         time_margin=time_margin,
@@ -259,14 +260,14 @@ def main():
         anvil_pod,
         anvil_far,
         n_anvil_in_margin,
-        n_glm_in_margin,
         anvil_margin_flag,
     ) = validate_markers(
-        detection_ds.core_label.data,
+        detection_ds.thick_anvil_label.data,
         glm_grid,
         glm_distance,
         edge_filter_array,
-        coord=detection_ds.core.data,
+        n_glm_in_margin,
+        coord=detection_ds.anvil.data,
         margin=margin,
         time_margin=time_margin,
     )
