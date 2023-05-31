@@ -36,7 +36,7 @@ def validate_markers(
     marker_distance = get_marker_distance(labels, time_range=time_margin)
     flash_distance_to_marker = np.repeat(
         marker_distance.ravel(),
-        (glm_grid.data.astype(int) * edge_filter.astype(int)).ravel(),
+        glm_grid.astype(int).ravel(),
     )
     if n_glm_in_margin > 0:
         pod = np.nansum(flash_distance_to_marker <= 10) / n_glm_in_margin
