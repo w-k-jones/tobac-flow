@@ -104,7 +104,7 @@ def main():
         detection_ds = filter_cores(detection_ds, verbose=True)
         detection_ds = filter_anvils(detection_ds, verbose=True)
         detection_ds = remove_orphan_coords(detection_ds)
-        detection_ds = add_validity_flags(detection_ds)
+        # detection_ds = add_validity_flags(detection_ds)
 
     validation_ds = xr.Dataset()
 
