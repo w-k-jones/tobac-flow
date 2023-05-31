@@ -261,12 +261,12 @@ def main():
         n_anvil_in_margin,
         anvil_margin_flag,
     ) = validate_markers(
-        detection_ds.core_label.data,
+        detection_ds.thick_anvil_label.data,
         glm_grid,
         glm_distance,
         edge_filter_array,
         n_glm_in_margin,
-        coord=detection_ds.core.data,
+        coord=detection_ds.anvil.data,
         margin=margin,
         time_margin=time_margin,
     )
