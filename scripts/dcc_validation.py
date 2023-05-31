@@ -91,10 +91,6 @@ if not save_dir.exists():
     except (FileExistsError, OSError):
         pass
 
-stats_path = pathlib.Path(args.stats_path)
-if args.is_valid and (not stats_path.exists()):
-    raise ValueError("Stats path not valid")
-
 # def validation(file, margin, goes_data_path, save_dir):
 def main():
     """
