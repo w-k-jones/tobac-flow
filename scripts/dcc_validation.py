@@ -124,7 +124,7 @@ def main():
     if glm_save_path.exists() and not clobber_glm:
         print(datetime.now(), "Loading from %s" % (glm_save_path), flush=True)
         gridded_flash_ds = xr.open_dataset(glm_save_path)
-        glm_grid = gridded_flash_ds.glm_flashes
+        glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
     else:
         gridded_flash_ds = create_new_goes_ds(detection_ds)
 
