@@ -54,6 +54,12 @@ parser.add_argument(
 parser.add_argument("-cglm", help="clobber existing glm files", action="store_true")
 parser.add_argument(
     "--filter",
+    help="Filter cores/anvils using stats file",
+    action="store_true",
+)
+parser.add_argument("-cglm", help="clobber existing glm files", action="store_true")
+parser.add_argument(
+    "--is_valid",
     help="Filter valid cores/anvils",
     action="store_true",
 )
@@ -91,6 +97,11 @@ if not save_dir.exists():
     except (FileExistsError, OSError):
         pass
 
+if args.filter:
+    stats_path = pathlib.Path(args.stats_path)
+    if not stats_path.exists():
+        raise ValueError(f"{str(stats_path)} does not exist")
+
 # def validation(file, margin, goes_data_path, save_dir):
 def main():
     """
@@ -99,12 +110,6 @@ def main():
     print(datetime.now(), "Loading detected DCCs", flush=True)
     print(file, flush=True)
     detection_ds = xr.open_dataset(file)
-    if args.filter:
-        detection_ds = remove_orphan_coords(detection_ds)
-        detection_ds = filter_cores(detection_ds, verbose=True)
-        detection_ds = filter_anvils(detection_ds, verbose=True)
-        detection_ds = remove_orphan_coords(detection_ds)
-        # detection_ds = add_validity_flags(detection_ds)
 
     validation_ds = xr.Dataset()
 
@@ -188,36 +193,55 @@ def main():
         gridded_flash_ds = xr.open_dataset(glm_save_path)
         glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
 
-    # if args.is_valid:
-    #     stats_file = list(
-    #         stats_path.glob(
-    #             f"dcc_statistics_G16_S{start_str[:6]}*_X{x_str}_Y{y_str}.nc"
-    #         )
-    #     )[0]
-    #     stats_ds = xr.open_dataset(stats_file)
-    #     core_label = detection_ds.core_label.data
-    #     core_label *= np.isin(
-    #         core_label, stats_ds.core.data[stats_ds.core_is_valid.data]
-    #     ).astype(int)
-    #     core_coord = detection_ds.core.data
-    #     core_coord = core_coord[
-    #         np.isin(core_coord, stats_ds.core.data[stats_ds.core_is_valid.data])
-    #     ]
-    #     thick_anvil_label = detection_ds.thick_anvil_label.data
-    #     thick_anvil_label *= np.isin(
-    #         thick_anvil_label,
-    #         stats_ds.anvil.data[stats_ds.thin_anvil_is_valid.data],
-    #     ).astype(int)
-    #     anvil_coord = detection_ds.anvil.data
-    #     anvil_coord = anvil_coord[
-    #         np.isin(anvil_coord, stats_ds.anvil.data[stats_ds.thin_anvil_is_valid.data])
-    #     ]
+    if args.filter:
+        stats_file = list(
+            stats_path.glob(
+                f"dcc_statistics_G16_S{start_str[:6]}*_X{x_str}_Y{y_str}.nc"
+            )
+        )[0]
+        stats_ds = xr.open_dataset(stats_file)
 
-    # else:
-    #     core_label = detection_ds.core_label.data
-    #     thick_anvil_label = detection_ds.thick_anvil_label.data
-    #     core_coord = detection_ds.core.data
-    #     anvil_coord = detection_ds.anvil.data
+        if args.is_valid:
+            core_label = detection_ds.core_label.data
+            core_label *= np.isin(
+                core_label, stats_ds.core.data[stats_ds.core_is_valid.data]
+            ).astype(int)
+            core_coord = detection_ds.core.data
+            core_coord = core_coord[
+                np.isin(core_coord, stats_ds.core.data[stats_ds.core_is_valid.data])
+            ]
+
+            thick_anvil_label = detection_ds.thick_anvil_label.data
+            thick_anvil_label *= np.isin(
+                thick_anvil_label,
+                stats_ds.anvil.data[stats_ds.thin_anvil_is_valid.data],
+            ).astype(int)
+            anvil_coord = detection_ds.anvil.data
+            anvil_coord = anvil_coord[
+                np.isin(
+                    anvil_coord, stats_ds.anvil.data[stats_ds.thin_anvil_is_valid.data]
+                )
+            ]
+
+        else:
+            core_label = detection_ds.core_label.data
+            core_label *= np.isin(core_label, stats_ds.core.data).astype(int)
+            core_coord = detection_ds.core.data
+            core_coord = core_coord[np.isin(core_coord, stats_ds.core.data)]
+
+            thick_anvil_label = detection_ds.thick_anvil_label.data
+            thick_anvil_label *= np.isin(
+                thick_anvil_label,
+                stats_ds.anvil.data,
+            ).astype(int)
+            anvil_coord = detection_ds.anvil.data
+            anvil_coord = anvil_coord[np.isin(anvil_coord, stats_ds.anvil.data)]
+
+    else:
+        core_label = detection_ds.core_label.data
+        thick_anvil_label = detection_ds.thick_anvil_label.data
+        core_coord = detection_ds.core.data
+        anvil_coord = detection_ds.anvil.data
 
     validation_ds = validation_ds.assign_coords(
         core=detection_ds.core.data, anvil=detection_ds.anvil.data
