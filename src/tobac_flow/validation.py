@@ -31,14 +31,7 @@ def get_marker_distance(labels, time_range=1):
 
 
 def validate_markers(
-    labels,
-    glm_grid,
-    glm_distance,
-    edge_filter,
-    n_glm_in_margin,
-    coord=None,
-    margin=10,
-    time_margin=3,
+    labels, glm_grid, glm_distance, edge_filter, n_glm_in_margin, coord=None, margin=10, time_margin=3
 ):
     marker_distance = get_marker_distance(labels, time_range=time_margin)
     flash_distance_to_marker = np.repeat(
@@ -64,11 +57,4 @@ def validate_markers(
     else:
         far = np.nan
 
-    return (
-        flash_distance_to_marker,
-        marker_distance_to_flash,
-        pod,
-        far,
-        n_marker_in_margin,
-        margin_flag,
-    )
+    return flash_distance_to_marker, marker_distance_to_flash, pod, far, n_marker_in_margin, margin_flag
