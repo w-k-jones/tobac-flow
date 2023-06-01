@@ -238,9 +238,7 @@ def main():
         core_coord = detection_ds.core.data
         anvil_coord = detection_ds.anvil.data
 
-    validation_ds = validation_ds.assign_coords(
-        core=detection_ds.core.data, anvil=detection_ds.anvil.data
-    )
+    validation_ds = validation_ds.assign_coords(core=core_coord, anvil=anvil_coord)
     print(datetime.now(), "Calculating flash distance", flush=True)
     # marker_distance = get_marker_distance(core_label, time_range=3)
     # anvil_distance = get_marker_distance(thick_anvil_label, time_range=3)
