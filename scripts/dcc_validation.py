@@ -13,12 +13,7 @@ from tobac_flow.dataset import (
     add_dataarray_to_ds,
     create_dataarray,
 )
-from tobac_flow.utils import (
-    get_dates_from_filename,
-    remove_orphan_coords,
-    filter_cores,
-    filter_anvils,
-)
+from tobac_flow.utils import get_dates_from_filename
 from tobac_flow.validation import (
     get_marker_distance,
     validate_markers,
@@ -58,7 +53,6 @@ parser.add_argument(
     help="Filter cores/anvils using stats file",
     action="store_true",
 )
-parser.add_argument("-cglm", help="clobber existing glm files", action="store_true")
 parser.add_argument(
     "--is_valid",
     help="Filter valid cores/anvils",
