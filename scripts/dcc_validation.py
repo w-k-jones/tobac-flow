@@ -271,12 +271,12 @@ def main():
         n_growth_in_margin,
         core_margin_flag,
     ) = validate_markers(
-        detection_ds.core_label.data,
+        core_label,
         glm_grid,
         glm_distance,
         edge_filter_array,
         n_glm_in_margin,
-        coord=detection_ds.core.data,
+        coord=core_coord,
         margin=margin,
         time_margin=time_margin,
     )
@@ -290,12 +290,12 @@ def main():
         n_anvil_in_margin,
         anvil_margin_flag,
     ) = validate_markers(
-        detection_ds.thick_anvil_label.data,
+        thick_anvil_label,
         glm_grid,
         glm_distance,
         edge_filter_array,
         n_glm_in_margin,
-        coord=detection_ds.anvil.data,
+        coord=anvil_coord,
         margin=margin,
         time_margin=time_margin,
     )
