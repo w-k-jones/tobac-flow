@@ -216,7 +216,8 @@ def regrid_glm(glm_files, goes_ds, corrected=False, max_time_diff=15):
     max_diff = 15 * 60
     goes_dates = get_datetime_from_coord(goes_ds.t)
     time_diffs = [
-        (goes_dates[i + 1] - goes_dates[i]).total_seconds() for i in len(goes_dates - 1)
+        (goes_dates[i + 1] - goes_dates[i]).total_seconds()
+        for i in range(len(goes_dates) - 1)
     ]
     time_diffs = [td / 2 if td < max_diff else max_diff / 2 for td in time_diffs]
     time_diffs = [time_diffs[0]] + time_diffs + [time_diffs[-1]]
