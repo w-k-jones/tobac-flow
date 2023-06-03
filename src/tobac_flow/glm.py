@@ -208,8 +208,18 @@ def get_uncorrected_glm_hist(glm_files, goes_ds, start_time, end_time):
     return np.histogram2d(glm_y, glm_x, bins=(y_bins[::-1], x_bins))[0][::-1]
 
 
-def regrid_glm(glm_files, goes_ds, corrected=False):
+def regrid_glm(glm_files, goes_ds, corrected=False, max_time_diff=15):
+    """
+    Regrid GLM flash observations to the ABI grid
+    """
+    # Max time diff 15 minutes away
+    max_diff = 15 * 60
     goes_dates = get_datetime_from_coord(goes_ds.t)
+    time_diffs = [
+        (goes_dates[i + 1] - goes_dates[i]).total_seconds() for i in len(goes_dates - 1)
+    ]
+    time_diffs = [td / 2 if td < max_diff else max_diff / 2 for td in time_diffs]
+    time_diffs = [time_diffs[0]] + time_diffs + [time_diffs[-1]]
     goes_coords = get_ds_core_coords(goes_ds)
     goes_mapping = {k: goes_coords[k].size for k in goes_coords}
     glm_grid_shape = (goes_mapping["t"], goes_mapping["y"], goes_mapping["x"])
@@ -219,20 +229,16 @@ def regrid_glm(glm_files, goes_ds, corrected=False):
 
     for i in range(glm_grid_shape[0]):
         # print(i, end='\r')
+        start_time = goes_dates[i] - timedelta(seconds=time_diffs[i])
+        end_time = goes_dates[i] + timedelta(seconds=time_diffs[i + 1])
         try:
             if corrected:
                 glm_grid[i] = get_corrected_glm_hist(
-                    glm_files,
-                    goes_ds,
-                    goes_dates[i],
-                    goes_dates[i] + timedelta(minutes=5),
+                    glm_files, goes_ds, start_time, end_time
                 )
             else:
                 glm_grid[i] = get_uncorrected_glm_hist(
-                    glm_files,
-                    goes_ds,
-                    goes_dates[i],
-                    goes_dates[i] + timedelta(minutes=5),
+                    glm_files, goes_ds, start_time, end_time
                 )
         except (ValueError, IndexError) as e:
             print("Error processing glm data at step %d" % i)
