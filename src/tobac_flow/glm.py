@@ -213,7 +213,7 @@ def regrid_glm(glm_files, goes_ds, corrected=False, max_time_diff=15):
     Regrid GLM flash observations to the ABI grid
     """
     # Max time diff 15 minutes away
-    max_diff = 15 * 60
+    max_diff = max_time_diff * 60
     goes_dates = get_datetime_from_coord(goes_ds.t)
     time_diffs = [
         (goes_dates[i + 1] - goes_dates[i]).total_seconds()
