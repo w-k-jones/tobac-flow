@@ -635,7 +635,7 @@ def flow_magnitude(flow, direction="forward") -> np.ndarray[float]:
     return magnitude
 
 
-def flow_residual_cold_mse_estimate(
+def flow_residual_mse_estimate(
     da, flow, model="Farneback", vr_steps=1, smoothing_passes=1
 ):
     new_flow = get_flow_residual(
