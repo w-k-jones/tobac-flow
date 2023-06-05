@@ -1,4 +1,5 @@
 from typing import Callable
+from datetime import datetime
 import numpy as np
 import xarray as xr
 import cv2
@@ -15,6 +16,7 @@ from tobac_flow.utils import (
     select_normalisation_method,
     select_of_model,
     warp_flow,
+    mse,
 )
 
 
@@ -418,6 +420,74 @@ def calculate_flow(
     return forward_flow, backward_flow
 
 
+def calculate_flow_2(
+    a: np.ndarray | xr.DataArray,
+    b: np.ndarray | xr.DataArray,
+    model: str = "DIS",
+    vr_steps: int = 0,
+    smoothing_passes: int = 0,
+    normalisation_method: str = "linear",
+    **normalisation_kwargs: None | dict
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Calculates forward and backward optical flow vectors from two datasets
+
+    Parameters
+    ----------
+    a : numpy.ndarray
+        Array of data to calculate optical flow for. Flow vectors are calculated
+            along the leading dimension
+    b : numpy.ndarray
+        Array of data to calculate optical flow for. Flow vectors are calculated
+            along the leading dimension
+    model : string, optional (default : 'DIS')
+        opencv optical flow model to use
+    vr_steps : int, optional (default : 0)
+        Number of variational refinement operations to perform
+    smoothing_passes : int, optional (default : 0)
+        Number of smoothing operation between the forward and backward flow to
+            perform
+
+    Returns
+    -------
+    forward_flow : numpy.ndarray
+        Array of optical flow vectors acting forward along the leading dimension
+            of data
+    backward_flow : numpy.ndarray
+        Array of optical flow vectors acting backwards along the leading
+            dimension of data
+    """
+    of_model = select_of_model(model)
+
+    norm_method = select_normalisation_method(normalisation_method)
+
+    if isinstance(a, xr.DataArray):
+        a = a.compute().data
+    if isinstance(b, xr.DataArray):
+        b = b.compute().data
+
+    forward_flow = np.full(a.shape + (2,), np.nan, dtype=np.float32)
+    backward_flow = np.full(a.shape + (2,), np.nan, dtype=np.float32)
+
+    for i in range(a.shape[0] - 1):
+        prev_frame, next_frame = to_8bit(
+            norm_method(np.stack([a[i], b[i]], 0), **normalisation_kwargs), 0, 1
+        )
+
+        forward_flow[i], backward_flow[i + 1] = calculate_flow_frame(
+            prev_frame,
+            next_frame,
+            of_model,
+            vr_steps=vr_steps,
+            smoothing_steps=smoothing_passes,
+        )
+
+    forward_flow[-1] = -backward_flow[-1]
+    backward_flow[0] = -forward_flow[0]
+
+    return forward_flow, backward_flow
+
+
 def calculate_flow_frame(
     prev_frame: np.ndarray[np.uint8],
     next_frame: np.ndarray[np.uint8],
@@ -523,3 +593,66 @@ def combine_flow(*args: tuple[Flow]) -> Flow:
     ) / sum(backward_magnitudes)
 
     return Flow(combined_flow_forward, combined_flow_backward)
+
+
+def get_forward_warp(da, flow):
+    forward_struct = np.zeros([3, 3, 3], dtype=bool)
+    forward_struct[2, 1, 1] = True
+    return flow.convolve(da.data, forward_struct)[0]
+
+
+def flow_diff_mse_estimate(da, flow):
+    forward_warp = get_forward_warp(da, flow)
+    all_mse = mse(forward_warp, da.data)
+    wh = da.data < 273
+    cold_mse = mse(forward_warp[wh], da.data[wh])
+    return all_mse, cold_mse
+
+
+def get_flow_residual(da, flow, model="Farneback", vr_steps=1, smoothing_passes=1):
+    forward_warp = get_forward_warp(da, flow)
+    new_flow, _ = calculate_flow_2(
+        da.data,
+        forward_warp,
+        model=model,
+        vr_steps=vr_steps,
+        smoothing_passes=smoothing_passes,
+    )
+    return new_flow
+
+
+def flow_magnitude(flow, direction="forward") -> np.ndarray[float]:
+    if direction == "forward":
+        magnitude = (
+            flow.forward_flow[..., 0] ** 2 + flow.forward_flow[..., 1] ** 2
+        ) ** 0.5
+    elif direction == "backward":
+        magnitude = (
+            flow.backward_flow[..., 0] ** 2 + flow.backward_flow[..., 1] ** 2
+        ) ** 0.5
+    else:
+        raise ValueError("Direction must be one of 'forward', 'backward'")
+    return magnitude
+
+
+def flow_residual_cold_mse_estimate(
+    da, flow, model="Farneback", vr_steps=1, smoothing_passes=1
+):
+    new_flow = get_flow_residual(
+        da, flow, model=model, vr_steps=vr_steps, smoothing_passes=smoothing_passes
+    )
+    magnitude = (new_flow[..., 0] ** 2 + new_flow[..., 1] ** 2) ** 0.5
+    magnitude = magnitude[:, 20:-20, 20:-20]
+    all_mse = mse(magnitude, np.zeros_like(magnitude))
+    wh_cold = da.data[:, 20:-20, 20:-20] < 273
+    cold_mse = mse(magnitude[wh_cold], np.zeros_like(magnitude[wh_cold]))
+    return all_mse, cold_mse
+
+
+def time_flow(da, model="Farneback", vr_steps=1, smoothing_passes=1):
+    start_date = datetime.now()
+    _ = create_flow(
+        da, model=model, vr_steps=vr_steps, smoothing_passes=smoothing_passes
+    )
+    total_time = (datetime.now() - start_date).total_seconds()
+    return total_time
