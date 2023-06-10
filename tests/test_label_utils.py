@@ -18,8 +18,27 @@ def test_apply_func_to_labels():
         test_labels,
         np.stack([test_data1, test_data1]),
         func=np.mean,
+        index=[1, 3],
+    )
+    label_utils.apply_func_to_labels(
+        test_labels,
+        np.stack([test_data1, test_data1]),
+        func=np.mean,
         index=[1, 2, 3, 4],
     )
+    label_utils.apply_func_to_labels(
+        test_labels,
+        np.stack([test_data1, test_data1]),
+        func=np.mean,
+        index=[0, 1, 2, 3, 4],
+    )
+    label_utils.apply_func_to_labels(
+        test_labels,
+        np.stack([test_data1, test_data1]),
+        func=np.mean,
+        index=[-1, 1, 2, 3, 4],
+    )
+
 
     weighted_mean = lambda a, w: np.average(a, weights=w)
     label_utils.apply_func_to_labels(test_labels, test_data1, 1, func=weighted_mean)
