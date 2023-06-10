@@ -22,6 +22,7 @@ dependencies:
   - jupyter
   - notebook
   - google-cloud-storage
+  - libnetcdf<=4.9.1
   - netcdf4
   - arm_pyart
   - cmcrameri

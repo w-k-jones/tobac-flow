@@ -232,8 +232,15 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     ds_slice = {"x": slice(x0, x1), "y": slice(y0, y1)}
     # Load a stack of goes datasets using xarray
     print(f"Loading {len(files)} files", flush=True)
-    goes_ds = xr.open_mfdataset(files, concat_dim="t", combine="nested").isel(ds_slice)
-
+    # goes_ds = xr.open_mfdataset(
+    #     files, concat_dim="t", combine="nested",
+    #     data_vars='minimal', coords='minimal', compat='override'
+    # ).isel(ds_slice)
+    goes_ds = xr.concat(
+        [xr.open_dataset(f).isel(ds_slice) for f in files], 
+        dim="t", data_vars='minimal', coords='minimal', compat='override'
+    )
+    
     # Extract fields and load into memory
     wvd = (goes_ds.CMI_C08 - goes_ds.CMI_C10).load()
 
