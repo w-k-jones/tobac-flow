@@ -1,3 +1,4 @@
+from multiprocessing import Value
 import numpy as np
 import scipy.ndimage as ndi
 from typing import Callable
@@ -80,9 +81,11 @@ def apply_func_to_labels(
     default: None | float, optional (default: None)
         default value to return in a region has no values
     """
-    for field in fields:
-        if labels.shape != field.shape:
-            raise ValueError("Input labels and field do not have the same shape")
+    broadcast_fields = np.broadcast_arrays(*fields)
+
+    if labels.shape != broadcast_fields[0].shape:
+        raise ValueError("Input labels and field do not have the same shape")
+
     if index is None:
         index = range(1, int(np.nanmax(labels) + 1))
     else:
@@ -90,14 +93,42 @@ def apply_func_to_labels(
             raise ValueError("Index contains values that are not in labels!")
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
-    return np.array(
+    # Format the default value in case func has multiple return values
+    try:
+        _ = iter(default)
+        assert not isinstance(default, str)
+    except (TypeError, AssertionError):
+        i = np.where(np.diff(bins))[0][0] + 1
+        return_vals = func(
+            *[field.ravel()[args[bins[i - 1] : bins[i]]] for field in broadcast_fields]
+        )
+        try:
+            assert not isinstance(return_vals, str)
+            n_return_vals = len(return_vals)
+        except (AssertionError, TypeError):
+            default_vals = default
+        else:
+            default_vals = [default] * n_return_vals
+    else:
+        if len(default) == 1 and not isinstance(default, str):
+            default_vals = default[0]
+        else:
+            default_vals = default
+
+    return np.stack(
         [
-            func(*[field.ravel()[args[bins[i - 1] : bins[i]]] for field in fields])
+            func(
+                *[
+                    field.ravel()[args[bins[i - 1] : bins[i]]]
+                    for field in broadcast_fields
+                ]
+            )
             if bins[i] > bins[i - 1]
-            else default
+            else default_vals
             for i in index
-        ]
-    )
+        ],
+        -1,
+    ).squeeze()
 
 
 def flat_label(
