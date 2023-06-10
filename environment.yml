@@ -1,0 +1,32 @@
+name: tobac_flow
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - scipy
+  - scikit-image
+  - scikit-learn
+  - pandas
+  - xarray
+  - dask
+  - requests
+  - opencv
+  - pyproj
+  - cf_xarray
+  - python-dateutil
+  - satpy
+  - pyspectral
+  - cython
+  - matplotlib
+  - cartopy
+  - jupyter
+  - notebook
+  - google-cloud-storage
+  - netcdf4
+  - arm_pyart
+  - cmcrameri
+  - palettable
+  - pip
+  - pip:
+     - "--editable=git+https://github.com/deeplycloudy/lmatools.git#egg=lmatools"
+     - "--editable=git+https://github.com/deeplycloudy/glmtools.git#egg=glmtools"
