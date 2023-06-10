@@ -86,11 +86,12 @@ def apply_func_to_labels(
     broadcast_fields = broadcast_fields[1:]
 
     if index is None:
-        index = range(1, int(np.nanmax(labels) + 1))
+        n_bins = np.max(labels) + 1
+        index = range(1, n_bins)
     else:
-        if np.max(index) > np.max(labels):
-            raise ValueError("Index contains values that are not in labels!")
-    bins = np.cumsum(np.bincount(broadcast_labels.ravel()))
+        n_bins = np.maximum(np.max(index), np.max(labels)) + 1
+
+    bins = np.cumsum(np.bincount(broadcast_labels.ravel(), minlength=n_bins))
     args = np.argsort(broadcast_labels.ravel())
     # Format the default value in case func has multiple return values
     try:
