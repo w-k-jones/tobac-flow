@@ -81,18 +81,17 @@ def apply_func_to_labels(
     default: None | float, optional (default: None)
         default value to return in a region has no values
     """
-    broadcast_fields = np.broadcast_arrays(*fields)
-
-    if labels.shape != broadcast_fields[0].shape:
-        raise ValueError("Input labels and field do not have the same shape")
+    broadcast_fields = np.broadcast_arrays(labels, *fields)
+    broadcast_labels = broadcast_fields[0]
+    broadcast_fields = broadcast_fields[1:]
 
     if index is None:
         index = range(1, int(np.nanmax(labels) + 1))
     else:
         if np.max(index) > np.max(labels):
             raise ValueError("Index contains values that are not in labels!")
-    bins = np.cumsum(np.bincount(labels.ravel()))
-    args = np.argsort(labels.ravel())
+    bins = np.cumsum(np.bincount(broadcast_labels.ravel()))
+    args = np.argsort(broadcast_labels.ravel())
     # Format the default value in case func has multiple return values
     try:
         _ = iter(default)

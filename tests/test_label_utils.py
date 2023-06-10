@@ -11,10 +11,17 @@ def test_apply_func_to_labels():
     test_data2 = np.array([1, 2, 3, 3, 2, 1])
 
     label_utils.apply_func_to_labels(test_labels, test_data1, func=np.mean)
+    label_utils.apply_func_to_labels(
+        test_labels, np.stack([test_data1, test_data1]), func=np.mean
+    )
 
     weighted_mean = lambda a, w: np.average(a, weights=w)
+    label_utils.apply_func_to_labels(test_labels, test_data1, 1, func=weighted_mean)
     label_utils.apply_func_to_labels(
         test_labels, test_data1, test_data2, func=weighted_mean
+    )
+    label_utils.apply_func_to_labels(
+        test_labels, np.stack([test_data1, test_data1]), 1, func=weighted_mean
     )
 
     mean_and_std = lambda a: (np.mean(a), np.std(a))
