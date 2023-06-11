@@ -326,10 +326,7 @@ def main() -> None:
         marker_coord = np.unique(dataset.anvil_marker_label.data).astype(np.int32)
         if marker_coord[0] == 0 and marker_coord.size > 1:
             marker_coord = marker_coord[1:]
-        dataset = dataset.assign_coords(
-            {"anvil_marker":marker_coord}
-        )
-
+        dataset = dataset.assign_coords({"anvil_marker": marker_coord})
 
     link_step_labels(dataset)
 

@@ -77,7 +77,6 @@ if not save_dir.exists():
         pass
 
 
-
 # def validation(file, margin, goes_data_path, save_dir):
 def main():
     """
@@ -92,17 +91,21 @@ def main():
     # now trim core, anvil coordinates
     detection_ds = detection_ds.sel(
         core=detection_ds.core[np.isin(detection_ds.core, detection_ds.core_label)],
-        anvil=detection_ds.anvil[np.logical_or(
-            np.isin(detection_ds.anvil, detection_ds.thick_anvil_label),
-            np.isin(detection_ds.anvil, detection_ds.thin_anvil_label)
-        )]
+        anvil=detection_ds.anvil[
+            np.logical_or(
+                np.isin(detection_ds.anvil, detection_ds.thick_anvil_label),
+                np.isin(detection_ds.anvil, detection_ds.thin_anvil_label),
+            )
+        ],
     )
 
     if "anvil_marker" in detection_ds.coords:
         detection_ds = detection_ds.sel(
-            anvil_marker=detection_ds.anvil_marker[np.isin(detection_ds.anvil_marker, detection_ds.anvil_marker_label)]
+            anvil_marker=detection_ds.anvil_marker[
+                np.isin(detection_ds.anvil_marker, detection_ds.anvil_marker_label)
+            ]
         )
-    
+
     validation_ds = xr.Dataset()
 
     start_date, end_date = get_dates_from_filename(file)
@@ -189,34 +192,40 @@ def main():
     core_coord = detection_ds.core.to_numpy()
 
     core_with_anvil_coord = core_coord[detection_ds.core_anvil_index.to_numpy() != 0]
-    core_with_anvil_label = core_label * np.isin(core_label, core_with_anvil_coord).astype(int)
+    core_with_anvil_label = core_label * np.isin(
+        core_label, core_with_anvil_coord
+    ).astype(int)
 
     thick_anvil_label = detection_ds.thick_anvil_label.to_numpy()
     anvil_coord = detection_ds.anvil.to_numpy()
 
-    anvil_with_core_coord = anvil_coord[np.isin(anvil_coord, detection_ds.core_anvil_index.to_numpy())]
-    anvil_with_core_label = thick_anvil_label * np.isin(thick_anvil_label, anvil_with_core_coord).astype(int)
+    anvil_with_core_coord = anvil_coord[
+        np.isin(anvil_coord, detection_ds.core_anvil_index.to_numpy())
+    ]
+    anvil_with_core_label = thick_anvil_label * np.isin(
+        thick_anvil_label, anvil_with_core_coord
+    ).astype(int)
 
     if "anvil_marker" in detection_ds.coords:
         anvil_marker_label = detection_ds.anvil_marker_label.to_numpy()
         anvil_marker_coord = detection_ds.anvil_marker.to_numpy()
 
         validation_ds = validation_ds.assign_coords(
-            core=core_coord, 
-            core_with_anvil=core_with_anvil_coord, 
+            core=core_coord,
+            core_with_anvil=core_with_anvil_coord,
             anvil=anvil_coord,
-            anvil_with_core=anvil_with_core_coord, 
-            anvil_marker=anvil_marker_coord
+            anvil_with_core=anvil_with_core_coord,
+            anvil_marker=anvil_marker_coord,
         )
-    
+
     else:
         validation_ds = validation_ds.assign_coords(
-            core=core_coord, 
-            core_with_anvil=core_with_anvil_coord, 
+            core=core_coord,
+            core_with_anvil=core_with_anvil_coord,
             anvil=anvil_coord,
             anvil_with_core=anvil_with_core_coord,
         )
-    
+
     print(datetime.now(), "Calculating flash distance", flush=True)
     glm_distance, _ = get_marker_distance_cylinder(glm_grid, time_margin)
 
@@ -231,19 +240,36 @@ def main():
     edge_filter_array[:, :, :margin] = False
     edge_filter_array[:, :, -margin:] = False
 
-    time_gap = np.where((np.diff(detection_ds.t)/1e9).astype(int) > 900)[0]
+    time_gap = np.where((np.diff(detection_ds.t) / 1e9).astype(int) > 900)[0]
     if time_gap.size > 0:
         print("Time gaps detected, filtering")
         for i in time_gap:
-            i_slice = slice(np.maximum(i-time_margin+1,0),np.minimum(i+time_margin+2, detection_ds.t.size))
+            i_slice = slice(
+                np.maximum(i - time_margin + 1, 0),
+                np.minimum(i + time_margin + 2, detection_ds.t.size),
+            )
             edge_filter_array[i_slice] = False
 
-    if np.any(glm_grid==-1):
+    if np.any(glm_grid == -1):
         print("Missing glm data detected, filtering")
-        margin_structure = np.stack([
-            np.sum([(arr-10)**2 for arr in np.meshgrid(np.arange(margin*2+1), np.arange(margin*2+1))], 0)**0.5 < margin
-        ]*(time_margin*2+1), 0)
-        wh_missing_glm = ndi.binary_dilation(glm_grid==-1, structure=margin_structure)
+        margin_structure = np.stack(
+            [
+                np.sum(
+                    [
+                        (arr - 10) ** 2
+                        for arr in np.meshgrid(
+                            np.arange(margin * 2 + 1), np.arange(margin * 2 + 1)
+                        )
+                    ],
+                    0,
+                )
+                ** 0.5
+                < margin
+            ]
+            * (time_margin * 2 + 1),
+            0,
+        )
+        wh_missing_glm = ndi.binary_dilation(glm_grid == -1, structure=margin_structure)
         edge_filter_array[wh_missing_glm] = False
 
     glm_grid_filtered = np.zeros_like(glm_grid)
@@ -422,13 +448,21 @@ def main():
     )
     add_dataarray_to_ds(
         create_dataarray(
-            core_with_anvil_pod, tuple(), "core_with_anvil_pod", long_name="POD for core_with_anvils", dtype=np.float32
+            core_with_anvil_pod,
+            tuple(),
+            "core_with_anvil_pod",
+            long_name="POD for core_with_anvils",
+            dtype=np.float32,
         ),
         validation_ds,
     )
     add_dataarray_to_ds(
         create_dataarray(
-            core_with_anvil_far, tuple(), "core_with_anvil_far", long_name="FAR for core_with_anvils", dtype=np.float32
+            core_with_anvil_far,
+            tuple(),
+            "core_with_anvil_far",
+            long_name="FAR for core_with_anvils",
+            dtype=np.float32,
         ),
         validation_ds,
     )
@@ -511,13 +545,21 @@ def main():
     )
     add_dataarray_to_ds(
         create_dataarray(
-            anvil_pod, tuple(), "anvil_pod", long_name="POD for anvils", dtype=np.float32
+            anvil_pod,
+            tuple(),
+            "anvil_pod",
+            long_name="POD for anvils",
+            dtype=np.float32,
         ),
         validation_ds,
     )
     add_dataarray_to_ds(
         create_dataarray(
-            anvil_far, tuple(), "anvil_far", long_name="FAR for anvils", dtype=np.float32
+            anvil_far,
+            tuple(),
+            "anvil_far",
+            long_name="FAR for anvils",
+            dtype=np.float32,
         ),
         validation_ds,
     )
@@ -600,13 +642,21 @@ def main():
     )
     add_dataarray_to_ds(
         create_dataarray(
-            anvil_with_core_pod, tuple(), "anvil_with_core_pod", long_name="POD for anvil_with_cores", dtype=np.float32
+            anvil_with_core_pod,
+            tuple(),
+            "anvil_with_core_pod",
+            long_name="POD for anvil_with_cores",
+            dtype=np.float32,
         ),
         validation_ds,
     )
     add_dataarray_to_ds(
         create_dataarray(
-            anvil_with_core_far, tuple(), "anvil_with_core_far", long_name="FAR for anvil_with_cores", dtype=np.float32
+            anvil_with_core_far,
+            tuple(),
+            "anvil_with_core_far",
+            long_name="FAR for anvil_with_cores",
+            dtype=np.float32,
         ),
         validation_ds,
     )
@@ -690,13 +740,21 @@ def main():
         )
         add_dataarray_to_ds(
             create_dataarray(
-                anvil_marker_pod, tuple(), "anvil_marker_pod", long_name="POD for anvil_markers", dtype=np.float32
+                anvil_marker_pod,
+                tuple(),
+                "anvil_marker_pod",
+                long_name="POD for anvil_markers",
+                dtype=np.float32,
             ),
             validation_ds,
         )
         add_dataarray_to_ds(
             create_dataarray(
-                anvil_marker_far, tuple(), "anvil_marker_far", long_name="FAR for anvil_markers", dtype=np.float32
+                anvil_marker_far,
+                tuple(),
+                "anvil_marker_far",
+                long_name="FAR for anvil_markers",
+                dtype=np.float32,
             ),
             validation_ds,
         )
