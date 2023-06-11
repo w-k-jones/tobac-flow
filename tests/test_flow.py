@@ -3,6 +3,7 @@ import cv2
 import pytest
 from tobac_flow import flow
 
+
 # Test of_model
 def test_vr_model() -> None:
     assert isinstance(

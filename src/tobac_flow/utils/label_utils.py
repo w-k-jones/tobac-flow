@@ -1,3 +1,4 @@
+from multiprocessing import Value
 import numpy as np
 import scipy.ndimage as ndi
 from typing import Callable
@@ -80,24 +81,58 @@ def apply_func_to_labels(
     default: None | float, optional (default: None)
         default value to return in a region has no values
     """
-    for field in fields:
-        if labels.shape != field.shape:
-            raise ValueError("Input labels and field do not have the same shape")
+    broadcast_fields = np.broadcast_arrays(labels, *fields)
+    broadcast_labels = broadcast_fields[0]
+    broadcast_fields = broadcast_fields[1:]
+
     if index is None:
-        index = range(1, int(np.nanmax(labels) + 1))
+        min_label = np.minimum(np.min(labels), 0)
+        n_bins = np.max(labels) - min_label + 1
+        index = range(1, n_bins)
     else:
-        if np.max(index) > np.max(labels):
-            raise ValueError("Index contains values that are not in labels!")
-    bins = np.cumsum(np.bincount(labels.ravel()))
-    args = np.argsort(labels.ravel())
-    return np.array(
-        [
-            func(*[field.ravel()[args[bins[i - 1] : bins[i]]] for field in fields])
-            if bins[i] > bins[i - 1]
-            else default
-            for i in index
-        ]
+        min_label = np.minimum.reduce([np.min(index) - 1, np.min(labels), 0])
+        n_bins = np.maximum(np.max(index), np.max(labels)) - min_label + 1
+
+    bins = np.cumsum(
+        np.bincount(broadcast_labels.ravel() - min_label, minlength=n_bins)
     )
+    args = np.argsort(broadcast_labels.ravel())
+    # Format the default value in case func has multiple return values
+    try:
+        _ = iter(default)
+        assert not isinstance(default, str)
+    except (TypeError, AssertionError):
+        i = np.where(np.diff(bins))[0][0] + 1
+        return_vals = func(
+            *[field.ravel()[args[bins[i - 1] : bins[i]]] for field in broadcast_fields]
+        )
+        try:
+            assert not isinstance(return_vals, str)
+            n_return_vals = len(return_vals)
+        except (AssertionError, TypeError):
+            default_vals = default
+        else:
+            default_vals = [default] * n_return_vals
+    else:
+        if len(default) == 1 and not isinstance(default, str):
+            default_vals = default[0]
+        else:
+            default_vals = default
+
+    return np.stack(
+        [
+            func(
+                *[
+                    field.ravel()[args[bins[i - min_label - 1] : bins[i - min_label]]]
+                    for field in broadcast_fields
+                ]
+            )
+            if bins[i - min_label] > bins[i - min_label - 1]
+            else default_vals
+            for i in index
+        ],
+        -1,
+    ).squeeze()
 
 
 def flat_label(
@@ -138,6 +173,12 @@ def flat_label(
 
     output = ndi.label(mask, structure=label_struct, output=dtype)[0]
     return output
+
+
+def make_step_labels(labels):
+    step_labels = flat_label(labels != 0)
+    step_labels += labels * step_labels.max()
+    return relabel_objects(step_labels)
 
 
 def get_step_labels_for_label(
@@ -226,3 +267,14 @@ def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
         step_labels[i][np.nonzero(step_labels[i])] += max_label
         max_label = step_labels.max()
     return step_labels
+
+
+__all__ = (
+    "labeled_comprehension",
+    "apply_func_to_labels",
+    "flat_label",
+    "make_step_labels",
+    "get_step_labels_for_label",
+    "relabel_objects",
+    "slice_labels",
+)

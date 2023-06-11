@@ -50,7 +50,6 @@ if args.save_spatial_props:
 weights = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
 
 for field in (dataset.BT,):
-
     [
         add_dataarray_to_ds(da[dataset.core_step.data - 1], dataset)
         for da in weighted_statistics_on_labels(

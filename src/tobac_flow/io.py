@@ -356,7 +356,6 @@ def download_blob(
                 blob.download_to_filename(save_path)
             except OSError:
                 if n_attempts > 1:
-
                     download_blob(
                         blob,
                         save_dir,

@@ -89,7 +89,6 @@ def get_nexrad_hist(
     min_alt=2500,
     max_alt=15000,
 ):
-
     wh_t = np.logical_and(nexrad_time >= start_time, nexrad_time < end_time)
     mask = np.logical_and(nexrad_alt[wh_t] > min_alt, nexrad_alt[wh_t] < max_alt)
     x, y = map_nexrad_to_goes(
