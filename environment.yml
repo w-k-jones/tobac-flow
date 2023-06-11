@@ -21,6 +21,7 @@ dependencies:
   - cartopy
   - jupyter
   - notebook
+  - black
   - google-cloud-storage
   - libnetcdf<=4.9.1
   - netcdf4
