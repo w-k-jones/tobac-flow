@@ -56,7 +56,7 @@ def get_marker_distance_cylinder(markers, time_margin):
                 markers[i]==0, return_indices=True
             )
             distances[i] = step_distances
-            closest_markers[i] = markers[i][indices[0], indices[1], indices[2]]
+            closest_markers[i] = markers[i][indices[0], indices[1]]
     
     distances2 = np.full(markers.shape, np.inf, dtype=float)
     closest_markers2 = np.full(markers.shape, 0, dtype=int)
