@@ -193,7 +193,6 @@ def detect_growth_markers_multichannel(
     lower_threshold=0.25,
     upper_threshold=0.5,
 ):
-
     wvd_diff_smoothed = filtered_tdiff(
         flow,
         flow.diff(wvd) / get_time_diff_from_coord(wvd.t)[:, np.newaxis, np.newaxis],
@@ -446,7 +445,7 @@ def detect_anvils(
         markers = field >= 1
     # else:
     #     field[markers!=0] = 1
-    markers *= ndi.binary_erosion(markers, structure=s_struct).astype(int)
+    markers *= ndi.binary_erosion(markers != 0, structure=s_struct).astype(int)
     mask = ndi.binary_erosion(
         field <= 0,
         structure=np.ones([3, 3, 3]),
@@ -459,7 +458,9 @@ def detect_anvils(
     anvil_labels = flow.watershed(
         edges - field, markers, mask=mask, structure=ndi.generate_binary_structure(3, 1)
     )
-    anvil_labels *= ndi.binary_opening(anvil_labels, structure=s_struct).astype(int)
+    anvil_labels *= ndi.binary_opening(anvil_labels != 0, structure=s_struct).astype(
+        int
+    )
 
     anvil_labels[markers != 0] = markers[markers != 0]
 

@@ -133,28 +133,28 @@ def weighted_label_stats(
             default=[np.nan] * 4,
         )
     mean = xr.DataArray(
-        stats[..., 0],
+        stats[0],
         {dim: coord},
         (dim,),
         name=f"{dim_name}_{var}_mean",
         attrs=get_new_attrs_cell_method(attrs, "average", dim_name),
     )
     std = xr.DataArray(
-        stats[..., 1],
+        stats[1],
         {dim: coord},
         (dim,),
         name=f"{dim_name}_{var}_std",
         attrs=get_new_attrs_cell_method(attrs, "standard distribution", dim_name),
     )
     minimum = xr.DataArray(
-        stats[..., 2],
+        stats[2],
         {dim: coord},
         (dim,),
         name=f"{dim_name}_{var}_min",
         attrs=get_new_attrs_cell_method(attrs, "minimum", dim_name),
     )
     maximum = xr.DataArray(
-        stats[..., 3],
+        stats[3],
         {dim: coord},
         (dim,),
         name=f"{dim_name}_{var}_max",
@@ -162,14 +162,14 @@ def weighted_label_stats(
     )
     if uncertainty:
         mean_uncertainty = xr.DataArray(
-            stats[..., 4],
+            stats[4],
             {dim: coord},
             (dim,),
             name=f"{dim_name}_{var}_mean_uncertainty",
             attrs=get_new_attrs_cell_method(attrs, "uncertainty of average", dim_name),
         )
         combined_error = xr.DataArray(
-            stats[..., 5],
+            stats[5],
             {dim: coord},
             (dim,),
             name=f"{dim_name}_{var}_mean_combined_error",
@@ -178,14 +178,14 @@ def weighted_label_stats(
             ),
         )
         min_error = xr.DataArray(
-            stats[..., 6],
+            stats[6],
             {dim: coord},
             (dim,),
             name=f"{dim_name}_{var}_min_error",
             attrs=get_new_attrs_cell_method(attrs, "uncertainy of minimum", dim_name),
         )
         max_error = xr.DataArray(
-            stats[..., 7],
+            stats[7],
             {dim: coord},
             (dim,),
             name=f"{dim_name}_{var}_max_error",
@@ -275,7 +275,7 @@ def get_weighted_proportions_da(
         default=np.asarray([np.nan] * len(flag_meanings)),
     )
     proportions = xr.DataArray(
-        proportions,
+        proportions.T,
         new_coord,
         new_dim,
         f"{dim_name}_{flag_da.name}_proportion",

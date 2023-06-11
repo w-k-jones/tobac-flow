@@ -1,5 +1,6 @@
 import pathlib
 import numpy as np
+import pandas as pd
 import xarray as xr
 from datetime import datetime
 from dateutil.parser import parse as parse_date
@@ -29,7 +30,7 @@ def trim_file_end(dataset: xr.Dataset, filename: str | pathlib.Path) -> xr.Datas
 
 
 def get_datetime_from_coord(coord: xr.DataArray) -> list[datetime]:
-    return [parse_date(t.item()) for t in coord.astype("datetime64[s]").astype(str)]
+    return pd.to_datetime(coord).to_pydatetime().tolist()
 
 
 def time_diff(datetime_list: list[datetime]) -> list[float]:

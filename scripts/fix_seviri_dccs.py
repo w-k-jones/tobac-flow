@@ -86,6 +86,7 @@ flx_ds = flx_ds.assign_coords(t=[parse_date(f[-46:-34]) for f in flx_files])
 dataset["lat"] = cld_ds.isel(t=0).lat.compute()
 dataset["lon"] = cld_ds.isel(t=0).lon.compute()
 
+
 # Add area of each pixel
 def get_area_from_lat_lon(lat, lon):
     from pyproj import Geod
@@ -127,6 +128,7 @@ core_bt_diff_mean = np.asarray(
 )
 
 wh_valid_core = core_bt_diff_mean > 0.5
+
 
 # remap core and anvil labels based on valid core flag
 def remap_labels(labels, locations):

@@ -97,6 +97,7 @@ if args.filter:
     if not stats_path.exists():
         raise ValueError(f"{str(stats_path)} does not exist")
 
+
 # def validation(file, margin, goes_data_path, save_dir):
 def main():
     """
@@ -189,11 +190,17 @@ def main():
         glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
 
     if args.filter:
+        print(
+            datetime.now(),
+            "Filtering cores/anvils using statistics dataset",
+            flush=True,
+        )
         stats_file = list(
             stats_path.glob(
                 f"dcc_statistics_G16_S{start_str[:6]}*_X{x_str}_Y{y_str}.nc"
             )
         )[0]
+        print(datetime.now(), "Loading from %s" % (stats_ds), flush=True)
         stats_ds = xr.open_dataset(stats_file)
 
         if args.is_valid:

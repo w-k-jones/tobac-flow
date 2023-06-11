@@ -13,6 +13,7 @@ from tobac_flow.dataset import (
     link_step_labels,
 )
 
+
 # Functions to link overlapping labels
 def recursive_linker(
     links_list1=None,

@@ -369,6 +369,10 @@ def weighted_correlation(x, y, w):
     )
 
 
+def mse(a, b):
+    return np.nansum((a - b) ** 2) / np.sum(np.isfinite(a - b))
+
+
 __all__ = (
     "find_overlap_mode",
     "n_unique_along_axis",
@@ -395,4 +399,5 @@ __all__ = (
     "idxmax_cooling_rate_groupby",
     "weighted_covariance",
     "weighted_correlation",
+    "mse",
 )
