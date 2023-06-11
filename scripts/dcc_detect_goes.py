@@ -127,7 +127,6 @@ if not goes_data_path.exists():
 
 
 def main() -> None:
-
     print(datetime.now(), "Loading ABI data", flush=True)
     print("Loading goes data from:", goes_data_path, flush=True)
 
@@ -184,7 +183,7 @@ def main() -> None:
     print(datetime.now(), "Detecting thick anvil region", flush=True)
     # Detect anvil regions
     upper_threshold = -5
-    lower_threshold = -15
+    lower_threshold = -12.5
     erode_distance = 2
 
     anvil_markers = get_anvil_markers(
@@ -234,7 +233,7 @@ def main() -> None:
     print(datetime.now(), "Detecting thin anvil region", flush=True)
     # Detect thin anvil regions
     upper_threshold = 0
-    lower_threshold = -10
+    lower_threshold = -7.5
 
     thin_anvil_labels = detect_anvils(
         flow,

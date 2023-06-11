@@ -7,7 +7,7 @@ import scipy.ndimage as ndi
 
 
 def to_8bit(
-    array: np.ndarray[float], vmin: float = None, vmax: float = None
+    array: np.ndarray[float], vmin: float = None, vmax: float = None, fill_value=255
 ) -> np.ndarray[np.uint8]:
     """
     Converts an array to an 8-bit range between 0 and 255
@@ -20,19 +20,32 @@ def to_8bit(
         factor = 0
     else:
         factor = 255 / (vmax - vmin)
-    array_out = ((array - vmin) * factor).astype("uint8")
-    return array_out
+    array_out = (array - vmin) * factor
+    array_out[np.logical_not(np.isfinite(array_out))] = fill_value
+    return array_out.astype("uint8")
 
 
 def linearise_field(
     field: np.ndarray[float], lower_threshold: float, upper_threshold: float
 ) -> np.ndarray[float]:
+    if lower_threshold == upper_threshold:
+        raise ValueError("lower and upper thresholds must have different values")
     if lower_threshold > upper_threshold:
         upper_threshold, lower_threshold = lower_threshold, upper_threshold
-    return np.maximum(
-        np.minimum((field - lower_threshold) / (upper_threshold - lower_threshold), 1),
-        0,
-    )
+        linearised_field = 1 - np.maximum(
+            np.minimum(
+                (field - lower_threshold) / (upper_threshold - lower_threshold), 1
+            ),
+            0,
+        )
+    else:
+        linearised_field = np.maximum(
+            np.minimum(
+                (field - lower_threshold) / (upper_threshold - lower_threshold), 1
+            ),
+            0,
+        )
+    return linearised_field
 
 
 def linear_norm(

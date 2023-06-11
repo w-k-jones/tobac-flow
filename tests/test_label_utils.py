@@ -39,7 +39,6 @@ def test_apply_func_to_labels():
         index=[-1, 1, 2, 3, 4],
     )
 
-
     weighted_mean = lambda a, w: np.average(a, weights=w)
     label_utils.apply_func_to_labels(test_labels, test_data1, 1, func=weighted_mean)
     label_utils.apply_func_to_labels(

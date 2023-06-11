@@ -237,10 +237,13 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     #     data_vars='minimal', coords='minimal', compat='override'
     # ).isel(ds_slice)
     goes_ds = xr.concat(
-        [xr.open_dataset(f).isel(ds_slice) for f in files], 
-        dim="t", data_vars='minimal', coords='minimal', compat='override'
+        [xr.open_dataset(f).isel(ds_slice) for f in files],
+        dim="t",
+        data_vars="minimal",
+        coords="minimal",
+        compat="override",
     )
-    
+
     # Extract fields and load into memory
     wvd = (goes_ds.CMI_C08 - goes_ds.CMI_C10).load()
 
@@ -359,7 +362,6 @@ def fill_time_gap_full_disk(
     y1: int = None,
     **io_kwargs,
 ) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray]:
-
     pad_hours = int(np.ceil(n_pad_files / 12))
     padded_start_date = start_date - timedelta(hours=pad_hours)
     padded_end_date = end_date + timedelta(hours=pad_hours)
@@ -515,7 +517,6 @@ def find_seviri_files(
     file_type="secondary",
     file_path="../data/SEVIRI_ORAC/",
 ):
-
     seviri_files = glob_seviri_files(start_date, end_date, file_type, file_path)
 
     if n_pad_files > 0:

@@ -20,6 +20,7 @@ from tobac_flow.utils.datetime_utils import get_datetime_from_coord
 this_ellps = 0
 ltg_ellps_re, ltg_ellps_rp = lightning_ellipse_rev[this_ellps]
 
+
 # Functions from GLM notebook for parallax correction
 def semiaxes_to_invflattening(semimajor, semiminor):
     """Calculate the inverse flattening from the semi-major

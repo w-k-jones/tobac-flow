@@ -96,6 +96,7 @@ if args.filter:
     if not stats_path.exists():
         raise ValueError(f"{str(stats_path)} does not exist")
 
+
 # def validation(file, margin, goes_data_path, save_dir):
 def main():
     """

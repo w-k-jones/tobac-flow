@@ -90,10 +90,12 @@ def apply_func_to_labels(
         n_bins = np.max(labels) - min_label + 1
         index = range(1, n_bins)
     else:
-        min_label = np.minimum.reduce([np.min(index)-1, np.min(labels), 0])
+        min_label = np.minimum.reduce([np.min(index) - 1, np.min(labels), 0])
         n_bins = np.maximum(np.max(index), np.max(labels)) - min_label + 1
 
-    bins = np.cumsum(np.bincount(broadcast_labels.ravel() - min_label, minlength=n_bins))
+    bins = np.cumsum(
+        np.bincount(broadcast_labels.ravel() - min_label, minlength=n_bins)
+    )
     args = np.argsort(broadcast_labels.ravel())
     # Format the default value in case func has multiple return values
     try:
@@ -121,11 +123,11 @@ def apply_func_to_labels(
         [
             func(
                 *[
-                    field.ravel()[args[bins[i-min_label - 1] : bins[i-min_label]]]
+                    field.ravel()[args[bins[i - min_label - 1] : bins[i - min_label]]]
                     for field in broadcast_fields
                 ]
             )
-            if bins[i-min_label] > bins[i-min_label - 1]
+            if bins[i - min_label] > bins[i - min_label - 1]
             else default_vals
             for i in index
         ],

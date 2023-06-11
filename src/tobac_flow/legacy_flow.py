@@ -623,8 +623,8 @@ def flow_network_watershed(
     new_struct = structure.copy()
     new_struct[1, 1, 1] = 0
     for iter in range(1, max_iter + 1):
-
         flow_gen = enumerate(_gen_flow_ravel_inds(flow_func, new_struct, wrap=False))
+
         # Temporary function that masks the values with the same fill as the origin point
         def fill_mask_argmin(temp, axis):
             t, inds_gen = next(flow_gen)
