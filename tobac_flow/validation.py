@@ -38,7 +38,7 @@ def get_marker_distance_ellipse(markers, time_margin, margin):
     distances, indices = ndi.distance_transform_edt(
         markers==0, return_indices=True, sampling=(margin/time_margin, 1, 1)
     )
-    closest_marker = markers[*indices]
+    closest_marker = markers[indices[0], indices[1], indices[2]]
     return distances, closest_marker
 
 def get_marker_distance_cylinder(markers, time_margin):
@@ -56,7 +56,7 @@ def get_marker_distance_cylinder(markers, time_margin):
                 markers[i]==0, return_indices=True
             )
             distances[i] = step_distances
-            closest_markers[i] = markers[i][*indices]
+            closest_markers[i] = markers[i][indices[0], indices[1], indices[2]]
     
     distances2 = np.full(markers.shape, np.inf, dtype=float)
     closest_markers2 = np.full(markers.shape, 0, dtype=int)
