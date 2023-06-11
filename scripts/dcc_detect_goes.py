@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 import numpy as np
 
-from tobac_flow.flow import create_flow, combine_flow
+from tobac_flow.flow import create_flow
 from tobac_flow.dataloader import goes_dataloader
 from tobac_flow.dataset import (
     add_label_coords,
@@ -145,7 +145,7 @@ def main() -> None:
     bt, wvd, swd, dataset = goes_dataloader(
         start_date,
         end_date,
-        n_pad_files=6,
+        n_pad_files=t_offset*2,
         x0=x0,
         x1=x1,
         y0=y0,
@@ -164,6 +164,7 @@ def main() -> None:
     wvd_threshold = 0.25
     bt_threshold = 0.5
     overlap = 0.5
+    absolute_overlap = 4
     subsegment_shrink = 0.0
 
     core_labels = detect_cores(
@@ -174,6 +175,7 @@ def main() -> None:
         wvd_threshold=wvd_threshold,
         bt_threshold=bt_threshold,
         overlap=overlap,
+        absolute_overlap=absolute_overlap,
         subsegment_shrink=subsegment_shrink,
         min_length=t_offset,
     )
@@ -191,6 +193,7 @@ def main() -> None:
         wvd - swd,
         threshold=upper_threshold,
         overlap=overlap,
+        absolute_overlap=absolute_overlap,
         subsegment_shrink=subsegment_shrink,
         min_length=t_offset,
     )
@@ -220,6 +223,7 @@ def main() -> None:
         thick_anvil_labels,
         markers=anvil_markers,
         overlap=overlap,
+        absolute_overlap=absolute_overlap,
         min_length=t_offset,
     )
 
