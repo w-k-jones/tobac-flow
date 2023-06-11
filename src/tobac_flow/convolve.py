@@ -191,18 +191,25 @@ def convolve_step(
     res : numpy.ndarray
         The convolved image according the the provided structure
     """
+    if len(structure.shape) != 3:
+        raise ValueError("structure must have three dimensions")
+    if structure.shape[0] != 3:
+        raise ValueError("leading dimension of structure must have length 3")
+
     n_struct = np.count_nonzero(structure)
     if res is None:
         res = np.full((n_struct,) + same_step.shape, fill_value, dtype=dtype)
 
+    struct_offsets = np.array([structure.shape[1]//2, structure.shape[2]//2])
+
     n_backward = np.count_nonzero(structure[0])
     n_same = np.count_nonzero(structure[1])
-    n_forward = np.count_nonzero(structure[-1])
+    n_forward = -np.count_nonzero(structure[2])
     if n_forward == 0:
         n_forward = None
 
     if n_backward:
-        offsets = np.stack(np.where(structure[0]), -1)[..., ::-1] - 1
+        offsets = np.stack(np.where(structure[0]), -1)[..., ::-1] - struct_offsets
         res[:n_backward] = warp_flow(
             prev_step,
             backward_flow,
@@ -214,24 +221,24 @@ def convolve_step(
         )
 
     if n_same:
-        offsets = np.stack(np.where(structure[1]), -1)[..., ::-1] - 1
-        res[n_backward:-n_forward] = convolve_same_step(
+        offsets = np.stack(np.where(structure[1]), -1)[..., ::-1] - struct_offsets
+        res[n_backward:n_forward] = convolve_same_step(
             same_step,
             offsets,
             fill_value=fill_value,
-            res=res[n_backward:-n_forward],
+            res=res[n_backward:n_forward],
             grid_locs=grid_locs,
         )
 
     if n_forward:
-        offsets = np.stack(np.where(structure[-1]), -1)[..., ::-1] - 1
-        res[-n_forward:] = warp_flow(
+        offsets = np.stack(np.where(structure[2]), -1)[..., ::-1] - struct_offsets
+        res[n_forward:] = warp_flow(
             next_step,
             forward_flow,
             method=method,
             fill_value=fill_value,
             offsets=offsets,
-            res=res[-n_forward:],
+            res=res[n_forward:],
             grid_locs=grid_locs,
         )
 
