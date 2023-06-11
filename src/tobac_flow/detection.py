@@ -280,15 +280,18 @@ def edge_watershed(
     return watershed
 
 
-def get_combined_filters(flow, bt, wvd, swd):
-    wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
-    bt_curvature_filter = get_curvature_filter(bt, direction="positive")
-
-    wvd_peak_filter = get_peak_filter(wvd, sigma=0.5, direction="negative")
-    bt_peak_filter = get_peak_filter(bt, sigma=0.5, direction="positive")
-
+def get_combined_filters(flow, bt, wvd, swd, use_wvd=True):
+    """
+    Get combined cloud top filter from bt, wvd and swd fields
+    """
     t_struct = np.zeros([3, 3, 3], dtype=bool)
     t_struct[:, 1, 1] = True
+    s_struct = ndi.generate_binary_structure(3, 1)
+    s_struct[0] = 0
+    s_struct[2] = 0
+
+    bt_curvature_filter = get_curvature_filter(bt, direction="positive")
+    bt_peak_filter = get_peak_filter(bt, sigma=0.5, direction="positive")
     bt_filter = flow.convolve(
         np.logical_or(bt_curvature_filter, bt_peak_filter).astype(int),
         structure=t_struct,
@@ -297,28 +300,36 @@ def get_combined_filters(flow, bt, wvd, swd):
         dtype=np.int32,
         func=partial(np.any, axis=0),
     )
-    wvd_filter = flow.convolve(
-        np.logical_or(wvd_curvature_filter, wvd_peak_filter).astype(int),
-        structure=t_struct,
-        method="nearest",
-        fill_value=False,
-        dtype=np.int32,
-        func=partial(np.any, axis=0),
-    )
 
-    s_struct = ndi.generate_binary_structure(3, 1)
-    s_struct[0] = 0
-    s_struct[2] = 0
-
-    combined_filter = ndi.binary_opening(
-        ndi.binary_fill_holes(
-            np.logical_or(bt_filter, wvd_filter).astype(int),
+    if use_wvd:
+        wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
+        wvd_peak_filter = get_peak_filter(wvd, sigma=0.5, direction="negative")
+        wvd_filter = flow.convolve(
+            np.logical_or(wvd_curvature_filter, wvd_peak_filter).astype(int),
+            structure=t_struct,
+            method="nearest",
+            fill_value=False,
+            dtype=np.int32,
+            func=partial(np.any, axis=0),
+        )
+        combined_filter = ndi.binary_opening(
+            ndi.binary_fill_holes(
+                np.logical_or(bt_filter, wvd_filter),
+                structure=s_struct,
+            ),
             structure=s_struct,
-        ),
-        structure=s_struct,
-    )
+        )
 
-    swd_filter = 1 - linearise_field(swd.data, 2.5, 7.5)
+    else:
+        combined_filter = ndi.binary_opening(
+            ndi.binary_fill_holes(
+                bt_filter,
+                structure=s_struct,
+            ),
+            structure=s_struct,
+        )
+
+    swd_filter = 1 - linearise_field(swd.to_numpy(), 2.5, 7.5)
 
     combined_filter = combined_filter.astype(float) * swd_filter
 
@@ -336,23 +347,30 @@ def detect_cores(
     absolute_overlap=5,
     subsegment_shrink=0.0,
     min_length=3,
+    use_wvd=True,
 ):
-    wvd_growth = get_growth_rate(flow, wvd, method="cubic")
-    bt_growth = get_growth_rate(flow, -bt, method="cubic")
-
-    combined_filter = get_combined_filters(flow, bt, wvd, swd)
-
-    wvd_markers = (wvd_growth * combined_filter) > wvd_threshold
-    bt_markers = (bt_growth * combined_filter) > bt_threshold
+    """
+    Detect growing cores using BT, WVD and SWD channels
+    """
+    combined_filter = get_combined_filters(flow, bt, wvd, swd, use_wvd=use_wvd)
 
     s_struct = ndi.generate_binary_structure(3, 1)
     s_struct *= np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
 
-    combined_markers = ndi.binary_opening(
-        np.logical_or.reduce([wvd_markers, bt_markers]), structure=s_struct
-    )
+    bt_growth = get_growth_rate(flow, -bt, method="cubic")
+    bt_markers = (bt_growth * combined_filter) > bt_threshold
 
-    print("WVD growth above threshold: area =", np.sum(wvd_markers))
+    if use_wvd:
+        wvd_markers = (wvd_growth * combined_filter) > wvd_threshold
+        wvd_growth = get_growth_rate(flow, wvd, method="cubic")
+
+        combined_markers = ndi.binary_opening(
+            np.logical_or.reduce([wvd_markers, bt_markers]), structure=s_struct
+        )
+        print("WVD growth above threshold: area =", np.sum(wvd_markers))
+    else:
+        combined_markers = ndi.binary_opening(bt_markers, structure=s_struct)
+
     print("BT growth above threshold: area =", np.sum(bt_markers))
     print("Detected markers: area =", np.sum(combined_markers))
 

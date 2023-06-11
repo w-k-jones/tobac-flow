@@ -178,6 +178,7 @@ def main() -> None:
         absolute_overlap=absolute_overlap,
         subsegment_shrink=subsegment_shrink,
         min_length=t_offset,
+        use_wvd=False,
     )
 
     print("Final detected core count: n =", core_labels.max())
