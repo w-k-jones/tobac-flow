@@ -84,7 +84,11 @@ parser.add_argument(
     help="Save statistics of label spatial properties to output file",
     action="store_true",
 )
-
+parser.add_argument(
+    "--save_anvil_markers",
+    help="Save anvil markers to output file",
+    action="store_true",
+)
 
 args = parser.parse_args()
 start_date = parse_date(args.date, fuzzy=True)
@@ -298,11 +302,34 @@ def main() -> None:
         dataset,
     )
 
+    # Anvil markers
+    if args.save_anvil_markers:
+        add_dataarray_to_ds(
+            create_dataarray(
+                anvil_markers,
+                ("t", "y", "x"),
+                "anvil_marker_label",
+                coords={"t": bt.t},
+                long_name="labels for anvil marker regions",
+                units="",
+                dtype=np.int32,
+            ).sel(t=dataset.t),
+            dataset,
+        )
+
     # bt, wvd, swd = bt.sel(t=dataset.t), wvd.sel(t=dataset.t), swd.sel(t=dataset.t)
 
     add_step_labels(dataset)
 
     dataset = add_label_coords(dataset)
+    if args.save_anvil_markers:
+        marker_coord = np.unique(dataset.anvil_marker_label.data).astype(np.int32)
+        if marker_coord[0] == 0 and marker_coord.size > 1:
+            marker_coord = marker_coord[1:]
+        dataset = dataset.assign_coords(
+            {"anvil_marker":marker_coord}
+        )
+
 
     link_step_labels(dataset)
 
