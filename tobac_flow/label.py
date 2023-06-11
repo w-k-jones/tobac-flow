@@ -79,13 +79,14 @@ def subsegment_labels(
 # implement minimum overlap for flow_label function
 def flow_label(
     flow,
-    mask,
-    structure=ndi.generate_binary_structure(3, 1),
-    dtype=np.int32,
-    overlap=0.0,
-    subsegment_shrink=0.0,
-    peak_min_distance=10,
-):
+    mask: np.ndarray[bool],
+    structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
+    dtype: type = np.int32,
+    overlap: float = 0.0,
+    absolute_overlap: int = 1,
+    subsegment_shrink: float = 0.0,
+    peak_min_distance: int = 10,
+) -> np.ndarray[int]:
     """
     Label 3d connected objects in a semi-Lagrangian reference frame
 
@@ -105,6 +106,8 @@ def flow_label(
         The required minimum overlap between subsequent labels (when accounting
             for Lagrangian motion) to consider them a continous object. Defaults
             to 0.
+    absolute_overlap : int, optional (default: 1)
+        The required minimum overlap in pixels
     subsegment_shrink : float - optional
         The proportion of each regions approximate radius to shrink it by when
             performing subsegmentation. If 0 subsegmentation will not be
@@ -151,6 +154,7 @@ def flow_label(
                     forward_labels,
                     back_labels,
                     overlap=overlap,
+                    absolute_overlap=absolute_overlap,
                 )
                 i += 1
 
@@ -168,14 +172,15 @@ def flow_label(
 
 
 def find_neighbour_labels(
-    label,
-    label_stack,
-    bins,
-    args,
-    processed_labels,
-    forward_labels,
-    back_labels,
-    overlap=0,
+    label: int,
+    label_stack: list[int],
+    bins: np.ndarray[int],
+    args: np.ndarray[int],
+    processed_labels: np.ndarray[int],
+    forward_labels: np.ndarray[int],
+    back_labels: np.ndarray[int],
+    overlap: float = 0,
+    absolute_overlap: int = 1,
 ):
     """
     Find the neighbouring labels at the previous and next time steps to a given
@@ -208,6 +213,9 @@ def find_neighbour_labels(
     overlap : float, optional (default : 0)
         The proportion of the area of each label overlapping its neighbours to
             be considered linked. If zero, any amount of overlap will count.
+
+    absolute_overlap : int, optional (default: 1)
+        The required minimum overlap in pixels
     """
     if bins[label] > bins[label - 1]:  # check that there are any pixels in this label
         forward_lap = forward_labels.ravel()[args[bins[label - 1] : bins[label]]]
@@ -216,6 +224,7 @@ def find_neighbour_labels(
             if (
                 new_label > 0
                 and not processed_labels[new_label]
+                and forward_bins[new_label] > absolute_overlap
                 and forward_bins[new_label]
                 >= overlap
                 * np.minimum(
@@ -231,6 +240,7 @@ def find_neighbour_labels(
             if (
                 new_label > 0
                 and not processed_labels[new_label]
+                and backward_bins[new_label] > absolute_overlap
                 and backward_bins[new_label]
                 >= overlap
                 * np.minimum(
@@ -251,10 +261,11 @@ def make_step_labels(labels):
 def flow_link_overlap(
     flow,
     flat_labels: np.ndarray[int],
-    structure=ndi.generate_binary_structure(3, 1),
-    dtype=np.int32,
-    overlap=0.0,
-):
+    structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
+    dtype: type = np.int32,
+    overlap: float = 0.0,
+    absolute_overlap: int = 1,
+) -> np.ndarray[int]:
     """
     Label 3d connected objects in a semi-Lagrangian reference frame
 
@@ -274,13 +285,8 @@ def flow_link_overlap(
         The required minimum overlap between subsequent labels (when accounting
             for Lagrangian motion) to consider them a continous object. Defaults
             to 0.
-    subsegment_shrink : float - optional
-        The proportion of each regions approximate radius to shrink it by when
-            performing subsegmentation. If 0 subsegmentation will not be
-            performed. Defaults to 0.
-    peak_min_distance : int - optional
-        The minimum distance between maxima allowed when performing
-            subsegmentation. Defaults to 5
+    absolute_overlap : int, optional (default: 1)
+        The required minimum overlap in pixels
     """
     label_struct = structure * np.array([1, 0, 1])[:, np.newaxis, np.newaxis]
 
@@ -310,6 +316,7 @@ def flow_link_overlap(
                     forward_labels,
                     back_labels,
                     overlap=overlap,
+                    absolute_overlap=absolute_overlap,
                 )
                 i += 1
 

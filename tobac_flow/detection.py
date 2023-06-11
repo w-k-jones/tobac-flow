@@ -35,9 +35,9 @@ def filtered_tdiff(flow, raw_diff):
     filtered_diff = flow.convolve(
         raw_diff, structure=t_struct, func=lambda x: np.nanmean(x, 0)
     )
-    filtered_diff = flow.convolve(
-        filtered_diff, structure=t_struct, func=lambda x: np.nanmax(x, 0)
-    )
+    # filtered_diff = flow.convolve(
+    #     filtered_diff, structure=t_struct, func=lambda x: np.nanmax(x, 0)
+    # )
 
     return filtered_diff
 
@@ -168,16 +168,16 @@ def get_growth_rate(flow, field, method: str = "linear"):
 
     growth_rate = flow.convolve(
         growth_rate,
-        structure=ndi.generate_binary_structure(3, 1),
+        structure=s_struct,
         func=lambda x: np.nanmean(x, 0),
         method=method,
     )
-    growth_rate = flow.convolve(
-        growth_rate,
-        structure=ndi.generate_binary_structure(3, 1),
-        func=lambda x: np.nanmax(x, 0),
-        method=method,
-    )
+    # growth_rate = flow.convolve(
+    #     growth_rate,
+    #     structure=ndi.generate_binary_structure(3, 1),
+    #     func=lambda x: np.nanmax(x, 0),
+    #     method=method,
+    # )
 
     return growth_rate
 
@@ -280,15 +280,18 @@ def edge_watershed(
     return watershed
 
 
-def get_combined_filters(flow, bt, wvd, swd):
-    wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
-    bt_curvature_filter = get_curvature_filter(bt, direction="positive")
-
-    wvd_peak_filter = get_peak_filter(wvd, sigma=0.5, direction="negative")
-    bt_peak_filter = get_peak_filter(wvd, sigma=0.5, direction="positive")
-
+def get_combined_filters(flow, bt, wvd, swd, use_wvd=True):
+    """
+    Get combined cloud top filter from bt, wvd and swd fields
+    """
     t_struct = np.zeros([3, 3, 3], dtype=bool)
     t_struct[:, 1, 1] = True
+    s_struct = ndi.generate_binary_structure(3, 1)
+    s_struct[0] = 0
+    s_struct[2] = 0
+
+    bt_curvature_filter = get_curvature_filter(bt, direction="positive")
+    bt_peak_filter = get_peak_filter(bt, sigma=0.5, direction="positive")
     bt_filter = flow.convolve(
         np.logical_or(bt_curvature_filter, bt_peak_filter).astype(int),
         structure=t_struct,
@@ -297,18 +300,38 @@ def get_combined_filters(flow, bt, wvd, swd):
         dtype=np.int32,
         func=partial(np.any, axis=0),
     )
-    wvd_filter = flow.convolve(
-        np.logical_or(wvd_curvature_filter, wvd_peak_filter).astype(int),
-        structure=t_struct,
-        method="nearest",
-        fill_value=False,
-        dtype=np.int32,
-        func=partial(np.any, axis=0),
-    )
 
-    swd_filter = 1 - linearise_field(swd.data, 2.5, 7.5)
+    if use_wvd:
+        wvd_curvature_filter = get_curvature_filter(wvd, direction="negative")
+        wvd_peak_filter = get_peak_filter(wvd, sigma=0.5, direction="negative")
+        wvd_filter = flow.convolve(
+            np.logical_or(wvd_curvature_filter, wvd_peak_filter).astype(int),
+            structure=t_struct,
+            method="nearest",
+            fill_value=False,
+            dtype=np.int32,
+            func=partial(np.any, axis=0),
+        )
+        combined_filter = ndi.binary_opening(
+            ndi.binary_fill_holes(
+                np.logical_or(bt_filter, wvd_filter),
+                structure=s_struct,
+            ),
+            structure=s_struct,
+        )
 
-    combined_filter = np.logical_or(bt_filter, wvd_filter).astype(int) * swd_filter
+    else:
+        combined_filter = ndi.binary_opening(
+            ndi.binary_fill_holes(
+                bt_filter,
+                structure=s_struct,
+            ),
+            structure=s_struct,
+        )
+
+    swd_filter = 1 - linearise_field(swd.to_numpy(), 2.5, 7.5)
+
+    combined_filter = combined_filter.astype(float) * swd_filter
 
     return combined_filter
 
@@ -321,30 +344,41 @@ def detect_cores(
     wvd_threshold=0.25,
     bt_threshold=0.5,
     overlap=0.5,
+    absolute_overlap=5,
     subsegment_shrink=0.0,
     min_length=3,
+    use_wvd=True,
 ):
-    wvd_growth = get_growth_rate(flow, wvd, method="cubic")
-    bt_growth = get_growth_rate(flow, -bt, method="cubic")
-
-    filter = get_combined_filters(flow, bt, wvd, swd)
-
-    wvd_markers = (wvd_growth * filter) > wvd_threshold
-    bt_markers = (bt_growth * filter) > bt_threshold
+    """
+    Detect growing cores using BT, WVD and SWD channels
+    """
+    combined_filter = get_combined_filters(flow, bt, wvd, swd, use_wvd=use_wvd)
 
     s_struct = ndi.generate_binary_structure(3, 1)
     s_struct *= np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
 
-    combined_markers = ndi.binary_opening(
-        np.logical_or.reduce([wvd_markers, bt_markers]), structure=s_struct
-    )
+    bt_growth = get_growth_rate(flow, -bt, method="cubic")
+    bt_markers = (bt_growth * combined_filter) > bt_threshold
 
-    print("WVD growth above threshold: area =", np.sum(wvd_markers))
+    if use_wvd:
+        wvd_markers = (wvd_growth * combined_filter) > wvd_threshold
+        wvd_growth = get_growth_rate(flow, wvd, method="cubic")
+
+        combined_markers = ndi.binary_opening(
+            np.logical_or.reduce([wvd_markers, bt_markers]), structure=s_struct
+        )
+        print("WVD growth above threshold: area =", np.sum(wvd_markers))
+    else:
+        combined_markers = ndi.binary_opening(bt_markers, structure=s_struct)
+
     print("BT growth above threshold: area =", np.sum(bt_markers))
     print("Detected markers: area =", np.sum(combined_markers))
 
     core_labels = flow.label(
-        combined_markers, overlap=overlap, subsegment_shrink=subsegment_shrink
+        combined_markers,
+        overlap=overlap,
+        absolute_overlap=absolute_overlap,
+        subsegment_shrink=subsegment_shrink,
     )
 
     print("Initial core count:", np.max(core_labels))
@@ -413,13 +447,22 @@ def detect_cores(
 
 
 def get_anvil_markers(
-    flow, field, threshold=-5, overlap=0.5, subsegment_shrink=0, min_length=3
+    flow,
+    field,
+    threshold=-5,
+    overlap=0.5,
+    absolute_overlap=5,
+    subsegment_shrink=0,
+    min_length=3,
 ):
     structure = ndi.generate_binary_structure(3, 1)
     s_struct = structure * np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
     mask = ndi.binary_opening(field > threshold, structure=s_struct)
     marker_labels = flow.label(
-        mask, overlap=overlap, subsegment_shrink=subsegment_shrink
+        mask,
+        overlap=overlap,
+        absolute_overlap=absolute_overlap,
+        subsegment_shrink=subsegment_shrink,
     )
     marker_label_lengths = find_object_lengths(marker_labels)
     marker_labels = remap_labels(marker_labels, marker_label_lengths > min_length)
@@ -475,8 +518,14 @@ def detect_anvils(
     return anvil_labels
 
 
-def relabel_anvils(flow, anvil_labels, markers=None, overlap=0.5, min_length=3):
-    anvil_labels = flow.link_overlap(make_step_labels(anvil_labels), overlap=overlap)
+def relabel_anvils(
+    flow, anvil_labels, markers=None, overlap=0.5, absolute_overlap=5, min_length=3
+):
+    anvil_labels = flow.link_overlap(
+        make_step_labels(anvil_labels),
+        overlap=overlap,
+        absolute_overlap=absolute_overlap,
+    )
 
     marker_label_lengths = find_object_lengths(anvil_labels)
     if markers is not None:
