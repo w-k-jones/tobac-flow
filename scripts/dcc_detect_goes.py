@@ -145,7 +145,7 @@ def main() -> None:
     bt, wvd, swd, dataset = goes_dataloader(
         start_date,
         end_date,
-        n_pad_files=t_offset*2,
+        n_pad_files=t_offset * 2,
         x0=x0,
         x1=x1,
         y0=y0,

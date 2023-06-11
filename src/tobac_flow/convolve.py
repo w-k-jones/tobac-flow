@@ -200,7 +200,7 @@ def convolve_step(
     if res is None:
         res = np.full((n_struct,) + same_step.shape, fill_value, dtype=dtype)
 
-    struct_offsets = np.array([structure.shape[1]//2, structure.shape[2]//2])
+    struct_offsets = np.array([structure.shape[1] // 2, structure.shape[2] // 2])
 
     n_backward = np.count_nonzero(structure[0])
     n_same = np.count_nonzero(structure[1])

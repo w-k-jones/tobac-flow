@@ -154,7 +154,7 @@ def flow_label(
                     forward_labels,
                     back_labels,
                     overlap=overlap,
-                    absolute_overlap=absolute_overlap
+                    absolute_overlap=absolute_overlap,
                 )
                 i += 1
 
@@ -180,7 +180,7 @@ def find_neighbour_labels(
     forward_labels: np.ndarray[int],
     back_labels: np.ndarray[int],
     overlap: float = 0,
-    absolute_overlap: int = 1
+    absolute_overlap: int = 1,
 ):
     """
     Find the neighbouring labels at the previous and next time steps to a given
@@ -213,7 +213,7 @@ def find_neighbour_labels(
     overlap : float, optional (default : 0)
         The proportion of the area of each label overlapping its neighbours to
             be considered linked. If zero, any amount of overlap will count.
-    
+
     absolute_overlap : int, optional (default: 1)
         The required minimum overlap in pixels
     """
@@ -316,7 +316,7 @@ def flow_link_overlap(
                     forward_labels,
                     back_labels,
                     overlap=overlap,
-                    absolute_overlap=absolute_overlap
+                    absolute_overlap=absolute_overlap,
                 )
                 i += 1
 

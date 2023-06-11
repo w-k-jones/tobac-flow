@@ -285,7 +285,7 @@ class Flow(Abstract_Flow):
         overlap: float = 0,
         absolute_overlap: int = 1,
         subsegment_shrink: float = 0,
-        peak_min_distance: int = 5
+        peak_min_distance: int = 5,
     ) -> np.ndarray[int]:
         """
         Label 3d connected objects in a semi-Lagrangian reference frame
@@ -327,7 +327,7 @@ class Flow(Abstract_Flow):
             overlap=overlap,
             absolute_overlap=absolute_overlap,
             subsegment_shrink=subsegment_shrink,
-            peak_min_distance=peak_min_distance
+            peak_min_distance=peak_min_distance,
         )
 
         return labels
