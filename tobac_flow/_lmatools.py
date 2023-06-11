@@ -22,6 +22,7 @@ lightning_ellipse_rev = {
 this_ellps = 0
 ltg_ellps_re, ltg_ellps_rp = lightning_ellipse_rev[this_ellps]
 
+
 # Functions from GLM notebook for parallax correction
 def semiaxes_to_invflattening(semimajor, semiminor):
     """Calculate the inverse flattening from the semi-major
@@ -29,7 +30,8 @@ def semiaxes_to_invflattening(semimajor, semiminor):
     rf = semimajor / (semimajor - semiminor)
     return rf
 
-def get_GOESR_coordsys(sat_lon_nadir = -75.0):
+
+def get_GOESR_coordsys(sat_lon_nadir=-75.0):
     """
     Values from the GOES-R PUG Volume 3, L1b data
 
@@ -37,15 +39,20 @@ def get_GOESR_coordsys(sat_lon_nadir = -75.0):
     latitude, longitude, altitude coordinate system referenced to the GRS80
     ellipsoid used by GOES-R as its earth reference.
     """
-    goes_sweep = 'x' # Meteosat is 'y'
-    ellipse = 'GRS80'
-    datum = 'WGS84'
-    sat_ecef_height=35786023.0
-    geofixcs = GeostationaryFixedGridSystem(subsat_lon=sat_lon_nadir,
-                   ellipse=ellipse, datum=datum, sweep_axis=goes_sweep,
-                   sat_ecef_height=sat_ecef_height)
-    grs80lla = GeographicSystem(ellipse='GRS80', datum='WGS84')
+    goes_sweep = "x"  # Meteosat is 'y'
+    ellipse = "GRS80"
+    datum = "WGS84"
+    sat_ecef_height = 35786023.0
+    geofixcs = GeostationaryFixedGridSystem(
+        subsat_lon=sat_lon_nadir,
+        ellipse=ellipse,
+        datum=datum,
+        sweep_axis=goes_sweep,
+        sat_ecef_height=sat_ecef_height,
+    )
+    grs80lla = GeographicSystem(ellipse="GRS80", datum="WGS84")
     return geofixcs, grs80lla
+
 
 class CoordinateSystem(object):
     """The abstract coordinate system handling provided here works as follows.
@@ -88,31 +95,45 @@ class CoordinateSystem(object):
         """Take x, y, z in the coordinate system defined by the object subclass and return ECEF x, y, z"""
         raise NotImplemented
 
-class GeostationaryFixedGridSystem(CoordinateSystem):
 
-    def __init__(self, subsat_lon=0.0, subsat_lat=0.0, sweep_axis='y',
-                 sat_ecef_height=35785831.0,
-                 ellipse='WGS84', datum='WGS84'):
+class GeostationaryFixedGridSystem(CoordinateSystem):
+    def __init__(
+        self,
+        subsat_lon=0.0,
+        subsat_lat=0.0,
+        sweep_axis="y",
+        sat_ecef_height=35785831.0,
+        ellipse="WGS84",
+        datum="WGS84",
+    ):
         """
         Satellite height is with respect to the ellipsoid. Fixed grid
         coordinates are in radians.
         """
-        self.ECEFxyz = pyproj.CRS(proj='geocent', ellps=ellipse)#, datum=datum)
-        self.fixedgrid = pyproj.CRS(proj='geos', lon_0=subsat_lon,
-            lat_0=subsat_lat, h=sat_ecef_height, x_0=0.0, y_0=0.0,
-            units='m', sweep=sweep_axis, ellps=ellipse)
-        self.h=sat_ecef_height
+        self.ECEFxyz = pyproj.CRS(proj="geocent", ellps=ellipse)  # , datum=datum)
+        self.fixedgrid = pyproj.CRS(
+            proj="geos",
+            lon_0=subsat_lon,
+            lat_0=subsat_lat,
+            h=sat_ecef_height,
+            x_0=0.0,
+            y_0=0.0,
+            units="m",
+            sweep=sweep_axis,
+            ellps=ellipse,
+        )
+        self.h = sat_ecef_height
         self.transformer_to = Transformer.from_crs(self.fixedgrid, self.ECEFxyz)
         self.transformer_from = Transformer.from_crs(self.ECEFxyz, self.fixedgrid)
 
-
     def toECEF(self, x, y, z):
-        X, Y, Z = x*self.h, y*self.h, z*self.h
+        X, Y, Z = x * self.h, y * self.h, z * self.h
         return self.transformer_to.transform(X, Y, Z)
 
     def fromECEF(self, x, y, z):
         X, Y, Z = self.transformer_from.transform(x, y, z)
-        return X/self.h, Y/self.h, Z/self.h
+        return X / self.h, Y / self.h, Z / self.h
+
 
 class GeographicSystem(CoordinateSystem):
     """
@@ -122,40 +143,43 @@ class GeographicSystem(CoordinateSystem):
     Alternately, specify the ellipse shape using an ellipse known
     to pyproj, or [NOT IMPLEMENTED] specify r_equator and r_pole directly.
     """
-    def __init__(self, ellipse='WGS84', datum='WGS84',
-                 r_equator=None, r_pole=None):
+
+    def __init__(self, ellipse="WGS84", datum="WGS84", r_equator=None, r_pole=None):
         if (r_equator is not None) | (r_pole is not None):
             if r_pole is None:
-                r_pole=r_equator
-            self.ERSlla = pyproj.CRS(proj='latlong', a=r_equator, b=r_pole)
+                r_pole = r_equator
+            self.ERSlla = pyproj.CRS(proj="latlong", a=r_equator, b=r_pole)
         else:
             # lat lon alt in some earth reference system
-            self.ERSlla = pyproj.CRS(proj='latlong', ellps=ellipse, datum=datum)
-        self.ERSxyz = pyproj.CRS(proj='geocent', ellps=ellipse, datum=datum)
+            self.ERSlla = pyproj.CRS(proj="latlong", ellps=ellipse, datum=datum)
+        self.ERSxyz = pyproj.CRS(proj="geocent", ellps=ellipse, datum=datum)
         self.transformer_to = Transformer.from_crs(self.ERSlla, self.ERSxyz)
         self.transformer_from = Transformer.from_crs(self.ERSxyz, self.ERSlla)
 
     def toECEF(self, lon, lat, alt):
-        lat = np.atleast_1d(lat) # proj doesn't like scalars
+        lat = np.atleast_1d(lat)  # proj doesn't like scalars
         lon = np.atleast_1d(lon)
         alt = np.atleast_1d(alt)
-        if (lat.shape[0] == 0): return lon, lat, alt # proj doesn't like empties
-        projectedData = np.array(self.transformer_to.transform(lon, lat, alt ))
+        if lat.shape[0] == 0:
+            return lon, lat, alt  # proj doesn't like empties
+        projectedData = np.array(self.transformer_to.transform(lon, lat, alt))
         if len(projectedData.shape) == 1:
             return projectedData[0], projectedData[1], projectedData[2]
         else:
-            return projectedData[0,:], projectedData[1,:], projectedData[2,:]
+            return projectedData[0, :], projectedData[1, :], projectedData[2, :]
 
     def fromECEF(self, x, y, z):
-        x = np.atleast_1d(x) # proj doesn't like scalars
+        x = np.atleast_1d(x)  # proj doesn't like scalars
         y = np.atleast_1d(y)
         z = np.atleast_1d(z)
-        if (x.shape[0] == 0): return x, y, z # proj doesn't like empties
-        projectedData = np.array(self.transformer_from.transform(x, y, z ))
+        if x.shape[0] == 0:
+            return x, y, z  # proj doesn't like empties
+        projectedData = np.array(self.transformer_from.transform(x, y, z))
         if len(projectedData.shape) == 1:
             return projectedData[0], projectedData[1], projectedData[2]
         else:
-            return projectedData[0,:], projectedData[1,:], projectedData[2,:]
+            return projectedData[0, :], projectedData[1, :], projectedData[2, :]
+
 
 class GeostationaryFixedGridSystemAltEllipse(CoordinateSystem):
     def __init__(
@@ -225,9 +249,7 @@ class GeographicSystemAltEllps(CoordinateSystem):
         self.transformer_from = Transformer.from_crs(self.ERSxyz, self.ERSlla)
 
     def toECEF(self, lon, lat, alt):
-        projectedData = np.array(
-            self.transformer_to.transform(lon, lat, alt)
-        )
+        projectedData = np.array(self.transformer_to.transform(lon, lat, alt))
         if len(projectedData.shape) == 1:
             return projectedData[0], projectedData[1], projectedData[2]
         else:
