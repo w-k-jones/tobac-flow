@@ -148,7 +148,7 @@ def main():
     print(datetime.now(), "Calculating flash distance", flush=True)
     glm_distance = get_marker_distance_cylinder(glm_grid, time_margin)
 
-    n_glm_total = np.nansum(glm_grid)
+    n_glm_total = np.nansum(glm_grid[glm_grid > 0])
 
     edge_filter_array = get_edge_filter(gridded_flash_ds, margin, time_margin)
     glm_grid[np.logical_not(edge_filter_array)] = 0
