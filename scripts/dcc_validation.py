@@ -3,7 +3,6 @@ import argparse
 import pathlib
 from datetime import datetime
 import numpy as np
-import pandas as pd
 import xarray as xr
 
 from tobac_flow.glm import create_gridded_flash_ds
@@ -11,7 +10,7 @@ from tobac_flow.dataset import (
     add_dataarray_to_ds,
     create_dataarray,
 )
-from tobac_flow.utils import get_dates_from_filename, trim_file_start, trim_file_end
+from tobac_flow.utils import trim_file_start, trim_file_end
 from tobac_flow.validation import (
     get_edge_filter,
     get_marker_distance_cylinder,
@@ -150,7 +149,7 @@ def main():
     print(datetime.now(), "Calculating flash distance", flush=True)
     glm_distance = get_marker_distance_cylinder(glm_grid, time_margin)
 
-    n_glm_total = np.nansum(glm_grid)
+    n_glm_total = np.nansum(glm_grid[glm_grid > 0])
 
     edge_filter_array = get_edge_filter(gridded_flash_ds, margin, time_margin)
     glm_grid[np.logical_not(edge_filter_array)] = 0
