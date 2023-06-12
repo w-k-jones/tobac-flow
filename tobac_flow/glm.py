@@ -1,19 +1,14 @@
 """
 Tools for working with GLM data. Mostly adapted from glmtools/lmatools
 """
-
+from datetime import datetime, timedelta
+import warnings
 import pathlib
 import pandas as pd
 import xarray as xr
 import numpy as np
-from datetime import datetime, timedelta
-import warnings
+
 from tobac_flow import io
-
-# from glmtools.io.lightning_ellipse import lightning_ellipse_rev
-# from lmatools.coordinateSystems import CoordinateSystem
-# from lmatools.grid.fixed import get_GOESR_coordsys
-
 from tobac_flow.abi import get_abi_x_y
 from tobac_flow.dataset import create_new_goes_ds
 from tobac_flow.utils.xarray_utils import (

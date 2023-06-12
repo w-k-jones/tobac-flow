@@ -2,7 +2,6 @@ import argparse
 import pathlib
 from datetime import datetime
 import numpy as np
-import pandas as pd
 import xarray as xr
 
 from tobac_flow.glm import create_gridded_flash_ds
@@ -10,7 +9,7 @@ from tobac_flow.dataset import (
     add_dataarray_to_ds,
     create_dataarray,
 )
-from tobac_flow.utils import get_dates_from_filename, trim_file_start, trim_file_end
+from tobac_flow.utils import trim_file_start, trim_file_end
 from tobac_flow.validation import (
     get_edge_filter,
     get_marker_distance_cylinder,
