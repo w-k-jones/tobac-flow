@@ -12,9 +12,9 @@ from tobac_flow.dataset import (
 
 def get_min_dist_for_objects(distance_array, labels, index=None):
     if isinstance(labels, xr.DataArray):
-        labels = labels.values
+        labels = labels.to_numpy()
     if isinstance(distance_array, xr.DataArray):
-        distance_array = distance_array.values
+        distance_array = distance_array.to_numpy()
 
     return apply_func_to_labels(
         labels, distance_array, func=np.nanmin, index=index, default=np.nan
@@ -212,7 +212,7 @@ def get_edge_filter(gridded_flash_ds, margin, time_margin):
             0,
         )
         wh_missing_glm = ndi.binary_dilation(
-            gridded_flash_ds.glm_flashes.values == -1, structure=margin_structure
+            gridded_flash_ds.glm_flashes.to_numpy() == -1, structure=margin_structure
         )
         edge_filter_array[wh_missing_glm] = False
 
@@ -230,8 +230,8 @@ def validate_cores(
     time_margin,
     get_closest=False,
 ):
-    core_label = detection_ds.core_label.values
-    core_coord = detection_ds.core.values
+    core_label = detection_ds.core_label.to_numpy()
+    core_coord = detection_ds.core.to_numpy()
 
     (
         flash_distance_to_core,
@@ -335,12 +335,13 @@ def validate_cores_with_anvils(
     time_margin,
     get_closest=False,
 ):
-    core_with_anvil_coord = detection_ds.core.values[
-        detection_ds.core_anvil_index.values != 0
+    core_with_anvil_coord = detection_ds.core.to_numpy()[
+        detection_ds.core_anvil_index != 0
     ]
-    core_with_anvil_label = detection_ds.core_label.values * np.isin(
-        detection_ds.core_label.values, core_with_anvil_coord
-    ).astype(int)
+
+    core_remapper = np.zeros(np.max(detection_ds.core.to_numpy()) + 1, dtype=int)
+    core_remapper[core_with_anvil_coord] = core_with_anvil_coord
+    core_with_anvil_label = core_remapper[detection_ds.core_label.to_numpy()]
 
     (
         flash_distance_to_core_with_anvil,
@@ -452,8 +453,8 @@ def validate_anvils(
     time_margin,
     get_closest=False,
 ):
-    thick_anvil_label = detection_ds.thick_anvil_label.values
-    anvil_coord = detection_ds.anvil.values
+    thick_anvil_label = detection_ds.thick_anvil_label.to_numpy()
+    anvil_coord = detection_ds.anvil.to_numpy()
 
     (
         flash_distance_to_anvil,
@@ -565,12 +566,12 @@ def validate_anvils_with_cores(
     time_margin,
     get_closest=False,
 ):
-    anvil_with_core_coord = detection_ds.anvil.values[
-        np.isin(detection_ds.anvil.values, detection_ds.core_anvil_index.values)
+    anvil_with_core_coord = detection_ds.anvil.to_numpy()[
+        np.isin(detection_ds.anvil, np.unique(detection_ds.core_anvil_index))
     ]
-    anvil_with_core_label = detection_ds.thick_anvil_label.values * np.isin(
-        detection_ds.thick_anvil_label.values, anvil_with_core_coord
-    ).astype(int)
+    anvil_remapper = np.zeros(np.max(detection_ds.anvil.to_numpy()) + 1, dtype=int)
+    anvil_remapper[anvil_with_core_coord] = anvil_with_core_coord
+    anvil_with_core_label = anvil_remapper[detection_ds.thick_anvil_label.to_numpy()]
 
     (
         flash_distance_to_anvil_with_core,
@@ -682,8 +683,8 @@ def validate_anvil_markers(
     time_margin,
     get_closest=False,
 ):
-    anvil_marker_label = detection_ds.anvil_marker_label.values
-    anvil_marker_coord = detection_ds.anvil_marker.values
+    anvil_marker_label = detection_ds.anvil_marker_label.to_numpy()
+    anvil_marker_coord = detection_ds.anvil_marker.to_numpy()
 
     (
         flash_distance_to_anvil_marker,
