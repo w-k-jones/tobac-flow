@@ -98,11 +98,13 @@ def main():
     detection_ds = trim_file_start(trim_file_end(detection_ds, file), file)
     # now trim core, anvil coordinates
     detection_ds = detection_ds.sel(
-        core=detection_ds.core[np.isin(detection_ds.core, detection_ds.core_label)],
+        core=detection_ds.core[
+            np.isin(detection_ds.core, np.unique(detection_ds.core_label))
+        ],
         anvil=detection_ds.anvil[
             np.logical_or(
-                np.isin(detection_ds.anvil, detection_ds.thick_anvil_label),
-                np.isin(detection_ds.anvil, detection_ds.thin_anvil_label),
+                np.isin(detection_ds.anvil, np.unique(detection_ds.thick_anvil_label)),
+                np.isin(detection_ds.anvil, np.unique(detection_ds.thin_anvil_label)),
             )
         ],
     )
@@ -110,7 +112,10 @@ def main():
     if "anvil_marker" in detection_ds.coords:
         detection_ds = detection_ds.sel(
             anvil_marker=detection_ds.anvil_marker[
-                np.isin(detection_ds.anvil_marker, detection_ds.anvil_marker_label)
+                np.isin(
+                    detection_ds.anvil_marker,
+                    np.unique(detection_ds.anvil_marker_label),
+                )
             ]
         )
 
@@ -189,12 +194,12 @@ def main():
 
         print(datetime.now(), "Saving to %s" % (glm_save_path), flush=True)
         gridded_flash_ds.to_netcdf(glm_save_path)
-        glm_grid = gridded_flash_ds.glm_flashes.values
+        glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
 
     else:
         print(datetime.now(), "Loading from %s" % (glm_save_path), flush=True)
         gridded_flash_ds = xr.open_dataset(glm_save_path)
-        glm_grid = gridded_flash_ds.glm_flashes.values
+        glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
 
     """
     Calculate flash distances
