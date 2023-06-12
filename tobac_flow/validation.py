@@ -378,7 +378,7 @@ def validate_cores_with_anvils(
         ),
         validation_ds,
     )
-    if flash_distance_to_core_with_anvil is not None:
+    if flash_nearest_core_with_anvil is not None:
         add_dataarray_to_ds(
             create_dataarray(
                 flash_nearest_core_with_anvil,
