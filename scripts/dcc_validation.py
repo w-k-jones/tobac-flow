@@ -52,6 +52,9 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("-cglm", help="clobber existing glm files", action="store_true")
+parser.add_argument(
+    "--get_closest", help="get closest marker for each flash", action="store_true"
+)
 
 args = parser.parse_args()
 
@@ -197,7 +200,7 @@ def main():
     Calculate flash distances
     """
     print(datetime.now(), "Calculating flash distance", flush=True)
-    glm_distance, _ = get_marker_distance_cylinder(glm_grid, time_margin)
+    glm_distance = get_marker_distance_cylinder(glm_grid, time_margin)
 
     n_glm_total = np.nansum(glm_grid)
 
@@ -242,6 +245,7 @@ def main():
         n_glm_in_margin,
         margin,
         time_margin,
+        get_closest=args.get_closest,
     )
 
     print(datetime.now(), "Validating cores with anvils", flush=True)
@@ -254,6 +258,7 @@ def main():
         n_glm_in_margin,
         margin,
         time_margin,
+        get_closest=args.get_closest,
     )
 
     print(datetime.now(), "Validating anvils", flush=True)
@@ -266,6 +271,7 @@ def main():
         n_glm_in_margin,
         margin,
         time_margin,
+        get_closest=args.get_closest,
     )
 
     print(datetime.now(), "Validating anvils with cores", flush=True)
@@ -278,6 +284,7 @@ def main():
         n_glm_in_margin,
         margin,
         time_margin,
+        get_closest=args.get_closest,
     )
 
     if "anvil_marker" in detection_ds.coords:
@@ -291,6 +298,7 @@ def main():
             n_glm_in_margin,
             margin,
             time_margin,
+            get_closest=args.get_closest,
         )
 
     """
