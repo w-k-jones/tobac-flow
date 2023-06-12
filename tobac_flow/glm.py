@@ -2,17 +2,23 @@
 Tools for working with GLM data. Mostly adapted from glmtools/lmatools
 """
 
+import pathlib
+import pandas as pd
 import xarray as xr
 import numpy as np
-from datetime import timedelta
+from datetime import datetime, timedelta
 import warnings
+from tobac_flow import io
 
 # from glmtools.io.lightning_ellipse import lightning_ellipse_rev
 # from lmatools.coordinateSystems import CoordinateSystem
 # from lmatools.grid.fixed import get_GOESR_coordsys
 
 from tobac_flow.abi import get_abi_x_y
+from tobac_flow.dataset import create_new_goes_ds
 from tobac_flow.utils.xarray_utils import (
+    add_dataarray_to_ds,
+    create_dataarray,
     get_ds_bin_edges,
     get_ds_core_coords,
 )
@@ -141,3 +147,78 @@ def regrid_glm(glm_files, goes_ds, corrected=False, max_time_diff=15):
 
     glm_grid = xr.DataArray(glm_grid, goes_coords, ("t", "y", "x"))
     return glm_grid
+
+
+def create_gridded_flash_ds(
+    detection_ds, goes_data_path, save_ds=False, glm_save_path=None
+):
+    dates = get_datetime_from_coord(detection_ds.t)
+    start_date = datetime(dates[0].year, dates[0].month, dates[0].day, dates[0].hour)
+    end_date = datetime(dates[-1].year, dates[-1].month, dates[-1].day, dates[-1].hour)
+    if (dates[-1] - end_date).total_seconds() > 0:
+        end_date = end_date + timedelta(hours=1)
+    dates = pd.date_range(
+        start_date, dates[-1], freq="H", inclusive="left"
+    ).to_pydatetime()
+
+    if save_ds:
+        if not isinstance(glm_save_path, pathlib.Path):
+            glm_save_path = pathlib.Path(glm_save_path)
+
+    gridded_flash_ds = create_new_goes_ds(detection_ds)
+
+    print(datetime.now(), "Processing GLM data", flush=True)
+    # Get GLM data
+    # Process new GLM data
+    glm_files = io.find_glm_files(
+        dates,
+        satellite=16,
+        save_dir=goes_data_path,
+        replicate_path=True,
+        check_download=True,
+        n_attempts=1,
+        download_missing=True,
+        verbose=False,
+        min_storage=2**30,
+    )
+    glm_files = {io.get_goes_date(i): i for i in glm_files}
+    print("%d files found" % len(glm_files), flush=True)
+    if len(glm_files) == 0:
+        raise ValueError("No GLM Files discovered, skipping validation")
+    else:
+        print(datetime.now(), "Regridding GLM data", flush=True)
+        glm_grid = regrid_glm(glm_files, gridded_flash_ds, corrected=True)
+
+    add_dataarray_to_ds(
+        create_dataarray(
+            glm_grid.data,
+            ("t", "y", "x"),
+            "glm_flashes",
+            long_name="number of flashes detected by GLM",
+            units="",
+            dtype=np.int32,
+        ),
+        gridded_flash_ds,
+    )
+
+    add_dataarray_to_ds(
+        create_dataarray(
+            np.nansum(glm_grid.data[glm_grid.data > 0]),
+            tuple(),
+            "glm_flash_count",
+            long_name="total number of GLM flashes",
+            dtype=np.int32,
+        ),
+        gridded_flash_ds,
+    )
+
+    if save_ds:
+        # Add compression encoding
+        comp = dict(zlib=True, complevel=5, shuffle=True)
+        for var in gridded_flash_ds.data_vars:
+            gridded_flash_ds[var].encoding.update(comp)
+
+        print(datetime.now(), "Saving to %s" % (glm_save_path), flush=True)
+        gridded_flash_ds.to_netcdf(glm_save_path)
+
+    return gridded_flash_ds

@@ -4,11 +4,9 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import xarray as xr
-from scipy import ndimage as ndi
 
-from tobac_flow import io, glm
+from tobac_flow.glm import create_gridded_flash_ds
 from tobac_flow.dataset import (
-    create_new_goes_ds,
     add_dataarray_to_ds,
     create_dataarray,
 )
@@ -120,15 +118,11 @@ def main():
 
     validation_ds = xr.Dataset()
 
-    start_date, end_date = get_dates_from_filename(file)
     start_str = file.stem.split("_S")[-1][:15]
     end_str = file.stem.split("_E")[-1][:15]
     x_str = file.stem.split("_X")[-1][:9]
     y_str = file.stem.split("_Y")[-1][:9]
     new_file_str = f"S{start_str}_E{end_str}_X{x_str}_Y{y_str}"
-    dates = pd.date_range(
-        start_date, end_date, freq="H", inclusive="left"
-    ).to_pydatetime()
 
     glm_save_name = f"gridded_glm_flashes_{new_file_str}.nc"
     glm_save_path = glm_save_dir / glm_save_name
@@ -139,60 +133,9 @@ def main():
     Grid GLM Flashes
     """
     if clobber_glm or not glm_save_path.exists():
-        gridded_flash_ds = create_new_goes_ds(detection_ds)
-
-        print(datetime.now(), "Processing GLM data", flush=True)
-        # Get GLM data
-        # Process new GLM data
-        glm_files = io.find_glm_files(
-            dates,
-            satellite=16,
-            save_dir=goes_data_path,
-            replicate_path=True,
-            check_download=True,
-            n_attempts=1,
-            download_missing=True,
-            verbose=False,
-            min_storage=2**30,
+        gridded_flash_ds = create_gridded_flash_ds(
+            detection_ds, goes_data_path, save_ds=True, glm_save_path=glm_save_path
         )
-        glm_files = {io.get_goes_date(i): i for i in glm_files}
-        print("%d files found" % len(glm_files), flush=True)
-        if len(glm_files) == 0:
-            raise ValueError("No GLM Files discovered, skipping validation")
-        else:
-            print(datetime.now(), "Regridding GLM data", flush=True)
-            glm_grid = glm.regrid_glm(glm_files, gridded_flash_ds, corrected=True)
-
-        add_dataarray_to_ds(
-            create_dataarray(
-                glm_grid.data,
-                ("t", "y", "x"),
-                "glm_flashes",
-                long_name="number of flashes detected by GLM",
-                units="",
-                dtype=np.int32,
-            ),
-            gridded_flash_ds,
-        )
-
-        add_dataarray_to_ds(
-            create_dataarray(
-                np.nansum(glm_grid.data[glm_grid.data > 0]),
-                tuple(),
-                "glm_flash_count",
-                long_name="total number of GLM flashes",
-                dtype=np.int32,
-            ),
-            gridded_flash_ds,
-        )
-
-        # Add compression encoding
-        comp = dict(zlib=True, complevel=5, shuffle=True)
-        for var in gridded_flash_ds.data_vars:
-            gridded_flash_ds[var].encoding.update(comp)
-
-        print(datetime.now(), "Saving to %s" % (glm_save_path), flush=True)
-        gridded_flash_ds.to_netcdf(glm_save_path)
         glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
 
     else:
