@@ -20,7 +20,6 @@ from tobac_flow.validation import (
     validate_anvils,
     validate_anvils_with_cores,
     validate_cores_with_anvils,
-    validate_markers,
     validate_cores,
 )
 
@@ -189,12 +188,12 @@ def main():
 
         print(datetime.now(), "Saving to %s" % (glm_save_path), flush=True)
         gridded_flash_ds.to_netcdf(glm_save_path)
-        glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
+        glm_grid = gridded_flash_ds.glm_flashes.values
 
     else:
         print(datetime.now(), "Loading from %s" % (glm_save_path), flush=True)
         gridded_flash_ds = xr.open_dataset(glm_save_path)
-        glm_grid = gridded_flash_ds.glm_flashes.to_numpy()
+        glm_grid = gridded_flash_ds.glm_flashes.values
 
     """
     Calculate flash distances
