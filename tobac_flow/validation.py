@@ -49,38 +49,59 @@ def get_marker_distance_ellipse(markers, time_margin, margin):
     return distances, closest_marker
 
 
-def get_marker_distance_cylinder(markers, time_margin):
+def get_marker_distance_cylinder(markers, time_margin, get_closest=False):
     """
     Get distances to markers and nearest marker for each point in a cylinder
     with height time_margin in the leading dimension and radius of margin in
     the other dimensions
     """
     distances = np.full(markers.shape, np.inf, dtype=float)
-    closest_markers = np.full(markers.shape, 0, dtype=int)
+    if get_closest:
+        closest_markers = np.full(markers.shape, 0, dtype=int)
 
-    for i in range(markers.shape[0]):
-        if np.any(markers[i]):
-            step_distances, indices = ndi.distance_transform_edt(
-                markers[i] == 0, return_indices=True
+        for i in range(markers.shape[0]):
+            if np.any(markers[i]):
+                step_distances, indices = ndi.distance_transform_edt(
+                    markers[i] == 0, return_indices=True
+                )
+                distances[i] = step_distances
+                closest_markers[i] = markers[i][indices[0], indices[1]]
+
+        distances2 = np.full(markers.shape, np.inf, dtype=float)
+        closest_markers2 = np.full(markers.shape, 0, dtype=int)
+
+        for i in range(markers.shape[0]):
+            i_slice = slice(
+                np.maximum(i - time_margin, 0),
+                np.minimum(i + time_margin + 1, markers.shape[0]),
             )
-            distances[i] = step_distances
-            closest_markers[i] = markers[i][indices[0], indices[1]]
+            argmin = np.expand_dims(np.nanargmin(distances[i_slice], axis=0), axis=0)
+            distances2[i] = np.take_along_axis(distances[i_slice], argmin, axis=0)
+            closest_markers2[i] = np.take_along_axis(
+                closest_markers[i_slice], argmin, axis=0
+            )
 
-    distances2 = np.full(markers.shape, np.inf, dtype=float)
-    closest_markers2 = np.full(markers.shape, 0, dtype=int)
+        res = (distances2, closest_markers2)
 
-    for i in range(markers.shape[0]):
-        i_slice = slice(
-            np.maximum(i - time_margin, 0),
-            np.minimum(i + time_margin + 1, markers.shape[0]),
-        )
-        argmin = np.expand_dims(np.nanargmin(distances[i_slice], axis=0), axis=0)
-        distances2[i] = np.take_along_axis(distances[i_slice], argmin, axis=0)
-        closest_markers2[i] = np.take_along_axis(
-            closest_markers[i_slice], argmin, axis=0
-        )
+    else:
+        for i in range(markers.shape[0]):
+            if np.any(markers[i]):
+                step_distances = ndi.distance_transform_edt(markers[i] == 0)
+                distances[i] = step_distances
 
-    return distances2, closest_markers2
+        distances2 = np.full(markers.shape, np.inf, dtype=float)
+
+        for i in range(markers.shape[0]):
+            i_slice = slice(
+                np.maximum(i - time_margin, 0),
+                np.minimum(i + time_margin + 1, markers.shape[0]),
+            )
+            argmin = np.expand_dims(np.nanargmin(distances[i_slice], axis=0), axis=0)
+            distances2[i] = np.take_along_axis(distances[i_slice], argmin, axis=0)
+
+        res = distances2
+
+    return res
 
 
 def validate_markers(
@@ -92,19 +113,29 @@ def validate_markers(
     coord=None,
     margin=10,
     time_margin=3,
+    get_closest=False,
 ):
     """
     Get validation results for a set of markers
     """
-    marker_distance, closest_marker = get_marker_distance_cylinder(labels, time_margin)
+    if get_closest:
+        marker_distance, closest_marker = get_marker_distance_cylinder(
+            labels, time_margin, get_closest=get_closest
+        )
+        flash_closest_marker = np.repeat(
+            closest_marker.ravel(),
+            glm_grid.astype(int).ravel(),
+        )
+    else:
+        marker_distance = get_marker_distance_cylinder(
+            labels, time_margin, get_closest=get_closest
+        )
+        flash_closest_marker = None
     flash_distance_to_marker = np.repeat(
         marker_distance.ravel(),
         glm_grid.astype(int).ravel(),
     )
-    flash_closest_marker = np.repeat(
-        closest_marker.ravel(),
-        glm_grid.astype(int).ravel(),
-    )
+
     if n_glm_in_margin > 0:
         pod = np.nansum(flash_distance_to_marker <= margin) / n_glm_in_margin
     else:
@@ -197,6 +228,7 @@ def validate_cores(
     n_glm_in_margin,
     margin,
     time_margin,
+    get_closest=False,
 ):
     core_label = detection_ds.core_label.to_numpy()
     core_coord = detection_ds.core.to_numpy()
@@ -218,6 +250,7 @@ def validate_cores(
         coord=core_coord,
         margin=margin,
         time_margin=time_margin,
+        get_closest=get_closest,
     )
 
     print("cores:", flush=True)
@@ -236,16 +269,17 @@ def validate_cores(
         ),
         validation_ds,
     )
-    add_dataarray_to_ds(
-        create_dataarray(
-            flash_nearest_core,
-            ("flash",),
-            "flash_core_index",
-            long_name="index of nearest detected core to each flash",
-            dtype=np.int32,
-        ),
-        validation_ds,
-    )
+    if flash_nearest_core is not None:
+        add_dataarray_to_ds(
+            create_dataarray(
+                flash_nearest_core,
+                ("flash",),
+                "flash_core_index",
+                long_name="index of nearest detected core to each flash",
+                dtype=np.int32,
+            ),
+            validation_ds,
+        )
     add_dataarray_to_ds(
         create_dataarray(
             core_min_distance,
@@ -299,6 +333,7 @@ def validate_cores_with_anvils(
     n_glm_in_margin,
     margin,
     time_margin,
+    get_closest=False,
 ):
     core_with_anvil_coord = detection_ds.core.to_numpy()[
         detection_ds.core_anvil_index.to_numpy() != 0
@@ -324,6 +359,7 @@ def validate_cores_with_anvils(
         coord=core_with_anvil_coord,
         margin=margin,
         time_margin=time_margin,
+        get_closest=get_closest,
     )
 
     print("cores with anvils:", flush=True)
@@ -342,16 +378,17 @@ def validate_cores_with_anvils(
         ),
         validation_ds,
     )
-    add_dataarray_to_ds(
-        create_dataarray(
-            flash_nearest_core_with_anvil,
-            ("flash",),
-            "flash_core_with_anvil_index",
-            long_name="index of nearest detected core_with_anvil to each flash",
-            dtype=np.int32,
-        ),
-        validation_ds,
-    )
+    if flash_nearest_core_with_anvil is not None:
+        add_dataarray_to_ds(
+            create_dataarray(
+                flash_nearest_core_with_anvil,
+                ("flash",),
+                "flash_core_with_anvil_index",
+                long_name="index of nearest detected core_with_anvil to each flash",
+                dtype=np.int32,
+            ),
+            validation_ds,
+        )
     add_dataarray_to_ds(
         create_dataarray(
             core_with_anvil_min_distance,
@@ -413,6 +450,7 @@ def validate_anvils(
     n_glm_in_margin,
     margin,
     time_margin,
+    get_closest=False,
 ):
     thick_anvil_label = detection_ds.thick_anvil_label.to_numpy()
     anvil_coord = detection_ds.anvil.to_numpy()
@@ -434,6 +472,7 @@ def validate_anvils(
         coord=anvil_coord,
         margin=margin,
         time_margin=time_margin,
+        get_closest=get_closest,
     )
 
     print("anvil:", flush=True)
@@ -452,16 +491,17 @@ def validate_anvils(
         ),
         validation_ds,
     )
-    add_dataarray_to_ds(
-        create_dataarray(
-            flash_nearest_anvil,
-            ("flash",),
-            "flash_anvil_index",
-            long_name="index of nearest detected anvil to each flash",
-            dtype=np.int32,
-        ),
-        validation_ds,
-    )
+    if flash_nearest_anvil is not None:
+        add_dataarray_to_ds(
+            create_dataarray(
+                flash_nearest_anvil,
+                ("flash",),
+                "flash_anvil_index",
+                long_name="index of nearest detected anvil to each flash",
+                dtype=np.int32,
+            ),
+            validation_ds,
+        )
     add_dataarray_to_ds(
         create_dataarray(
             anvil_min_distance,
@@ -523,6 +563,7 @@ def validate_anvils_with_cores(
     n_glm_in_margin,
     margin,
     time_margin,
+    get_closest=False,
 ):
     anvil_with_core_coord = detection_ds.anvil.to_numpy()[
         np.isin(detection_ds.anvil.to_numpy(), detection_ds.core_anvil_index.to_numpy())
@@ -548,6 +589,7 @@ def validate_anvils_with_cores(
         coord=anvil_with_core_coord,
         margin=margin,
         time_margin=time_margin,
+        get_closest=get_closest,
     )
 
     print("anvil with cores:", flush=True)
@@ -566,16 +608,17 @@ def validate_anvils_with_cores(
         ),
         validation_ds,
     )
-    add_dataarray_to_ds(
-        create_dataarray(
-            flash_nearest_anvil_with_core,
-            ("flash",),
-            "flash_anvil_with_core_index",
-            long_name="index of nearest detected anvil_with_core to each flash",
-            dtype=np.int32,
-        ),
-        validation_ds,
-    )
+    if flash_nearest_anvil_with_core is not None:
+        add_dataarray_to_ds(
+            create_dataarray(
+                flash_nearest_anvil_with_core,
+                ("flash",),
+                "flash_anvil_with_core_index",
+                long_name="index of nearest detected anvil_with_core to each flash",
+                dtype=np.int32,
+            ),
+            validation_ds,
+        )
     add_dataarray_to_ds(
         create_dataarray(
             anvil_with_core_min_distance,
@@ -637,6 +680,7 @@ def validate_anvil_markers(
     n_glm_in_margin,
     margin,
     time_margin,
+    get_closest=False,
 ):
     anvil_marker_label = detection_ds.anvil_marker_label.to_numpy()
     anvil_marker_coord = detection_ds.anvil_marker.to_numpy()
@@ -658,6 +702,7 @@ def validate_anvil_markers(
         coord=anvil_marker_coord,
         margin=margin,
         time_margin=time_margin,
+        get_closest=get_closest,
     )
 
     print("anvil marker:", flush=True)
@@ -676,16 +721,17 @@ def validate_anvil_markers(
         ),
         validation_ds,
     )
-    add_dataarray_to_ds(
-        create_dataarray(
-            flash_nearest_anvil_marker,
-            ("flash",),
-            "flash_anvil_marker_index",
-            long_name="index of nearest detected anvil_marker to each flash",
-            dtype=np.int32,
-        ),
-        validation_ds,
-    )
+    if flash_nearest_anvil_marker is not None:
+        add_dataarray_to_ds(
+            create_dataarray(
+                flash_nearest_anvil_marker,
+                ("flash",),
+                "flash_anvil_marker_index",
+                long_name="index of nearest detected anvil_marker to each flash",
+                dtype=np.int32,
+            ),
+            validation_ds,
+        )
     add_dataarray_to_ds(
         create_dataarray(
             anvil_marker_min_distance,
