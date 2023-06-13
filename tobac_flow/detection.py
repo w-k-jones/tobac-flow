@@ -361,8 +361,8 @@ def detect_cores(
     bt_markers = (bt_growth * combined_filter) > bt_threshold
 
     if use_wvd:
-        wvd_markers = (wvd_growth * combined_filter) > wvd_threshold
         wvd_growth = get_growth_rate(flow, wvd, method="cubic")
+        wvd_markers = (wvd_growth * combined_filter) > wvd_threshold
 
         combined_markers = ndi.binary_opening(
             np.logical_or.reduce([wvd_markers, bt_markers]), structure=s_struct
