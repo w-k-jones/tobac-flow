@@ -12,7 +12,10 @@ from tobac_flow.dataset import (
     add_label_coords,
     link_step_labels,
 )
-from tobac_flow.utils.datetime_utils import get_dates_from_filename
+from tobac_flow.utils.datetime_utils import (
+    get_dates_from_filename,
+    trim_file_start_and_end,
+)
 from tobac_flow.utils.label_utils import find_overlapping_labels
 
 
@@ -722,33 +725,65 @@ class File_Linker:
 
 
 class Label_Linker:
-    def __init__(self, files, max_convergence_iterations=10):
-        self.files = files
+    def __init__(
+        self,
+        files,
+        max_convergence_iterations=10,
+        output_path: str | pathlib.Path | None = None,
+        output_file_suffix: str | None = None,
+        overlap: float = 0.5,
+        absolute_overlap: int = 0,
+    ):
+        self.files = [pathlib.Path(filename) for filename in files]
+        for filename in self.files:
+            if not filename.exists:
+                raise ValueError(f"File {filename} does not exist")
+
+        self.output_path = output_path
+        if isinstance(self.output_path, str):
+            self.output_path = pathlib.Path(self.output_path)
+
+        if self.output_path is not None and not self.output_path.exists():
+            self.output_path.mkdir()
+
+        if output_file_suffix is None:
+            self.file_suffix = ""
+        else:
+            self.file_suffix = output_file_suffix
+
+        self.overlap = overlap
+        self.absolute_overlap = absolute_overlap
+
         self.max_convergence_iterations = max_convergence_iterations
 
         self.next_ds = xr.open_dataset(files[0])
 
         self.next_min_core = 0
         self.max_core = self.next_ds.core.max().item()
+        self.next_min_core_map = {files[0]: self.next_min_core}
+        self.max_core_map = {files[0]: self.max_core}
+
         self.core_label_map = np.arange(
             self.next_min_core, self.next_min_core + self.max_core + 1, dtype=int
         )
 
         self.next_min_anvil = 0
         self.max_anvil = self.next_ds.anvil.max().item()
+        self.next_min_anvil_map = {files[0]: self.next_min_anvil}
+        self.max_anvil_map = {files[0]: self.max_anvil}
+
         self.anvil_label_map = np.arange(
             self.next_min_anvil, self.next_min_anvil + self.max_anvil + 1, dtype=int
         )
 
-    def run_all(self):
+    def link_all(self):
         print(self.files[0])
         for file in self.files[1:]:
             self.link_next_file(file)
         self.next_ds.close()
 
     def link_next_file(self, file):
-        print(file)
-        self.current_ds, self.next_ds = self.next_ds, xr.open_dataset(file)
+        self.read_new_file(file)
 
         if len(set(self.current_ds.t.data) & set(self.next_ds.t.data)) > 0:
             self.update_core_label_map()
@@ -758,14 +793,27 @@ class Label_Linker:
 
         self.current_ds.close()
 
-    def update_core_label_map(self):
+    def read_new_file(self, file):
+        print(file)
+        self.current_ds, self.next_ds = self.next_ds, xr.open_dataset(file)
+
         self.current_min_core, self.next_min_core = (
             self.next_min_core,
             self.next_min_core + self.max_core,
         )
-
         self.max_core = self.next_ds.core.max().item()
+        self.next_min_core_map[file] = self.next_min_core
+        self.max_core_map[file] = self.max_core
 
+        self.current_min_anvil, self.next_min_anvil = (
+            self.next_min_anvil,
+            self.next_min_anvil + self.max_anvil,
+        )
+        self.max_anvil = self.next_ds.anvil.max().item()
+        self.next_min_anvil_map[file] = self.next_min_anvil
+        self.max_anvil_map[file] = self.max_anvil
+
+    def update_core_label_map(self):
         self.core_label_map = np.concatenate(
             [
                 self.core_label_map,
@@ -777,7 +825,12 @@ class Label_Linker:
             ]
         )
 
-        _, _, core_links1, core_links2 = link_dcc_cores(self.current_ds, self.next_ds)
+        _, _, core_links1, core_links2 = link_dcc_cores(
+            self.current_ds,
+            self.next_ds,
+            overlap=self.overlap,
+            absolute_overlap=self.absolute_overlap,
+        )
 
         for current_cores, next_cores in zip(core_links1, core_links2):
             new_label = np.minimum(
@@ -804,13 +857,6 @@ class Label_Linker:
             raise ValueError("Core label map failed to converge")
 
     def update_anvil_label_map(self):
-        self.current_min_anvil, self.next_min_anvil = (
-            self.next_min_anvil,
-            self.next_min_anvil + self.max_anvil,
-        )
-
-        self.max_anvil = self.next_ds.anvil.max().item()
-
         self.anvil_label_map = np.concatenate(
             [
                 self.anvil_label_map,
@@ -823,7 +869,10 @@ class Label_Linker:
         )
 
         _, _, anvil_links1, anvil_links2 = link_dcc_anvils(
-            self.current_ds, self.next_ds
+            self.current_ds,
+            self.next_ds,
+            overlap=self.overlap,
+            absolute_overlap=self.absolute_overlap,
         )
 
         for current_anvils, next_anvils in zip(anvil_links1, anvil_links2):
@@ -851,3 +900,264 @@ class Label_Linker:
                 break
         else:
             raise ValueError("Anvil label map failed to converge")
+
+    def output_files(self):
+        for i, file in enumerate(self.files):
+            self.output_a_file(
+                file,
+                self.files[i - 1] if i > 0 else None,
+                self.files[i + 1] if i < (len(self.files) - 1) else None,
+            )
+
+    def merge_labels(self, ds, filename, join="start"):
+        if join == "start":
+            join_i = -1
+        elif join == "end":
+            join_i = 0
+        with xr.open_dataset(filename) as merge_ds:
+            t_overlap = sorted(
+                list((set(self.current_ds.t.data) & set(self.next_ds.t.data)))
+            )
+            if len(t_overlap) > 0:
+                merge_ds = merge_ds.sel(t=t_overlap)
+                # This set operation removes "stubs" i.e. labels that should be flagged as end labels
+                # Labels that appear in the first step of next_labels, but don't appear in current_labels should be removed
+                max_core = merge_ds.core.max().item()
+                core_map_slice = slice(
+                    self.next_min_core_map[filename],
+                    self.next_min_core_map[filename] + max_core + 1,
+                )
+                remapped_cores = xr.DataArray(
+                    self.core_label_map[core_map_slice][merge_ds.core_label.values],
+                    dims=merge_ds.core_label.dims,
+                    coords=merge_ds.core_label.coords,
+                )
+                combine_core_set = (
+                    set(
+                        np.unique(remapped_cores.sel(t=t_overlap[1:-1]).values)
+                    )  # is in overlap region
+                    - (
+                        set(
+                            np.unique(remapped_cores.sel(t=t_overlap[join_i]).values)
+                        )  # is not in final step
+                        - set(
+                            np.unique(ds.core_label.sel(t=t_overlap).values)
+                        )  # or exists in ds
+                    )
+                ) - set(
+                    [0]
+                )  # and is not zero
+                wh_combine = np.logical_and(
+                    np.isin(
+                        merge_ds.core_label.sel(t=t_overlap[1:-1]).data,
+                        list(combine_core_set),
+                    ),
+                    ds.core_label.sel(t=t_overlap[1:-1]).data == 0,
+                )
+                # Update core labels
+                ds.core_label.sel(t=t_overlap[1:-1]).data[
+                    wh_combine
+                ] = remapped_cores.sel(t=t_overlap[1:-1]).values[wh_combine]
+
+                # Now repeat for anvils
+                max_anvil = merge_ds.anvil.max().item()
+                anvil_map_slice = slice(
+                    self.next_min_anvil_map[filename],
+                    self.next_min_anvil_map[filename] + max_anvil + 1,
+                )
+
+                remapped_thick_anvils = xr.DataArray(
+                    self.anvil_label_map[anvil_map_slice][
+                        merge_ds.thick_anvil_label.values
+                    ],
+                    dims=merge_ds.thick_anvil_label.dims,
+                    coords=merge_ds.thick_anvil_label.coords,
+                )
+                combine_thick_anvil_set = (
+                    set(
+                        np.unique(remapped_thick_anvils.sel(t=t_overlap[1:-1]).values)
+                    )  # is in overlap region
+                    - (
+                        set(
+                            np.unique(
+                                remapped_thick_anvils.sel(t=t_overlap[join_i]).values
+                            )
+                        )  # is not in final step
+                        - set(
+                            np.unique(ds.thick_anvil_label.sel(t=t_overlap).values)
+                        )  # or exists in ds
+                    )
+                ) - set(
+                    [0]
+                )  # and is not zero
+                wh_combine = np.logical_and(
+                    np.isin(
+                        merge_ds.thick_anvil_label.sel(t=t_overlap[1:-1]).data,
+                        list(combine_thick_anvil_set),
+                    ),
+                    ds.thick_anvil_label.sel(t=t_overlap[1:-1]).data == 0,
+                )
+
+                # Update thick anvil labels
+                ds.thick_anvil_label.sel(t=t_overlap[1:-1]).data[
+                    wh_combine
+                ] = remapped_thick_anvils.sel(t=t_overlap[1:-1]).values[wh_combine]
+
+                remapped_thin_anvils = xr.DataArray(
+                    self.anvil_label_map[anvil_map_slice][
+                        merge_ds.thick_anvil_label.values
+                    ],
+                    dims=merge_ds.thin_anvil_label.dims,
+                    coords=merge_ds.thin_anvil_label.coords,
+                )
+                combine_thin_anvil_set = (
+                    set(
+                        np.unique(remapped_thin_anvils.sel(t=t_overlap[1:-1]).values)
+                    )  # is in overlap region
+                    - (
+                        set(
+                            np.unique(
+                                remapped_thin_anvils.sel(t=t_overlap[join_i]).values
+                            )
+                        )  # is not in final step
+                        - set(
+                            np.unique(ds.thin_anvil_label.sel(t=t_overlap).values)
+                        )  # or exists in ds
+                    )
+                ) - set(
+                    [0]
+                )  # and is not zero
+                wh_combine = np.logical_and(
+                    np.isin(
+                        merge_ds.thin_anvil_label.sel(t=t_overlap[1:-1]).data,
+                        list(combine_thin_anvil_set),
+                    ),
+                    ds.thin_anvil_label.sel(t=t_overlap[1:-1]).data == 0,
+                )
+
+                # Update thin anvil labels
+                ds.thin_anvil_label.sel(t=t_overlap[1:-1]).data[
+                    wh_combine
+                ] = remapped_thin_anvils.sel(t=t_overlap[1:-1]).values[wh_combine]
+
+    def output_a_file(self, file, prev_file, next_file) -> None:
+        with xr.open_dataset(file) as ds:
+            default_vars = [
+                "goes_imager_projection",
+                "lat",
+                "lon",
+                "area",
+                "BT",
+                "WVD",
+                "SWD",
+                "core_label",
+                "thick_anvil_label",
+                "thin_anvil_label",
+            ]
+
+            data_vars = [var for var in default_vars if var in ds.data_vars]
+
+            max_core = ds.core.max().item()
+            max_anvil = ds.anvil.max().item()
+
+            ds = ds.get(data_vars)
+
+            # Update labels using label maps
+            core_map_slice = slice(
+                self.next_min_core_map[file],
+                self.next_min_core_map[file] + max_core + 1,
+            )
+            ds["core_label"].data = self.core_label_map[core_map_slice][
+                ds["core_label"].values
+            ]
+
+            anvil_map_slice = slice(
+                self.next_min_anvil_map[file],
+                self.next_min_anvil_map[file] + max_anvil + 1,
+            )
+            ds["thick_anvil_label"].data = self.anvil_label_map[anvil_map_slice][
+                ds["thick_anvil_label"].values
+            ]
+            ds["thin_anvil_label"].data = self.anvil_label_map[anvil_map_slice][
+                ds["thin_anvil_label"].values
+            ]
+
+            # Merge overlapping labels from previous and next files
+            if prev_file is not None:
+                self.merge_labels(ds, prev_file, join="start")
+            if next_file is not None:
+                self.merge_labels(ds, next_file, join="end")
+
+            # Add new coords
+            ds = add_label_coords(ds)
+
+            # Add nan flags
+            flag_edge_labels(ds, *get_dates_from_filename(file))
+            if "BT" in self.current_ds.data_vars:
+                flag_nan_adjacent_labels(ds, ds.BT)
+
+            # Trim padding from initial processing
+            ds = trim_file_start_and_end(ds.get(data_vars))
+
+            # Select only cores and anvils that lie within the trimmed dataset
+            cores = np.asarray(
+                sorted(
+                    list(set(np.unique(ds.core_label.data).astype(np.int32)) - set([0]))
+                ),
+                dtype=np.int32,
+            )
+            anvils = np.asarray(
+                sorted(
+                    list(
+                        set(np.unique(ds.thick_anvil_label.data))
+                        | set(np.unique(ds.thin_anvil_label.data)) - set([0])
+                    )
+                ),
+                dtype=np.int32,
+            )
+
+            ds = ds.sel({"core": cores, "anvil": anvils})
+
+            # Add step labels and coords
+            add_step_labels(ds)
+
+            # Increase step label values according the previous max
+            self.current_ds.core_step_label[
+                self.current_ds.core_step_label.data != 0
+            ] += self.current_max_core_step_label
+            self.current_ds.thick_anvil_step_label[
+                self.current_ds.thick_anvil_step_label.data != 0
+            ] += self.current_max_thick_anvil_step_label
+            self.current_ds.thin_anvil_step_label[
+                self.current_ds.thin_anvil_step_label.data != 0
+            ] += self.current_max_thin_anvil_step_label
+
+            ds = add_label_coords(ds)
+
+            self.current_max_core_step_label = np.max(ds.core_step.to_numpy())
+            self.current_max_thick_anvil_step_label = np.max(
+                ds.thick_anvil_step.to_numpy()
+            )
+            self.current_max_thin_anvil_step_label = np.max(
+                ds.thin_anvil_step.to_numpy()
+            )
+
+            link_step_labels(ds)
+
+            # do something else...
+            self.output_func(ds)
+
+            if self.output_path is None:
+                new_filename = file.parent / (file.stem + self.file_suffix + ".nc")
+            else:
+                new_filename = self.output_path / (file.stem + self.file_suffix + ".nc")
+
+            # Add compression encoding
+            comp = dict(zlib=True, complevel=5, shuffle=True)
+            for var in self.current_ds.data_vars:
+                self.current_ds[var].encoding.update(comp)
+
+            print(datetime.now(), "Saving to %s" % (new_filename), flush=True)
+
+            ds.to_netcdf(new_filename)
+            ds.close()

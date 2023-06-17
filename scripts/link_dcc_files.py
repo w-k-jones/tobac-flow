@@ -14,5 +14,12 @@ args = parser.parse_args()
 files = args.files
 output_path = args.sd
 
-linker = Label_Linker(files)
-linker.run_all()
+linker = Label_Linker(
+    files,
+    output_path=output_path,
+    output_file_suffix=args.file_suffix,
+    overlap=0.5,
+    relative_overlap=4,
+)
+linker.link_all()
+linker.output_files()
