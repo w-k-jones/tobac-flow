@@ -323,6 +323,7 @@ def main() -> None:
     add_step_labels(dataset)
 
     dataset = add_label_coords(dataset)
+
     if args.save_anvil_markers:
         marker_coord = np.unique(dataset.anvil_marker_label.data).astype(np.int32)
         if marker_coord[0] == 0 and marker_coord.size > 1:
