@@ -731,7 +731,7 @@ class Label_Linker:
         max_convergence_iterations=10,
         output_path: str | pathlib.Path | None = None,
         output_file_suffix: str | None = None,
-        overlap: float = 0.5,
+        overlap: float = 0.0,
         absolute_overlap: int = 0,
     ):
         self.files = [pathlib.Path(filename) for filename in files]
@@ -776,6 +776,10 @@ class Label_Linker:
             self.next_min_anvil, self.next_min_anvil + self.max_anvil + 1, dtype=int
         )
 
+        self.current_max_core_step_label = 0
+        self.current_max_thick_anvil_step_label = 0
+        self.current_max_thin_anvil_step_label = 0
+
     def link_all(self):
         print(self.files[0])
         for file in self.files[1:]:
@@ -813,7 +817,6 @@ class Label_Linker:
         self.next_min_anvil_map[file] = self.next_min_anvil
         self.max_anvil_map[file] = self.max_anvil
 
-    def update_core_label_map(self):
         self.core_label_map = np.concatenate(
             [
                 self.core_label_map,
@@ -824,7 +827,18 @@ class Label_Linker:
                 ),
             ]
         )
+        self.anvil_label_map = np.concatenate(
+            [
+                self.anvil_label_map,
+                np.arange(
+                    self.next_min_anvil + 1,
+                    self.next_min_anvil + self.max_anvil + 1,
+                    dtype=int,
+                ),
+            ]
+        )
 
+    def update_core_label_map(self):
         _, _, core_links1, core_links2 = link_dcc_cores(
             self.current_ds,
             self.next_ds,
@@ -857,17 +871,6 @@ class Label_Linker:
             raise ValueError("Core label map failed to converge")
 
     def update_anvil_label_map(self):
-        self.anvil_label_map = np.concatenate(
-            [
-                self.anvil_label_map,
-                np.arange(
-                    self.next_min_anvil + 1,
-                    self.next_min_anvil + self.max_anvil + 1,
-                    dtype=int,
-                ),
-            ]
-        )
-
         _, _, anvil_links1, anvil_links2 = link_dcc_anvils(
             self.current_ds,
             self.next_ds,
@@ -915,9 +918,7 @@ class Label_Linker:
         elif join == "end":
             join_i = 0
         with xr.open_dataset(filename) as merge_ds:
-            t_overlap = sorted(
-                list((set(self.current_ds.t.data) & set(self.next_ds.t.data)))
-            )
+            t_overlap = sorted(list((set(ds.t.data) & set(merge_ds.t.data))))
             if len(t_overlap) > 0:
                 merge_ds = merge_ds.sel(t=t_overlap)
                 # This set operation removes "stubs" i.e. labels that should be flagged as end labels
@@ -1093,11 +1094,11 @@ class Label_Linker:
 
             # Add nan flags
             flag_edge_labels(ds, *get_dates_from_filename(file))
-            if "BT" in self.current_ds.data_vars:
+            if "BT" in ds.data_vars:
                 flag_nan_adjacent_labels(ds, ds.BT)
 
             # Trim padding from initial processing
-            ds = trim_file_start_and_end(ds.get(data_vars))
+            ds = trim_file_start_and_end(ds, file)
 
             # Select only cores and anvils that lie within the trimmed dataset
             cores = np.asarray(
@@ -1122,14 +1123,14 @@ class Label_Linker:
             add_step_labels(ds)
 
             # Increase step label values according the previous max
-            self.current_ds.core_step_label[
-                self.current_ds.core_step_label.data != 0
+            ds.core_step_label[
+                ds.core_step_label.data != 0
             ] += self.current_max_core_step_label
-            self.current_ds.thick_anvil_step_label[
-                self.current_ds.thick_anvil_step_label.data != 0
+            ds.thick_anvil_step_label[
+                ds.thick_anvil_step_label.data != 0
             ] += self.current_max_thick_anvil_step_label
-            self.current_ds.thin_anvil_step_label[
-                self.current_ds.thin_anvil_step_label.data != 0
+            ds.thin_anvil_step_label[
+                ds.thin_anvil_step_label.data != 0
             ] += self.current_max_thin_anvil_step_label
 
             ds = add_label_coords(ds)
@@ -1154,8 +1155,8 @@ class Label_Linker:
 
             # Add compression encoding
             comp = dict(zlib=True, complevel=5, shuffle=True)
-            for var in self.current_ds.data_vars:
-                self.current_ds[var].encoding.update(comp)
+            for var in ds.data_vars:
+                ds[var].encoding.update(comp)
 
             print(datetime.now(), "Saving to %s" % (new_filename), flush=True)
 

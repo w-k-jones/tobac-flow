@@ -241,8 +241,11 @@ def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
     anvils = np.asarray(
         sorted(
             list(
-                set(np.unique(dataset.thick_anvil_label.data))
-                | set(np.unique(dataset.thin_anvil_label.data)) - set([0])
+                (
+                    set(np.unique(dataset.thick_anvil_label.data))
+                    | set(np.unique(dataset.thin_anvil_label.data))
+                )
+                - set([0])
             )
         ),
         dtype=np.int32,
