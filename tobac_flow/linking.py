@@ -760,7 +760,8 @@ class Label_Linker:
 
         self.next_min_core = 0
         self.max_core = self.next_ds.core.max().item()
-        self.next_min_core_map = {files[0]: self.next_min_core}
+        self.next_min_core_map = {}
+        self.next_min_core_map[files[0]] = self.next_min_core
         self.max_core_map = {files[0]: self.max_core}
 
         self.core_label_map = np.arange(
@@ -769,7 +770,8 @@ class Label_Linker:
 
         self.next_min_anvil = 0
         self.max_anvil = self.next_ds.anvil.max().item()
-        self.next_min_anvil_map = {files[0]: self.next_min_anvil}
+        self.next_min_anvil_map = {}
+        self.next_min_anvil_map[files[0]] = self.next_min_anvil
         self.max_anvil_map = {files[0]: self.max_anvil}
 
         self.anvil_label_map = np.arange(
@@ -1123,13 +1125,13 @@ class Label_Linker:
             add_step_labels(ds)
 
             # Increase step label values according the previous max
-            ds.core_step_label[
+            ds.core_step_label.data[
                 ds.core_step_label.data != 0
             ] += self.current_max_core_step_label
-            ds.thick_anvil_step_label[
+            ds.thick_anvil_step_label.data[
                 ds.thick_anvil_step_label.data != 0
             ] += self.current_max_thick_anvil_step_label
-            ds.thin_anvil_step_label[
+            ds.thin_anvil_step_label.data[
                 ds.thin_anvil_step_label.data != 0
             ] += self.current_max_thin_anvil_step_label
 
