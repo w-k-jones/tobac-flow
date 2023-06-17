@@ -4,7 +4,6 @@ from typing import Callable
 import numpy as np
 import xarray as xr
 
-from tobac_flow.utils.datetime_utils import get_dates_from_filename
 from tobac_flow.dataset import (
     flag_edge_labels,
     flag_nan_adjacent_labels,
@@ -12,17 +11,19 @@ from tobac_flow.dataset import (
     add_label_coords,
     link_step_labels,
 )
+from tobac_flow.utils.datetime_utils import get_dates_from_filename
+from tobac_flow.utils.label_utils import find_overlapping_labels
 
 
 # Functions to link overlapping labels
 def recursive_linker(
-    links_list1=None,
-    links_list2=None,
-    label_list1=None,
-    label_list2=None,
-    overlap_list1=None,
-    overlap_list2=None,
-):
+    links_list1: list | None = None,
+    links_list2: list | None = None,
+    label_list1: list | None = None,
+    label_list2: list | None = None,
+    overlap_list1: list | None = None,
+    overlap_list2: list | None = None,
+) -> tuple[list, list]:
     recursive = False
     if links_list1 is None:
         links_list1 = []
@@ -57,7 +58,12 @@ def recursive_linker(
     return links_list1, links_list2
 
 
-def link_labels(labels1, labels2, overlap=0):
+def link_labels(
+    labels1: np.ndarray[int],
+    labels2: np.ndarray[int],
+    overlap: float = 0,
+    absolute_overlap: int = 0,
+) -> tuple[list, list]:
     label_list1 = np.unique(labels1[labels1 != 0]).tolist()
     label_list2 = np.unique(labels2[labels2 != 0]).tolist()
 
@@ -68,30 +74,27 @@ def link_labels(labels1, labels2, overlap=0):
     args2 = np.argsort(labels2.ravel())
 
     overlap_list1 = [
-        [
-            j
-            for j in np.unique(labels2.ravel()[args1[bins1[i - 1] : bins1[i]]])
-            if j > 0
-            and (
-                np.count_nonzero(labels2.ravel()[args1[bins1[i - 1] : bins1[i]]] == j)
-                >= overlap
-                * np.minimum(bins1[i] - bins1[i - 1], bins2[j] - bins2[j - 1])
-            )
-        ]
-        for i in label_list1
+        find_overlapping_labels(
+            labels2,
+            label,
+            args1,
+            bins1,
+            overlap=overlap,
+            absolute_overlap=absolute_overlap,
+        )
+        for label in label_list1
     ]
+
     overlap_list2 = [
-        [
-            j
-            for j in np.unique(labels1.ravel()[args2[bins2[i - 1] : bins2[i]]])
-            if j > 0
-            and (
-                np.count_nonzero(labels1.ravel()[args2[bins2[i - 1] : bins2[i]]] == j)
-                >= overlap
-                * np.minimum(bins2[i] - bins2[i - 1], bins1[j] - bins1[j - 1])
-            )
-        ]
-        for i in label_list2
+        find_overlapping_labels(
+            labels1,
+            label,
+            args2,
+            bins2,
+            overlap=overlap,
+            absolute_overlap=absolute_overlap,
+        )
+        for label in label_list2
     ]
 
     links_list1 = []
@@ -110,13 +113,19 @@ def link_labels(labels1, labels2, overlap=0):
 
 
 # Link overlapping cores
-def link_dcc_cores(dcc_ds1, dcc_ds2, overlap=0):
+def link_dcc_cores(
+    dcc_ds1: xr.Dataset,
+    dcc_ds2: xr.Dataset,
+    overlap: float = 0,
+    absolute_overlap: int = 0,
+) -> tuple[list, list, list, list]:
     t_overlap_list = sorted(list(set(dcc_ds1.t.data) & set(dcc_ds2.t.data)))[1:-1]
 
     core_step_links1, core_step_links2 = link_labels(
         dcc_ds1.core_step_label.sel(t=t_overlap_list).data,
         dcc_ds2.core_step_label.sel(t=t_overlap_list).data,
         overlap=overlap,
+        absolute_overlap=absolute_overlap,
     )
 
     cores_list1 = [
@@ -181,13 +190,19 @@ def link_dcc_cores(dcc_ds1, dcc_ds2, overlap=0):
 
 
 # Link overlapping anvils
-def link_dcc_anvils(dcc_ds1, dcc_ds2, overlap=0):
+def link_dcc_anvils(
+    dcc_ds1: xr.Dataset,
+    dcc_ds2: xr.Dataset,
+    overlap: float = 0,
+    absolute_overlap: int = 0,
+) -> tuple[list, list, list, list]:
     t_overlap_list = sorted(list(set(dcc_ds1.t.data) & set(dcc_ds2.t.data)))[1:-1]
 
     anvil_step_links1, anvil_step_links2 = link_labels(
         dcc_ds1.thick_anvil_step_label.sel(t=t_overlap_list).data,
         dcc_ds2.thick_anvil_step_label.sel(t=t_overlap_list).data,
         overlap=overlap,
+        absolute_overlap=absolute_overlap,
     )
 
     anvils_list1 = [

@@ -344,7 +344,7 @@ def detect_cores(
     wvd_threshold=0.25,
     bt_threshold=0.5,
     overlap=0.5,
-    absolute_overlap=5,
+    absolute_overlap=4,
     subsegment_shrink=0.0,
     min_length=3,
     use_wvd=True,
@@ -361,8 +361,8 @@ def detect_cores(
     bt_markers = (bt_growth * combined_filter) > bt_threshold
 
     if use_wvd:
-        wvd_markers = (wvd_growth * combined_filter) > wvd_threshold
         wvd_growth = get_growth_rate(flow, wvd, method="cubic")
+        wvd_markers = (wvd_growth * combined_filter) > wvd_threshold
 
         combined_markers = ndi.binary_opening(
             np.logical_or.reduce([wvd_markers, bt_markers]), structure=s_struct
