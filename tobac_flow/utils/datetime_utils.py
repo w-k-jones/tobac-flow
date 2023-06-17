@@ -2,7 +2,7 @@ import pathlib
 import numpy as np
 import pandas as pd
 import xarray as xr
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 
 
@@ -26,7 +26,20 @@ def trim_file_start(dataset: xr.Dataset, filename: str | pathlib.Path) -> xr.Dat
 
 
 def trim_file_end(dataset: xr.Dataset, filename: str | pathlib.Path) -> xr.Dataset:
-    return dataset.sel(t=slice(None, get_dates_from_filename(filename)[1]))
+    return dataset.sel(
+        t=slice(None, get_dates_from_filename(filename)[1] - timedelta(seconds=1))
+    )
+
+
+def trim_file_start_and_end(
+    dataset: xr.Dataset, filename: str | pathlib.Path
+) -> xr.Dataset:
+    return dataset.sel(
+        t=slice(
+            get_dates_from_filename(filename)[0],
+            get_dates_from_filename(filename)[1] - timedelta(seconds=1),
+        )
+    )
 
 
 def get_datetime_from_coord(coord: xr.DataArray) -> list[datetime]:

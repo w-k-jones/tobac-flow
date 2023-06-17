@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
 import pathlib
+import warnings
+from datetime import datetime, timedelta
 from typing import Callable
 import numpy as np
 import xarray as xr
@@ -718,3 +719,135 @@ class File_Linker:
         ] += max_anvil
         self.next_ds.thick_anvil_step_anvil_index.data += max_anvil
         self.next_ds.thin_anvil_step_anvil_index.data += max_anvil
+
+
+class Label_Linker:
+    def __init__(self, files, max_convergence_iterations=10):
+        self.files = files
+        self.max_convergence_iterations = max_convergence_iterations
+
+        self.next_ds = xr.open_dataset(files[0])
+
+        self.next_min_core = 0
+        self.max_core = self.next_ds.core.max().item()
+        self.core_label_map = np.arange(
+            self.next_min_core, self.next_min_core + self.max_core + 1, dtype=int
+        )
+
+        self.next_min_anvil = 0
+        self.max_anvil = self.next_ds.anvil.max().item()
+        self.anvil_label_map = np.arange(
+            self.next_min_anvil, self.next_min_anvil + self.max_anvil + 1, dtype=int
+        )
+
+    def run_all(self):
+        print(self.files[0])
+        for file in self.files[1:]:
+            self.link_next_file(file)
+        self.next_ds.close()
+
+    def link_next_file(self, file):
+        print(file)
+        self.current_ds, self.next_ds = self.next_ds, xr.open_dataset(file)
+
+        if len(set(self.current_ds.t.data) & set(self.next_ds.t.data)) > 0:
+            self.update_core_label_map()
+            self.update_anvil_label_map()
+        else:
+            warnings.warn("No overlap between files")
+
+        self.current_ds.close()
+
+    def update_core_label_map(self):
+        self.current_min_core, self.next_min_core = (
+            self.next_min_core,
+            self.next_min_core + self.max_core,
+        )
+
+        self.max_core = self.next_ds.core.max().item()
+
+        self.core_label_map = np.concatenate(
+            [
+                self.core_label_map,
+                np.arange(
+                    self.next_min_core + 1,
+                    self.next_min_core + self.max_core + 1,
+                    dtype=int,
+                ),
+            ]
+        )
+
+        _, _, core_links1, core_links2 = link_dcc_cores(self.current_ds, self.next_ds)
+
+        for current_cores, next_cores in zip(core_links1, core_links2):
+            new_label = np.minimum(
+                current_cores[0] + self.current_min_core,
+                self.core_label_map[current_cores[0] + self.current_min_core],
+            )
+            if len(current_cores) > 1:
+                for core in current_cores[1:]:
+                    self.core_label_map[core + self.current_min_core] = new_label
+            if len(next_cores) > 0:
+                for core in next_cores:
+                    self.core_label_map[core + self.next_min_core] = new_label
+
+        for n_converge in range(self.max_convergence_iterations + 1):
+            if np.any(self.core_label_map[self.core_label_map] != self.core_label_map):
+                self.core_label_map = self.core_label_map[self.core_label_map]
+            else:
+                if n_converge > 0:
+                    print(
+                        "Iterations required for core labels to converge:", n_converge
+                    )
+                break
+        else:
+            raise ValueError("Core label map failed to converge")
+
+    def update_anvil_label_map(self):
+        self.current_min_anvil, self.next_min_anvil = (
+            self.next_min_anvil,
+            self.next_min_anvil + self.max_anvil,
+        )
+
+        self.max_anvil = self.next_ds.anvil.max().item()
+
+        self.anvil_label_map = np.concatenate(
+            [
+                self.anvil_label_map,
+                np.arange(
+                    self.next_min_anvil + 1,
+                    self.next_min_anvil + self.max_anvil + 1,
+                    dtype=int,
+                ),
+            ]
+        )
+
+        _, _, anvil_links1, anvil_links2 = link_dcc_anvils(
+            self.current_ds, self.next_ds
+        )
+
+        for current_anvils, next_anvils in zip(anvil_links1, anvil_links2):
+            new_label = np.minimum(
+                current_anvils[0] + self.current_min_anvil,
+                self.anvil_label_map[current_anvils[0] + self.current_min_anvil],
+            )
+            if len(current_anvils) > 1:
+                for anvil in current_anvils[1:]:
+                    self.anvil_label_map[anvil + self.current_min_anvil] = new_label
+            if len(next_anvils) > 0:
+                for anvil in next_anvils:
+                    self.anvil_label_map[anvil + self.next_min_anvil] = new_label
+
+        for n_converge in range(self.max_convergence_iterations + 1):
+            if np.any(
+                self.anvil_label_map[self.anvil_label_map] != self.anvil_label_map
+            ):
+                self.anvil_label_map = self.anvil_label_map[self.anvil_label_map]
+            else:
+                if n_converge > 0:
+                    print(
+                        "Iterations required for core labels to converge:", n_converge
+                    )
+                break
+        else:
+            raise ValueError("Anvil label map failed to converge")
