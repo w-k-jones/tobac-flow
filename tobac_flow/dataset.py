@@ -228,30 +228,64 @@ def add_step_labels(dataset: xr.Dataset) -> None:
 
 
 def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
-    cores = np.unique(dataset.core_label.data).astype(np.int32)
-    if cores[0] == 0 and cores.size > 1:
-        cores = cores[1:]
-    anvils = np.unique(dataset.thick_anvil_label.data).astype(np.int32)
-    if anvils[0] == 0 and anvils.size > 1:
-        anvils = anvils[1:]
-    core_steps = np.unique(dataset.core_step_label.data).astype(np.int32)
-    if core_steps[0] == 0 and core_steps.size > 1:
-        core_steps = core_steps[1:]
-    thick_anvil_steps = np.unique(dataset.thick_anvil_step_label.data).astype(np.int32)
-    if thick_anvil_steps[0] == 0 and thick_anvil_steps.size > 1:
-        thick_anvil_steps = thick_anvil_steps[1:]
-    thin_anvil_steps = np.unique(dataset.thin_anvil_step_label.data).astype(np.int32)
-    if thin_anvil_steps[0] == 0 and thin_anvil_steps.size > 1:
-        thin_anvil_steps = thin_anvil_steps[1:]
-    return dataset.assign_coords(
-        {
-            "core": cores,
-            "core_step": core_steps,
-            "anvil": anvils,
-            "thick_anvil_step": thick_anvil_steps,
-            "thin_anvil_step": thin_anvil_steps,
-        }
+    new_coords = {}
+
+    cores = np.asarray(
+        sorted(
+            list(set(np.unique(dataset.core_label.data).astype(np.int32)) - set([0]))
+        ),
+        dtype=np.int32,
     )
+    new_coords["core"] = cores
+
+    anvils = np.asarray(
+        sorted(
+            list(
+                set(np.unique(dataset.thick_anvil_label.data))
+                | set(np.unique(dataset.thin_anvil_label.data)) - set([0])
+            )
+        ),
+        dtype=np.int32,
+    )
+    new_coords["anvil"] = anvils
+
+    if "core_step_label" in dataset.data_vars:
+        core_steps = np.asarray(
+            sorted(
+                list(
+                    set(np.unique(dataset.core_step_label.data).astype(np.int32))
+                    - set([0])
+                )
+            ),
+            dtype=np.int32,
+        )
+        new_coords["core_step"] = core_steps
+
+    if "thick_anvil_step_label" in dataset.data_vars:
+        thick_anvil_steps = np.asarray(
+            sorted(
+                list(
+                    set(np.unique(dataset.thick_anvil_step_label.data).astype(np.int32))
+                    - set([0])
+                )
+            ),
+            dtype=np.int32,
+        )
+        new_coords["thick_anvil_step"] = thick_anvil_steps
+
+    if "thin_anvil_step_label" in dataset.data_vars:
+        thin_anvil_steps = np.asarray(
+            sorted(
+                list(
+                    set(np.unique(dataset.thin_anvil_step_label.data).astype(np.int32))
+                    - set([0])
+                )
+            ),
+            dtype=np.int32,
+        )
+        new_coords["thin_anvil_step"] = thin_anvil_steps
+
+    return dataset.assign_coords(new_coords)
 
 
 def link_step_labels(dataset: xr.Dataset) -> None:
