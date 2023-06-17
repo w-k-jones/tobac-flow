@@ -1044,6 +1044,7 @@ class Label_Linker:
                 ] = remapped_thin_anvils.sel(t=t_overlap[1:-1]).values[wh_combine]
 
     def output_a_file(self, file, prev_file, next_file) -> None:
+        print(datetime.now(), "Processing output for:", file)
         with xr.open_dataset(file) as ds:
             default_vars = [
                 "goes_imager_projection",
@@ -1066,6 +1067,7 @@ class Label_Linker:
             ds = ds.get(data_vars)
 
             # Update labels using label maps
+            print(datetime.now(), "Relabelling cores")
             core_map_slice = slice(
                 self.next_min_core_map[str(file)],
                 self.next_min_core_map[str(file)] + max_core + 1,
@@ -1074,6 +1076,7 @@ class Label_Linker:
                 ds["core_label"].values
             ]
 
+            print(datetime.now(), "Relabelling anvils")
             anvil_map_slice = slice(
                 self.next_min_anvil_map[str(file)],
                 self.next_min_anvil_map[str(file)] + max_anvil + 1,
@@ -1087,22 +1090,29 @@ class Label_Linker:
 
             # Merge overlapping labels from previous and next files
             if prev_file is not None:
+                print(datetime.now(), "Merging previous file")
                 self.merge_labels(ds, prev_file, join="start")
             if next_file is not None:
+                print(datetime.now(), "Merging next file")
                 self.merge_labels(ds, next_file, join="end")
 
             # Add new coords
+            print(datetime.now(), "Add core and anvil coords")
             ds = add_label_coords(ds)
 
             # Add nan flags
+            print(datetime.now(), "Flagging edge labels")
             flag_edge_labels(ds, *get_dates_from_filename(file))
             if "BT" in ds.data_vars:
+                print(datetime.now(), "Flagging NaN adjacent labels")
                 flag_nan_adjacent_labels(ds, ds.BT)
 
             # Trim padding from initial processing
+            print(datetime.now(), "Trimming file padding")
             ds = trim_file_start_and_end(ds, file)
 
             # Select only cores and anvils that lie within the trimmed dataset
+            print(datetime.now(), "Finding cores + anvils for trimmed dataset")
             cores = np.asarray(
                 sorted(
                     list(set(np.unique(ds.core_label.data).astype(np.int32)) - set([0]))
@@ -1125,19 +1135,24 @@ class Label_Linker:
             ds = ds.sel({"core": cores, "anvil": anvils})
 
             # Add step labels and coords
+            print(datetime.now(), "Adding step labels")
             add_step_labels(ds)
 
             # Increase step label values according the previous max
+            print(datetime.now(), "Incrementing core step labels")
             ds.core_step_label.data[
                 ds.core_step_label.data != 0
             ] += self.current_max_core_step_label
+            print(datetime.now(), "Incrementing thick anvil step labels")
             ds.thick_anvil_step_label.data[
                 ds.thick_anvil_step_label.data != 0
             ] += self.current_max_thick_anvil_step_label
+            print(datetime.now(), "Incrementing thin anvil step labels")
             ds.thin_anvil_step_label.data[
                 ds.thin_anvil_step_label.data != 0
             ] += self.current_max_thin_anvil_step_label
 
+            print(datetime.now(), "Adding label coords for step labels")
             ds = add_label_coords(ds)
 
             self.current_max_core_step_label = np.max(ds.core_step.to_numpy())
@@ -1148,6 +1163,7 @@ class Label_Linker:
                 ds.thin_anvil_step.to_numpy()
             )
 
+            print(datetime.now(), "Linking step labels")
             link_step_labels(ds)
 
             if self.output_path is None:
@@ -1156,6 +1172,7 @@ class Label_Linker:
                 new_filename = self.output_path / (file.stem + self.file_suffix + ".nc")
 
             # Add compression encoding
+            print(datetime.now(), "Adding compression encoding")
             comp = dict(zlib=True, complevel=5, shuffle=True)
             for var in ds.data_vars:
                 ds[var].encoding.update(comp)
