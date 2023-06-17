@@ -271,18 +271,18 @@ def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
 
 def find_overlapping_labels(
     labels: np.ndarray[int],
-    label: int,
-    args: np.ndarray[int],
+    locs: np.ndarray[int],
     bins: np.ndarray[int],
     overlap: float = 0,
     absolute_overlap: int = 0,
 ) -> list[int]:
     """
-    Find which labels overlap at the locations given by args and bins,
-    accounting for (proportional) overlap and absolute overlap requirements
+    Find which labels overlap at the locations given by locs, accounting for
+    (proportional) overlap and absolute overlap requirements
     """
-    if bins[label] > bins[label - 1]:
-        overlap_labels = labels.ravel()[args[bins[label - 1] : bins[label]]]
+    n_locs = len(locs)
+    if n_locs > 0:
+        overlap_labels = labels.ravel()[locs]
         overlap_bins = np.bincount(np.maximum(overlap_labels, 0))
         return [
             new_label
@@ -290,10 +290,7 @@ def find_overlapping_labels(
             if new_label != 0
             and overlap_bins[new_label] > absolute_overlap
             and overlap_bins[new_label]
-            >= overlap
-            * np.minimum(
-                bins[label] - bins[label - 1], bins[new_label] - bins[new_label - 1]
-            )
+            >= overlap * np.minimum(n_locs, bins[new_label] - bins[new_label - 1])
         ]
     else:
         return []
