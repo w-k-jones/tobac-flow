@@ -19,7 +19,7 @@ linker = Label_Linker(
     output_path=output_path,
     output_file_suffix=args.file_suffix,
     overlap=0.5,
-    relative_overlap=4,
+    absolute_overlap=4,
 )
 linker.link_all()
 linker.output_files()
