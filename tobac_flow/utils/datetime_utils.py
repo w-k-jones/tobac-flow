@@ -65,6 +65,7 @@ __all__ = (
     "get_dates_from_filename",
     "trim_file_start",
     "trim_file_end",
+    "trim_file_start_and_end",
     "get_datetime_from_coord",
     "time_diff",
     "get_time_diff_from_coord",
