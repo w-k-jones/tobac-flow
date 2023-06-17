@@ -761,8 +761,8 @@ class Label_Linker:
         self.next_min_core = 0
         self.max_core = self.next_ds.core.max().item()
         self.next_min_core_map = {}
-        self.next_min_core_map[files[0]] = self.next_min_core
-        self.max_core_map = {files[0]: self.max_core}
+        self.next_min_core_map[str(files[0])] = self.next_min_core
+        self.max_core_map = {str(files[0]): self.max_core}
 
         self.core_label_map = np.arange(
             self.next_min_core, self.next_min_core + self.max_core + 1, dtype=int
@@ -771,8 +771,8 @@ class Label_Linker:
         self.next_min_anvil = 0
         self.max_anvil = self.next_ds.anvil.max().item()
         self.next_min_anvil_map = {}
-        self.next_min_anvil_map[files[0]] = self.next_min_anvil
-        self.max_anvil_map = {files[0]: self.max_anvil}
+        self.next_min_anvil_map[str(files[0])] = self.next_min_anvil
+        self.max_anvil_map = {str(files[0]): self.max_anvil}
 
         self.anvil_label_map = np.arange(
             self.next_min_anvil, self.next_min_anvil + self.max_anvil + 1, dtype=int
@@ -808,16 +808,16 @@ class Label_Linker:
             self.next_min_core + self.max_core,
         )
         self.max_core = self.next_ds.core.max().item()
-        self.next_min_core_map[file] = self.next_min_core
-        self.max_core_map[file] = self.max_core
+        self.next_min_core_map[str(file)] = self.next_min_core
+        self.max_core_map[str(file)] = self.max_core
 
         self.current_min_anvil, self.next_min_anvil = (
             self.next_min_anvil,
             self.next_min_anvil + self.max_anvil,
         )
         self.max_anvil = self.next_ds.anvil.max().item()
-        self.next_min_anvil_map[file] = self.next_min_anvil
-        self.max_anvil_map[file] = self.max_anvil
+        self.next_min_anvil_map[str(file)] = self.next_min_anvil
+        self.max_anvil_map[str(file)] = self.max_anvil
 
         self.core_label_map = np.concatenate(
             [
@@ -927,8 +927,8 @@ class Label_Linker:
                 # Labels that appear in the first step of next_labels, but don't appear in current_labels should be removed
                 max_core = merge_ds.core.max().item()
                 core_map_slice = slice(
-                    self.next_min_core_map[filename],
-                    self.next_min_core_map[filename] + max_core + 1,
+                    self.next_min_core_map[str(filename)],
+                    self.next_min_core_map[str(filename)] + max_core + 1,
                 )
                 remapped_cores = xr.DataArray(
                     self.core_label_map[core_map_slice][merge_ds.core_label.values],
@@ -965,8 +965,8 @@ class Label_Linker:
                 # Now repeat for anvils
                 max_anvil = merge_ds.anvil.max().item()
                 anvil_map_slice = slice(
-                    self.next_min_anvil_map[filename],
-                    self.next_min_anvil_map[filename] + max_anvil + 1,
+                    self.next_min_anvil_map[str(filename)],
+                    self.next_min_anvil_map[str(filename)] + max_anvil + 1,
                 )
 
                 remapped_thick_anvils = xr.DataArray(
@@ -1067,16 +1067,16 @@ class Label_Linker:
 
             # Update labels using label maps
             core_map_slice = slice(
-                self.next_min_core_map[file],
-                self.next_min_core_map[file] + max_core + 1,
+                self.next_min_core_map[str(file)],
+                self.next_min_core_map[str(file)] + max_core + 1,
             )
             ds["core_label"].data = self.core_label_map[core_map_slice][
                 ds["core_label"].values
             ]
 
             anvil_map_slice = slice(
-                self.next_min_anvil_map[file],
-                self.next_min_anvil_map[file] + max_anvil + 1,
+                self.next_min_anvil_map[str(file)],
+                self.next_min_anvil_map[str(file)] + max_anvil + 1,
             )
             ds["thick_anvil_label"].data = self.anvil_label_map[anvil_map_slice][
                 ds["thick_anvil_label"].values
