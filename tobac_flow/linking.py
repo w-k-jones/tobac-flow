@@ -756,13 +756,13 @@ class Label_Linker:
 
         self.max_convergence_iterations = max_convergence_iterations
 
-        self.next_ds = xr.open_dataset(files[0])
+        self.next_ds = xr.open_dataset(self.files[0])
 
         self.next_min_core = 0
         self.max_core = self.next_ds.core.max().item()
         self.next_min_core_map = {}
-        self.next_min_core_map[str(files[0])] = self.next_min_core
-        self.max_core_map = {str(files[0]): self.max_core}
+        self.next_min_core_map[str(self.files[0])] = self.next_min_core
+        self.max_core_map = {str(self.files[0]): self.max_core}
 
         self.core_label_map = np.arange(
             self.next_min_core, self.next_min_core + self.max_core + 1, dtype=int
@@ -771,8 +771,8 @@ class Label_Linker:
         self.next_min_anvil = 0
         self.max_anvil = self.next_ds.anvil.max().item()
         self.next_min_anvil_map = {}
-        self.next_min_anvil_map[str(files[0])] = self.next_min_anvil
-        self.max_anvil_map = {str(files[0]): self.max_anvil}
+        self.next_min_anvil_map[str(self.files[0])] = self.next_min_anvil
+        self.max_anvil_map = {str(self.files[0]): self.max_anvil}
 
         self.anvil_label_map = np.arange(
             self.next_min_anvil, self.next_min_anvil + self.max_anvil + 1, dtype=int
@@ -1112,8 +1112,11 @@ class Label_Linker:
             anvils = np.asarray(
                 sorted(
                     list(
-                        set(np.unique(ds.thick_anvil_label.data))
-                        | set(np.unique(ds.thin_anvil_label.data)) - set([0])
+                        (
+                            set(np.unique(ds.thick_anvil_label.data))
+                            | set(np.unique(ds.thin_anvil_label.data))
+                        )
+                        - set([0])
                     )
                 ),
                 dtype=np.int32,
@@ -1146,9 +1149,6 @@ class Label_Linker:
             )
 
             link_step_labels(ds)
-
-            # do something else...
-            self.output_func(ds)
 
             if self.output_path is None:
                 new_filename = file.parent / (file.stem + self.file_suffix + ".nc")
