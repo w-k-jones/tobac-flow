@@ -344,7 +344,7 @@ def detect_cores(
     wvd_threshold=0.25,
     bt_threshold=0.5,
     overlap=0.5,
-    absolute_overlap=5,
+    absolute_overlap=4,
     subsegment_shrink=0.0,
     min_length=3,
     use_wvd=True,

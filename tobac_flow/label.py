@@ -3,7 +3,11 @@ import numpy as np
 from scipy import ndimage as ndi
 from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
-from tobac_flow.utils import flat_label, relabel_objects
+from tobac_flow.utils.label_utils import (
+    flat_label,
+    relabel_objects,
+    find_overlapping_labels,
+)
 
 
 def subsegment_labels(
@@ -83,7 +87,7 @@ def flow_label(
     structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
     dtype: type = np.int32,
     overlap: float = 0.0,
-    absolute_overlap: int = 1,
+    absolute_overlap: int = 0,
     subsegment_shrink: float = 0.0,
     peak_min_distance: int = 10,
 ) -> np.ndarray[int]:
@@ -218,35 +222,27 @@ def find_neighbour_labels(
         The required minimum overlap in pixels
     """
     if bins[label] > bins[label - 1]:  # check that there are any pixels in this label
-        forward_lap = forward_labels.ravel()[args[bins[label - 1] : bins[label]]]
-        forward_bins = np.bincount(np.maximum(forward_lap, 0))
-        for new_label in np.unique(forward_lap):
-            if (
-                new_label > 0
-                and not processed_labels[new_label]
-                and forward_bins[new_label] > absolute_overlap
-                and forward_bins[new_label]
-                >= overlap
-                * np.minimum(
-                    bins[label] - bins[label - 1], bins[new_label] - bins[new_label - 1]
-                )
-            ):
+        for new_label in find_overlapping_labels(
+            forward_labels,
+            label,
+            args,
+            bins,
+            overlap=overlap,
+            absolute_overlap=absolute_overlap,
+        ):
+            if not processed_labels[new_label]:
                 label_stack.append(new_label)
                 processed_labels[new_label] = True
 
-        backward_lap = back_labels.ravel()[args[bins[label - 1] : bins[label]]]
-        backward_bins = np.bincount(np.maximum(backward_lap, 0))
-        for new_label in np.unique(backward_lap):
-            if (
-                new_label > 0
-                and not processed_labels[new_label]
-                and backward_bins[new_label] > absolute_overlap
-                and backward_bins[new_label]
-                >= overlap
-                * np.minimum(
-                    bins[label] - bins[label - 1], bins[new_label] - bins[new_label - 1]
-                )
-            ):
+        for new_label in find_overlapping_labels(
+            back_labels,
+            label,
+            args,
+            bins,
+            overlap=overlap,
+            absolute_overlap=absolute_overlap,
+        ):
+            if not processed_labels[new_label]:
                 label_stack.append(new_label)
                 processed_labels[new_label] = True
 
@@ -264,7 +260,7 @@ def flow_link_overlap(
     structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
     dtype: type = np.int32,
     overlap: float = 0.0,
-    absolute_overlap: int = 1,
+    absolute_overlap: int = 0,
 ) -> np.ndarray[int]:
     """
     Label 3d connected objects in a semi-Lagrangian reference frame
