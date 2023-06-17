@@ -76,9 +76,8 @@ def link_labels(
     overlap_list1 = [
         find_overlapping_labels(
             labels2,
-            label,
-            args1,
-            bins1,
+            args1[bins1[label - 1] : bins1[label]],
+            bins2,
             overlap=overlap,
             absolute_overlap=absolute_overlap,
         )
@@ -88,9 +87,8 @@ def link_labels(
     overlap_list2 = [
         find_overlapping_labels(
             labels1,
-            label,
-            args2,
-            bins2,
+            args2[bins2[label - 1] : bins2[label]],
+            bins1,
             overlap=overlap,
             absolute_overlap=absolute_overlap,
         )

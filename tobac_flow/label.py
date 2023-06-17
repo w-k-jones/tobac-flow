@@ -224,8 +224,7 @@ def find_neighbour_labels(
     if bins[label] > bins[label - 1]:  # check that there are any pixels in this label
         for new_label in find_overlapping_labels(
             forward_labels,
-            label,
-            args,
+            args[bins[label - 1] : bins[label]],
             bins,
             overlap=overlap,
             absolute_overlap=absolute_overlap,
@@ -236,8 +235,7 @@ def find_neighbour_labels(
 
         for new_label in find_overlapping_labels(
             back_labels,
-            label,
-            args,
+            args[bins[label - 1] : bins[label]],
             bins,
             overlap=overlap,
             absolute_overlap=absolute_overlap,
