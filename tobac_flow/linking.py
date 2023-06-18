@@ -1140,7 +1140,7 @@ class Label_Linker:
                     "anvil": ds.anvil.values[
                         np.logical_or(
                             np.isin(ds.anvil, ds.thick_anvil_label),
-                            np.isin(ds.anvil, ds.thick_anvil_label),
+                            np.isin(ds.anvil, ds.thin_anvil_label),
                         )
                     ],
                 }
