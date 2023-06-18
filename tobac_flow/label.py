@@ -245,12 +245,6 @@ def find_neighbour_labels(
                 processed_labels[new_label] = True
 
 
-def make_step_labels(labels):
-    step_labels = flat_label(labels != 0)
-    step_labels += labels * step_labels.max()
-    return relabel_objects(step_labels)
-
-
 # implement minimum overlap for flow_label function
 def flow_link_overlap(
     flow,
