@@ -181,11 +181,9 @@ def create_new_goes_ds(goes_ds):
 
 
 def add_step_labels(dataset: xr.Dataset) -> None:
-    core_step_labels = slice_labels(dataset.core_label.data)
-
     add_dataarray_to_ds(
         create_dataarray(
-            core_step_labels,
+            slice_labels(dataset.core_label.data),
             ("t", "y", "x"),
             "core_step_label",
             coords={"t": dataset.t},
@@ -196,11 +194,9 @@ def add_step_labels(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thick_anvil_step_labels = slice_labels(dataset.thick_anvil_label.data)
-
     add_dataarray_to_ds(
         create_dataarray(
-            thick_anvil_step_labels,
+            slice_labels(dataset.thick_anvil_label.data),
             ("t", "y", "x"),
             "thick_anvil_step_label",
             coords={"t": dataset.t},
@@ -211,11 +207,9 @@ def add_step_labels(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thin_anvil_step_labels = slice_labels(dataset.thin_anvil_label.data)
-
     add_dataarray_to_ds(
         create_dataarray(
-            thin_anvil_step_labels,
+            slice_labels(dataset.thin_anvil_label.data),
             ("t", "y", "x"),
             "thin_anvil_step_label",
             coords={"t": dataset.t},

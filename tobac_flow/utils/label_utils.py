@@ -260,12 +260,16 @@ def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
         An array of labels corresponding the regions associated with the input
             labels at individual time steps
     """
-    step_labels = np.zeros_like(labels)
-    max_label = 0
-    for i in range(labels.shape[0]):
-        step_labels[i] = relabel_objects(labels[i])
-        step_labels[i][np.nonzero(step_labels[i])] += max_label
-        max_label = step_labels.max()
+    # step_labels = np.zeros_like(labels)
+    # max_label = 0
+    # for i in range(labels.shape[0]):
+    #     step_labels[i] = relabel_objects(labels[i])
+    #     step_labels[i][np.nonzero(step_labels[i])] += max_label
+    #     max_label = step_labels.max()
+    max_step_label = np.cumsum(
+        np.max(labels, axis=tuple(range(1, len(labels.shape))))
+    ).reshape([-1] + [1] * (len(labels.shape) - 1))
+    step_labels = relabel_objects((labels + max_step_label) * (labels != 0).astype(int))
     return step_labels
 
 
