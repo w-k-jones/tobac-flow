@@ -765,7 +765,7 @@ class Label_Linker:
         self.max_core_map = {str(self.files[0]): self.max_core}
 
         self.core_label_map = np.arange(
-            self.next_min_core, self.next_min_core + self.max_core + 1, dtype=int
+            self.next_min_core, self.next_min_core + self.max_core + 1, dtype=np.int32
         )
 
         self.next_min_anvil = 0
@@ -775,7 +775,9 @@ class Label_Linker:
         self.max_anvil_map = {str(self.files[0]): self.max_anvil}
 
         self.anvil_label_map = np.arange(
-            self.next_min_anvil, self.next_min_anvil + self.max_anvil + 1, dtype=int
+            self.next_min_anvil,
+            self.next_min_anvil + self.max_anvil + 1,
+            dtype=np.int32,
         )
 
         self.current_max_core_step_label = 0
@@ -825,7 +827,7 @@ class Label_Linker:
                 np.arange(
                     self.next_min_core + 1,
                     self.next_min_core + self.max_core + 1,
-                    dtype=int,
+                    dtype=np.int32,
                 ),
             ]
         )
@@ -835,7 +837,7 @@ class Label_Linker:
                 np.arange(
                     self.next_min_anvil + 1,
                     self.next_min_anvil + self.max_anvil + 1,
-                    dtype=int,
+                    dtype=np.int32,
                 ),
             ]
         )
