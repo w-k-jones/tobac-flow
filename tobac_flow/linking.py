@@ -765,7 +765,7 @@ class Label_Linker:
         self.max_core_map = {str(self.files[0]): self.max_core}
 
         self.core_label_map = np.arange(
-            self.next_min_core, self.next_min_core + self.max_core + 1, dtype=int
+            self.next_min_core, self.next_min_core + self.max_core + 1, dtype=np.int32
         )
 
         self.next_min_anvil = 0
@@ -775,7 +775,9 @@ class Label_Linker:
         self.max_anvil_map = {str(self.files[0]): self.max_anvil}
 
         self.anvil_label_map = np.arange(
-            self.next_min_anvil, self.next_min_anvil + self.max_anvil + 1, dtype=int
+            self.next_min_anvil,
+            self.next_min_anvil + self.max_anvil + 1,
+            dtype=np.int32,
         )
 
         self.current_max_core_step_label = 0
@@ -783,10 +785,22 @@ class Label_Linker:
         self.current_max_thin_anvil_step_label = 0
 
     def link_all(self):
-        print(self.files[0])
+        print(self.files[0], flush=True)
         for file in self.files[1:]:
             self.link_next_file(file)
         self.next_ds.close()
+
+        print(datetime.now(), "Linking complete", flush=True)
+        print(
+            "Total cores relabelled:",
+            np.sum(self.core_label_map != np.arange(self.core_label_map.size)),
+            flush=True,
+        )
+        print(
+            "Total anvils relabelled:",
+            np.sum(self.anvil_label_map != np.arange(self.anvil_label_map.size)),
+            flush=True,
+        )
 
     def link_next_file(self, file):
         self.read_new_file(file)
@@ -800,7 +814,7 @@ class Label_Linker:
         self.current_ds.close()
 
     def read_new_file(self, file):
-        print(file)
+        print(file, flush=True)
         self.current_ds, self.next_ds = self.next_ds, xr.open_dataset(file)
 
         self.current_min_core, self.next_min_core = (
@@ -825,7 +839,7 @@ class Label_Linker:
                 np.arange(
                     self.next_min_core + 1,
                     self.next_min_core + self.max_core + 1,
-                    dtype=int,
+                    dtype=np.int32,
                 ),
             ]
         )
@@ -835,7 +849,7 @@ class Label_Linker:
                 np.arange(
                     self.next_min_anvil + 1,
                     self.next_min_anvil + self.max_anvil + 1,
-                    dtype=int,
+                    dtype=np.int32,
                 ),
             ]
         )
@@ -866,7 +880,9 @@ class Label_Linker:
             else:
                 if n_converge > 0:
                     print(
-                        "Iterations required for core labels to converge:", n_converge
+                        "Iterations required for core labels to converge:",
+                        n_converge,
+                        flush=True,
                     )
                 break
         else:
@@ -900,7 +916,9 @@ class Label_Linker:
             else:
                 if n_converge > 0:
                     print(
-                        "Iterations required for core labels to converge:", n_converge
+                        "Iterations required for core labels to converge:",
+                        n_converge,
+                        flush=True,
                     )
                 break
         else:
@@ -1044,7 +1062,7 @@ class Label_Linker:
                 ] = remapped_thin_anvils.sel(t=t_overlap[1:-1]).values[wh_combine]
 
     def output_a_file(self, file, prev_file, next_file) -> None:
-        print(datetime.now(), "Processing output for:", file)
+        print(datetime.now(), "Processing output for:", file, flush=True)
         with xr.open_dataset(file) as ds:
             default_vars = [
                 "goes_imager_projection",
@@ -1067,7 +1085,7 @@ class Label_Linker:
             ds = ds.get(data_vars)
 
             # Update labels using label maps
-            print(datetime.now(), "Relabelling cores")
+            print(datetime.now(), "Relabelling cores", flush=True)
             core_map_slice = slice(
                 self.next_min_core_map[str(file)],
                 self.next_min_core_map[str(file)] + max_core + 1,
@@ -1076,7 +1094,7 @@ class Label_Linker:
                 ds["core_label"].values
             ]
 
-            print(datetime.now(), "Relabelling anvils")
+            print(datetime.now(), "Relabelling anvils", flush=True)
             anvil_map_slice = slice(
                 self.next_min_anvil_map[str(file)],
                 self.next_min_anvil_map[str(file)] + max_anvil + 1,
@@ -1090,29 +1108,31 @@ class Label_Linker:
 
             # Merge overlapping labels from previous and next files
             if prev_file is not None:
-                print(datetime.now(), "Merging previous file")
+                print(datetime.now(), "Merging previous file", flush=True)
                 self.merge_labels(ds, prev_file, join="start")
             if next_file is not None:
-                print(datetime.now(), "Merging next file")
+                print(datetime.now(), "Merging next file", flush=True)
                 self.merge_labels(ds, next_file, join="end")
 
             # Add new coords
-            print(datetime.now(), "Add core and anvil coords")
+            print(datetime.now(), "Add core and anvil coords", flush=True)
             ds = add_label_coords(ds)
 
             # Add nan flags
-            print(datetime.now(), "Flagging edge labels")
+            print(datetime.now(), "Flagging edge labels", flush=True)
             flag_edge_labels(ds, *get_dates_from_filename(file))
             if "BT" in ds.data_vars:
-                print(datetime.now(), "Flagging NaN adjacent labels")
+                print(datetime.now(), "Flagging NaN adjacent labels", flush=True)
                 flag_nan_adjacent_labels(ds, ds.BT)
 
             # Trim padding from initial processing
-            print(datetime.now(), "Trimming file padding")
+            print(datetime.now(), "Trimming file padding", flush=True)
             ds = trim_file_start_and_end(ds, file)
 
             # Select only cores and anvils that lie within the trimmed dataset
-            print(datetime.now(), "Finding cores + anvils for trimmed dataset")
+            print(
+                datetime.now(), "Finding cores + anvils for trimmed dataset", flush=True
+            )
             # cores = np.asarray(
             #     sorted(
             #         list(set(np.unique(ds.core_label.data).astype(np.int32)) - set([0]))
@@ -1147,24 +1167,24 @@ class Label_Linker:
             )
 
             # Add step labels and coords
-            print(datetime.now(), "Adding step labels")
+            print(datetime.now(), "Adding step labels", flush=True)
             add_step_labels(ds)
 
             # Increase step label values according the previous max
-            print(datetime.now(), "Incrementing core step labels")
+            print(datetime.now(), "Incrementing core step labels", flush=True)
             ds.core_step_label.data[
                 ds.core_step_label.data != 0
             ] += self.current_max_core_step_label
-            print(datetime.now(), "Incrementing thick anvil step labels")
+            print(datetime.now(), "Incrementing thick anvil step labels", flush=True)
             ds.thick_anvil_step_label.data[
                 ds.thick_anvil_step_label.data != 0
             ] += self.current_max_thick_anvil_step_label
-            print(datetime.now(), "Incrementing thin anvil step labels")
+            print(datetime.now(), "Incrementing thin anvil step labels", flush=True)
             ds.thin_anvil_step_label.data[
                 ds.thin_anvil_step_label.data != 0
             ] += self.current_max_thin_anvil_step_label
 
-            print(datetime.now(), "Adding label coords for step labels")
+            print(datetime.now(), "Adding label coords for step labels", flush=True)
             ds = add_label_coords(ds)
 
             self.current_max_core_step_label = np.max(ds.core_step.to_numpy())
@@ -1175,7 +1195,7 @@ class Label_Linker:
                 ds.thin_anvil_step.to_numpy()
             )
 
-            print(datetime.now(), "Linking step labels")
+            print(datetime.now(), "Linking step labels", flush=True)
             link_step_labels(ds)
 
             if self.output_path is None:
@@ -1184,12 +1204,14 @@ class Label_Linker:
                 new_filename = self.output_path / (file.stem + self.file_suffix + ".nc")
 
             # Add compression encoding
-            print(datetime.now(), "Adding compression encoding")
+            print(datetime.now(), "Adding compression encoding", flush=True)
             comp = dict(zlib=True, complevel=5, shuffle=True)
             for var in ds.data_vars:
                 ds[var].encoding.update(comp)
 
-            print(datetime.now(), "Saving to %s" % (new_filename), flush=True)
+            print(
+                datetime.now(), "Saving to %s" % (new_filename), flush=True, flush=True
+            )
 
             ds.to_netcdf(new_filename)
             ds.close()

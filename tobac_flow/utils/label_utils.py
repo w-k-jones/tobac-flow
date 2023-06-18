@@ -268,11 +268,13 @@ def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
     #     step_labels[i][np.nonzero(step_labels[i])] += max_label
     #     max_label = step_labels.max()
     max_step_label = np.cumsum(
-        np.max(labels, axis=tuple(range(1, len(labels.shape))))
+        np.max(labels, axis=tuple(range(1, len(labels.shape)))),
+        dtype=np.int32,
     ).reshape([-1] + [1] * (len(labels.shape) - 1))
-    step_labels = relabel_objects(
-        (labels + max_step_label) * (labels != 0).astype(int), inplace=True
-    )
+
+    step_labels = labels + max_step_label
+    step_labels[labels == 0] = 0
+    step_labels = relabel_objects(step_labels, inplace=True)
     return step_labels
 
 
