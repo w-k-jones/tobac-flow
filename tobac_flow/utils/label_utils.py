@@ -178,7 +178,7 @@ def flat_label(
 def make_step_labels(labels):
     step_labels = flat_label(labels != 0)
     step_labels += labels * step_labels.max()
-    return relabel_objects(step_labels)
+    return relabel_objects(step_labels, inplace=True)
 
 
 def get_step_labels_for_label(
