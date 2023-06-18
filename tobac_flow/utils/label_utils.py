@@ -215,7 +215,7 @@ def get_step_labels_for_label(
     ]
 
 
-def relabel_objects(labels: np.ndarray[int]) -> np.ndarray[int]:
+def relabel_objects(labels: np.ndarray[int], inplace=False) -> np.ndarray[int]:
     """
     Given an array of labelled regions, renumber the labels so that they are
         contiguous integers
@@ -232,13 +232,14 @@ def relabel_objects(labels: np.ndarray[int]) -> np.ndarray[int]:
     """
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
-    new_labels = np.zeros_like(labels)
+    if not inplace:
+        labels = np.zeros_like(labels)
     counter = 1
     for i in range(bins.size - 1):
         if bins[i + 1] > bins[i]:
-            new_labels.ravel()[args[bins[i] : bins[i + 1]]] = counter
+            labels.ravel()[args[bins[i] : bins[i + 1]]] = counter
             counter += 1
-    return new_labels
+    return labels
 
 
 def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
@@ -269,7 +270,9 @@ def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
     max_step_label = np.cumsum(
         np.max(labels, axis=tuple(range(1, len(labels.shape))))
     ).reshape([-1] + [1] * (len(labels.shape) - 1))
-    step_labels = relabel_objects((labels + max_step_label) * (labels != 0).astype(int))
+    step_labels = relabel_objects(
+        (labels + max_step_label) * (labels != 0).astype(int), inplace=True
+    )
     return step_labels
 
 
