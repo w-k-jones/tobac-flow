@@ -1113,26 +1113,38 @@ class Label_Linker:
 
             # Select only cores and anvils that lie within the trimmed dataset
             print(datetime.now(), "Finding cores + anvils for trimmed dataset")
-            cores = np.asarray(
-                sorted(
-                    list(set(np.unique(ds.core_label.data).astype(np.int32)) - set([0]))
-                ),
-                dtype=np.int32,
-            )
-            anvils = np.asarray(
-                sorted(
-                    list(
-                        (
-                            set(np.unique(ds.thick_anvil_label.data))
-                            | set(np.unique(ds.thin_anvil_label.data))
-                        )
-                        - set([0])
-                    )
-                ),
-                dtype=np.int32,
-            )
+            # cores = np.asarray(
+            #     sorted(
+            #         list(set(np.unique(ds.core_label.data).astype(np.int32)) - set([0]))
+            #     ),
+            #     dtype=np.int32,
+            # )
+            # anvils = np.asarray(
+            #     sorted(
+            #         list(
+            #             (
+            #                 set(np.unique(ds.thick_anvil_label.data))
+            #                 | set(np.unique(ds.thin_anvil_label.data))
+            #             )
+            #             - set([0])
+            #         )
+            #     ),
+            #     dtype=np.int32,
+            # )
+            #
+            # ds = ds.sel({"core":cores, "anvil":anvils})
 
-            ds = ds.sel({"core": cores, "anvil": anvils})
+            ds = ds.sel(
+                {
+                    "core": ds.core.values[np.isin(ds.core, ds.core_label)],
+                    "anvil": ds.anvil.values[
+                        np.logical_or(
+                            np.isin(ds.anvil, ds.thick_anvil_label),
+                            np.isin(ds.anvil, ds.thick_anvil_label),
+                        )
+                    ],
+                }
+            )
 
             # Add step labels and coords
             print(datetime.now(), "Adding step labels")
