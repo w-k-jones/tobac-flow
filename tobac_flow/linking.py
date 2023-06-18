@@ -1209,9 +1209,7 @@ class Label_Linker:
             for var in ds.data_vars:
                 ds[var].encoding.update(comp)
 
-            print(
-                datetime.now(), "Saving to %s" % (new_filename), flush=True, flush=True
-            )
+            print(datetime.now(), "Saving to %s" % (new_filename), flush=True)
 
             ds.to_netcdf(new_filename)
             ds.close()
