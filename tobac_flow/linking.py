@@ -1133,26 +1133,6 @@ class Label_Linker:
             print(
                 datetime.now(), "Finding cores + anvils for trimmed dataset", flush=True
             )
-            # cores = np.asarray(
-            #     sorted(
-            #         list(set(np.unique(ds.core_label.data).astype(np.int32)) - set([0]))
-            #     ),
-            #     dtype=np.int32,
-            # )
-            # anvils = np.asarray(
-            #     sorted(
-            #         list(
-            #             (
-            #                 set(np.unique(ds.thick_anvil_label.data))
-            #                 | set(np.unique(ds.thin_anvil_label.data))
-            #             )
-            #             - set([0])
-            #         )
-            #     ),
-            #     dtype=np.int32,
-            # )
-            #
-            # ds = ds.sel({"core":cores, "anvil":anvils})
 
             ds = ds.sel(
                 {
