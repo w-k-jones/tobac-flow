@@ -932,6 +932,46 @@ class Label_Linker:
                 self.files[i + 1] if i < (len(self.files) - 1) else None,
             )
 
+    def relabel_cores(self, ds, min_core_map, inplace=False):
+        max_core = ds.core.max().item()
+        core_map_slice = slice(min_core_map, min_core_map + max_core + 1)
+        wh_non_zero = ds.core_label.values != 0
+        if inplace:
+            ds["core_label"].data[wh_non_zero] = self.core_label_map[core_map_slice][
+                ds.core_label.values[wh_non_zero]
+            ]
+        else:
+            new_cores = xr.zeros_like(ds.core_label)
+            new_cores.data[wh_non_zero] = self.core_label_map[core_map_slice][
+                ds.core_label.values[wh_non_zero]
+            ]
+            return new_cores
+
+    def relabel_anvils(self, ds, min_anvil_map, inplace=False):
+        max_anvil = ds.anvil.max().item()
+        anvil_map_slice = slice(min_anvil_map, min_anvil_map + max_anvil + 1)
+        if inplace:
+            wh_non_zero = ds.thick_anvil_label.values != 0
+            ds["thick_anvil_label"].data[wh_non_zero] = self.anvil_label_map[
+                anvil_map_slice
+            ][ds.thick_anvil_label.values[wh_non_zero]]
+            wh_non_zero = ds.thin_anvil_label.values != 0
+            ds["thin_anvil_label"].data[wh_non_zero] = self.anvil_label_map[
+                anvil_map_slice
+            ][ds.thin_anvil_label.values[wh_non_zero]]
+        else:
+            wh_non_zero = ds.thick_anvil_label.values != 0
+            new_thick_anvils = xr.zeros_like(ds.thick_anvil_label)
+            new_thick_anvils.data[wh_non_zero] = self.anvil_label_map[anvil_map_slice][
+                ds.thick_anvil_label.values[wh_non_zero]
+            ]
+            wh_non_zero = ds.thin_anvil_label.values != 0
+            new_thin_anvils = xr.zeros_like(ds.thin_anvil_label)
+            new_thin_anvils.data[wh_non_zero] = self.anvil_label_map[anvil_map_slice][
+                ds.thin_anvil_label.values[wh_non_zero]
+            ]
+            return new_thick_anvils, new_thin_anvils
+
     def merge_labels(self, ds, filename, join="start"):
         if join == "start":
             join_i = -1
@@ -941,18 +981,11 @@ class Label_Linker:
             t_overlap = sorted(list((set(ds.t.data) & set(merge_ds.t.data))))
             if len(t_overlap) > 0:
                 merge_ds = merge_ds.sel(t=t_overlap)
+                remapped_cores = self.relabel_cores(
+                    merge_ds, self.next_min_core_map[str(filename)], inplace=False
+                )
                 # This set operation removes "stubs" i.e. labels that should be flagged as end labels
                 # Labels that appear in the first step of next_labels, but don't appear in current_labels should be removed
-                max_core = merge_ds.core.max().item()
-                core_map_slice = slice(
-                    self.next_min_core_map[str(filename)],
-                    self.next_min_core_map[str(filename)] + max_core + 1,
-                )
-                remapped_cores = xr.DataArray(
-                    self.core_label_map[core_map_slice][merge_ds.core_label.values],
-                    dims=merge_ds.core_label.dims,
-                    coords=merge_ds.core_label.coords,
-                )
                 combine_core_set = (
                     set(
                         np.unique(remapped_cores.sel(t=t_overlap[1:-1]).values)
@@ -972,8 +1005,9 @@ class Label_Linker:
                     np.isin(
                         merge_ds.core_label.sel(t=t_overlap[1:-1]).data,
                         list(combine_core_set),
-                    ),
-                    ds.core_label.sel(t=t_overlap[1:-1]).data == 0,
+                    ),  # Isin combine list
+                    ds.core_label.sel(t=t_overlap[1:-1]).data
+                    == 0,  # Original labels are zero
                 )
                 # Update core labels
                 ds.core_label.sel(t=t_overlap[1:-1]).data[
@@ -981,19 +1015,10 @@ class Label_Linker:
                 ] = remapped_cores.sel(t=t_overlap[1:-1]).values[wh_combine]
 
                 # Now repeat for anvils
-                max_anvil = merge_ds.anvil.max().item()
-                anvil_map_slice = slice(
-                    self.next_min_anvil_map[str(filename)],
-                    self.next_min_anvil_map[str(filename)] + max_anvil + 1,
+                remapped_thick_anvils, remapped_thin_anvils = self.relabel_anvils(
+                    merge_ds, self.next_min_anvil_map[str(filename)], inplace=False
                 )
 
-                remapped_thick_anvils = xr.DataArray(
-                    self.anvil_label_map[anvil_map_slice][
-                        merge_ds.thick_anvil_label.values
-                    ],
-                    dims=merge_ds.thick_anvil_label.dims,
-                    coords=merge_ds.thick_anvil_label.coords,
-                )
                 combine_thick_anvil_set = (
                     set(
                         np.unique(remapped_thick_anvils.sel(t=t_overlap[1:-1]).values)
@@ -1024,13 +1049,6 @@ class Label_Linker:
                     wh_combine
                 ] = remapped_thick_anvils.sel(t=t_overlap[1:-1]).values[wh_combine]
 
-                remapped_thin_anvils = xr.DataArray(
-                    self.anvil_label_map[anvil_map_slice][
-                        merge_ds.thick_anvil_label.values
-                    ],
-                    dims=merge_ds.thin_anvil_label.dims,
-                    coords=merge_ds.thin_anvil_label.coords,
-                )
                 combine_thin_anvil_set = (
                     set(
                         np.unique(remapped_thin_anvils.sel(t=t_overlap[1:-1]).values)
@@ -1079,32 +1097,12 @@ class Label_Linker:
 
             data_vars = [var for var in default_vars if var in ds.data_vars]
 
-            max_core = ds.core.max().item()
-            max_anvil = ds.anvil.max().item()
-
-            ds = ds.get(data_vars)
-
             # Update labels using label maps
             print(datetime.now(), "Relabelling cores", flush=True)
-            core_map_slice = slice(
-                self.next_min_core_map[str(file)],
-                self.next_min_core_map[str(file)] + max_core + 1,
-            )
-            ds["core_label"].data = self.core_label_map[core_map_slice][
-                ds["core_label"].values
-            ]
+            self.relabel_cores(ds, self.next_min_core_map[str(file)], inplace=True)
 
             print(datetime.now(), "Relabelling anvils", flush=True)
-            anvil_map_slice = slice(
-                self.next_min_anvil_map[str(file)],
-                self.next_min_anvil_map[str(file)] + max_anvil + 1,
-            )
-            ds["thick_anvil_label"].data = self.anvil_label_map[anvil_map_slice][
-                ds["thick_anvil_label"].values
-            ]
-            ds["thin_anvil_label"].data = self.anvil_label_map[anvil_map_slice][
-                ds["thin_anvil_label"].values
-            ]
+            self.relabel_anvils(ds, self.next_min_anvil_map[str(file)], inplace=True)
 
             # Merge overlapping labels from previous and next files
             if prev_file is not None:
@@ -1113,6 +1111,8 @@ class Label_Linker:
             if next_file is not None:
                 print(datetime.now(), "Merging next file", flush=True)
                 self.merge_labels(ds, next_file, join="end")
+
+            ds = ds.get(data_vars)
 
             # Add new coords
             print(datetime.now(), "Add core and anvil coords", flush=True)
