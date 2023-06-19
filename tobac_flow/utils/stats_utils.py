@@ -12,7 +12,7 @@ def find_overlap_mode(x: np.ndarray[float], background: float = 0) -> float:
     Calculate the mode value of an array where the array does not equal the
         background value
     """
-    if np.any(x):
+    if np.any(x != background):
         overlap_mode = stats.mode(x[x != background], keepdims=False)[0]
     else:
         overlap_mode = background
