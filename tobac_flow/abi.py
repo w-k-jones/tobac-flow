@@ -65,6 +65,30 @@ def get_abi_pixel_area(dataset: xr.Dataset) -> np.ndarray:
     return area
 
 
+def get_abi_zenith_angle(abi_ds):
+    """
+    Returns the satellite zenith angle for every pixel in the input dataset
+    """
+    lat, lon = get_abi_lat_lon(abi_ds)
+    dlat = np.deg2rad(lat - abi_ds.goes_imager_projection.latitude_of_projection_origin)
+    dlon = np.deg2rad(
+        lon - abi_ds.goes_imager_projection.longitude_of_projection_origin
+    )
+
+    surf_vectors = np.stack(
+        [np.cos(dlon) * np.sin(dlat), -np.sin(dlon), np.cos(dlon) * np.cos(dlat)]
+    )
+    xx, yy = np.meshgrid(-abi_ds.x, -abi_ds.y)
+
+    abi_vectors = np.stack(
+        [np.cos(xx) * np.sin(yy), -np.sin(xx), np.cos(xx) * np.cos(yy)]
+    )
+
+    sza = np.rad2deg(np.arccos(np.sum(surf_vectors * abi_vectors, 0)))
+
+    return sza
+
+
 def get_abi_x_y(
     lat: np.ndarray, lon: np.ndarray, dataset: xr.Dataset
 ) -> tuple[np.ndarray, np.ndarray]:
