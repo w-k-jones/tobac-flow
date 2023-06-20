@@ -646,7 +646,7 @@ def process_thick_anvil_properties(dataset):
             dataset.anvil,
         )
 
-        dataset["thick_anvil_min_BT__thick_anvil_step_index"] = idxmin_groupby(
+        dataset["thick_anvil_min_BT_thick_anvil_step_index"] = idxmin_groupby(
             dataset.thick_anvil_step_BT_mean,
             dataset.thick_anvil_step_anvil_index,
             dataset.anvil,
