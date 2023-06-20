@@ -487,7 +487,7 @@ def find_abi_files(
     )
     files = []
     for blob in blobs:
-        if os.path.split(blob)[-1] not in CORRUPT_BLOBS:
+        if os.path.split(str(blob.name))[-1] not in CORRUPT_BLOBS:
             if download_missing:
                 try:
                     save_file = download_blob(
