@@ -365,6 +365,11 @@ def process_core_properties(dataset):
         dataset.core,
     )
 
+    dataset["core_average_area"] = xr.DataArray(
+        dataset.core_step_area.groupby(dataset.core_step_core_index).mean().data,
+        {"core": dataset.core},
+    )
+
     dataset["core_total_area"] = xr.DataArray(
         dataset.core_step_area.groupby(dataset.core_step_core_index).sum().data,
         {"core": dataset.core},
@@ -597,6 +602,13 @@ def process_thick_anvil_properties(dataset):
         dataset.anvil,
     )
 
+    dataset["thick_anvil_average_area"] = xr.DataArray(
+        dataset.thick_anvil_step_area.groupby(dataset.thick_anvil_step_anvil_index)
+        .mean()
+        .data,
+        {"anvil": dataset.anvil},
+    )
+
     dataset["thick_anvil_total_area"] = xr.DataArray(
         dataset.thick_anvil_step_area.groupby(dataset.thick_anvil_step_anvil_index)
         .sum()
@@ -794,6 +806,13 @@ def process_thin_anvil_properties(dataset):
         dataset.thin_anvil_step_area,
         dataset.thin_anvil_step_anvil_index,
         dataset.anvil,
+    )
+
+    dataset["thin_anvil_average_area"] = xr.DataArray(
+        dataset.thin_anvil_step_area.groupby(dataset.thin_anvil_step_anvil_index)
+        .mean()
+        .data,
+        {"anvil": dataset.anvil},
     )
 
     dataset["thin_anvil_total_area"] = xr.DataArray(

@@ -80,6 +80,13 @@ def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
     if verbose:
         print(f"Valid lifetime: {np.logical_not(core_invalid_lifetime.data).sum()}")
 
+    core_max_area = dataset.core_step_area.groupby(dataset.core_step_core_index).max()
+
+    core_invalid_area = core_max_area > 1e4
+
+    if verbose:
+        print(f"Valid maximum area: {np.logical_not(core_invalid_area.data).sum()}")
+
     def any_nan(x, *args, **kwargs):
         return np.any(np.isnan(x))
 
@@ -105,6 +112,7 @@ def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
             core_invalid_bt,
             core_invalid_time_diff,
             core_invalid_lifetime,
+            core_invalid_area,
             core_any_nan_step,
         ]
     )
