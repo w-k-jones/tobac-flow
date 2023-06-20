@@ -37,8 +37,8 @@ goes_17_bucket = storage_client.get_bucket("gcp-public-data-goes-17")
 
 # Some files are corrupt and will always fail, here's a list so we can avoid them
 CORRUPT_BLOBS = [
-    "OR_ABI-L2-MCMIPC-M3_G16_s20182090057191_e20182090059563_c20182090100066.nc",
     "OR_ABI-L2-MCMIPC-M6_G16_s20202471646151_e20202471648524_c20202471649090.nc",
+    "OR_ABI-L2-MCMIPF-M6_G16_s20202471650186_e20202471659494_c20202471659592.nc",
 ]
 
 
