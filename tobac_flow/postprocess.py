@@ -22,6 +22,7 @@ from tobac_flow.utils import (
     cooling_rate_groupby,
     idxmax_cooling_rate_groupby,
 )
+from tobac_flow.utils.geo_utils import get_mean_object_azimuth_and_speed
 
 
 def get_cre(flux, clear_flux):
@@ -453,6 +454,26 @@ def process_core_properties(dataset):
             t_steps=3,
         )
 
+    core_azimuths, core_speed = apply_func_to_labels(
+        dataset.core_step_core_index.to_numpy(),
+        dataset.core_step_lon.to_numpy(),
+        dataset.core_step_lat.to_numpy(),
+        dataset.core_step_t.to_numpy(),
+        func=get_mean_object_azimuth_and_speed,
+        index=dataset.core.to_numpy(),
+        default=[np.nan, np.nan],
+    )
+
+    dataset["core_direction_of_propagation"] = xr.DataArray(
+        core_azimuths,
+        {"core": dataset.core},
+    )
+
+    dataset["core_speed_of_propagation"] = xr.DataArray(
+        core_speed,
+        {"core": dataset.core},
+    )
+
     for var in dataset.data_vars:
         if dataset[var].dims == ("core_step",):
             new_var = "core_" + var[10:]
@@ -663,6 +684,26 @@ def process_thick_anvil_properties(dataset):
             dataset.thick_anvil_step_anvil_index,
             dataset.anvil,
         )
+
+    anvil_azimuths, anvil_speed = apply_func_to_labels(
+        dataset.thick_anvil_step_anvil_index.to_numpy(),
+        dataset.thick_anvil_step_lon.to_numpy(),
+        dataset.thick_anvil_step_lat.to_numpy(),
+        dataset.thick_anvil_step_t.to_numpy(),
+        func=get_mean_object_azimuth_and_speed,
+        index=dataset.anvil.to_numpy(),
+        default=[np.nan, np.nan],
+    )
+
+    dataset["anvil_direction_of_propagation"] = xr.DataArray(
+        anvil_azimuths,
+        {"anvil": dataset.anvil},
+    )
+
+    dataset["anvil_speed_of_propagation"] = xr.DataArray(
+        anvil_speed,
+        {"anvil": dataset.anvil},
+    )
 
     for var in dataset.data_vars:
         if dataset[var].dims == ("thick_anvil_step",):
