@@ -311,18 +311,33 @@ def add_weighted_proportions_to_dataset(
 
 def process_core_properties(dataset):
     # Core start/end positions
-    core_start_step = argmin_groupby(
-        dataset.core_step,
+    # core_start_step = argmin_groupby(
+    #     dataset.core_step,
+    #     dataset.core_step_t,
+    #     dataset.core_step_core_index,
+    #     dataset.core,
+    # )
+    dataset["core_initial_core_step_index"] = idxmin_groupby(
         dataset.core_step_t,
         dataset.core_step_core_index,
         dataset.core,
     )
 
-    dataset["core_start_x"] = dataset.core_step_x.loc[core_start_step]
-    dataset["core_start_y"] = dataset.core_step_y.loc[core_start_step]
-    dataset["core_start_lat"] = dataset.core_step_lat.loc[core_start_step]
-    dataset["core_start_lon"] = dataset.core_step_lon.loc[core_start_step]
-    dataset["core_start_t"] = dataset.core_step_t.loc[core_start_step]
+    dataset["core_start_x"] = dataset.core_step_x.loc[
+        dataset.core_initial_core_step_index.data
+    ]
+    dataset["core_start_y"] = dataset.core_step_y.loc[
+        dataset.core_initial_core_step_index.data
+    ]
+    dataset["core_start_lat"] = dataset.core_step_lat.loc[
+        dataset.core_initial_core_step_index.data
+    ]
+    dataset["core_start_lon"] = dataset.core_step_lon.loc[
+        dataset.core_initial_core_step_index.data
+    ]
+    dataset["core_start_t"] = dataset.core_step_t.loc[
+        dataset.core_initial_core_step_index.data
+    ]
 
     core_end_step = argmax_groupby(
         dataset.core_step,
@@ -464,12 +479,12 @@ def process_core_properties(dataset):
         default=[np.nan, np.nan],
     )
 
-    dataset["core_direction_of_propagation"] = xr.DataArray(
+    dataset["core_propagation_direction"] = xr.DataArray(
         core_azimuths,
         {"core": dataset.core},
     )
 
-    dataset["core_speed_of_propagation"] = xr.DataArray(
+    dataset["core_propagation_speed"] = xr.DataArray(
         core_speed,
         {"core": dataset.core},
     )
@@ -695,12 +710,12 @@ def process_thick_anvil_properties(dataset):
         default=[np.nan, np.nan],
     )
 
-    dataset["anvil_direction_of_propagation"] = xr.DataArray(
+    dataset["anvil_propagation_direction"] = xr.DataArray(
         anvil_azimuths,
         {"anvil": dataset.anvil},
     )
 
-    dataset["anvil_speed_of_propagation"] = xr.DataArray(
+    dataset["anvil_propagation_speed"] = xr.DataArray(
         anvil_speed,
         {"anvil": dataset.anvil},
     )
