@@ -311,33 +311,20 @@ def add_weighted_proportions_to_dataset(
 
 def process_core_properties(dataset):
     # Core start/end positions
-    # core_start_step = argmin_groupby(
-    #     dataset.core_step,
-    #     dataset.core_step_t,
-    #     dataset.core_step_core_index,
-    #     dataset.core,
-    # )
-    dataset["core_initial_core_step_index"] = idxmin_groupby(
+    core_start_step = argmin_groupby(
+        dataset.core_step,
         dataset.core_step_t,
         dataset.core_step_core_index,
         dataset.core,
     )
 
-    dataset["core_start_x"] = dataset.core_step_x.loc[
-        dataset.core_initial_core_step_index.data
-    ]
-    dataset["core_start_y"] = dataset.core_step_y.loc[
-        dataset.core_initial_core_step_index.data
-    ]
-    dataset["core_start_lat"] = dataset.core_step_lat.loc[
-        dataset.core_initial_core_step_index.data
-    ]
-    dataset["core_start_lon"] = dataset.core_step_lon.loc[
-        dataset.core_initial_core_step_index.data
-    ]
-    dataset["core_start_t"] = dataset.core_step_t.loc[
-        dataset.core_initial_core_step_index.data
-    ]
+    dataset["core_initial_core_step_index"] = core_start_step
+
+    dataset["core_start_x"] = dataset.core_step_x.loc[core_start_step]
+    dataset["core_start_y"] = dataset.core_step_y.loc[core_start_step]
+    dataset["core_start_lat"] = dataset.core_step_lat.loc[core_start_step]
+    dataset["core_start_lon"] = dataset.core_step_lon.loc[core_start_step]
+    dataset["core_start_t"] = dataset.core_step_t.loc[core_start_step]
 
     core_end_step = argmax_groupby(
         dataset.core_step,
