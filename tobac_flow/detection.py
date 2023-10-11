@@ -505,12 +505,7 @@ def detect_anvils(
     # else:
     #     field[markers!=0] = 1
     markers *= ndi.binary_erosion(markers != 0, structure=s_struct).astype(int)
-    mask = ndi.binary_erosion(
-        field <= 0,
-        structure=np.ones([3, 3, 3]),
-        iterations=erode_distance,
-        border_value=1,
-    )
+    mask = get_watershed_mask(field, erode_distance=erode_distance)
     # edges = flow.sobel(field, direction="uphill", method="cubic")
     # # edges[markers != 0] = 0
     # edges[edges > 0] += 1
@@ -535,6 +530,36 @@ def detect_anvils(
     )
 
     return anvil_labels
+
+
+def get_watershed_mask(
+    field: np.ndarray[float], erode_distance: int = 1
+) -> np.ndarray[bool]:
+    """Create a mask for watershedding where the field <= 0, and erode the mask
+    by erode distance while keeping NaN regions masked
+
+    Parameters
+    ----------
+    field : np.ndarray[float]
+        field to be segmented
+    erode_distance : int, optional
+        number of pixels to erode the mask, by default 1
+
+    Returns
+    -------
+    np.ndarray[bool]
+        mask
+    """
+    wh_field_nan = np.isnan(field)
+
+    mask = ndi.binary_erosion(
+        np.logical_or(field <= 0, wh_field_nan),
+        structure=np.ones([3, 3, 3]),
+        iterations=erode_distance,
+        border_value=1,
+    )
+    mask[wh_field_nan] = True
+    return mask
 
 
 def get_combined_edge_field(
