@@ -270,7 +270,10 @@ def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
     max_step_label = np.cumsum(
         np.max(labels, axis=tuple(range(1, len(labels.shape)))),
         dtype=np.int32,
-    ).reshape([-1] + [1] * (len(labels.shape) - 1))
+    )
+    max_step_label[1:] = max_step_label[:-1]
+    max_step_label[0] = 0
+    max_step_label = max_step_label.reshape([-1] + [1] * (len(labels.shape) - 1))
 
     step_labels = labels + max_step_label
     step_labels[labels == 0] = 0
