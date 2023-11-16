@@ -19,6 +19,7 @@ from tobac_flow.utils import (
     labeled_comprehension,
     make_step_labels,
 )
+from tobac_flow.flow import Flow
 
 
 # Filtering of the growth metric occurs in three steps:
@@ -28,6 +29,21 @@ from tobac_flow.utils import (
 
 
 def filtered_tdiff(flow, raw_diff):
+    """Filtered a time-derivative by taking a moving average in a semi-
+    Lagrangian framework
+
+    Parameters
+    ----------
+    flow : tobac_flow.flow.Flow
+        flow object
+    raw_diff : np.ndarray
+        Unfiltered time differential
+
+    Returns
+    -------
+    np.ndarray
+        Filtered time differential
+    """
     t_struct = np.zeros([3, 3, 3])
     t_struct[:, 1, 1] = 1
     # s_struct = ndi.generate_binary_structure(2, 1)[np.newaxis, ...]
@@ -470,7 +486,7 @@ def get_anvil_markers(
 
 
 def detect_anvils(
-    flow,
+    flow: Flow,
     field: np.ndarray[float],
     markers=None,
     upper_threshold=-5,
@@ -489,17 +505,15 @@ def detect_anvils(
     # else:
     #     field[markers!=0] = 1
     markers *= ndi.binary_erosion(markers != 0, structure=s_struct).astype(int)
-    mask = ndi.binary_erosion(
-        field <= 0,
-        structure=np.ones([3, 3, 3]),
-        iterations=erode_distance,
-        border_value=1,
-    )
-    edges = flow.sobel(field, direction="uphill", method="cubic")
-    # edges[markers != 0] = 0
-    edges[edges > 0] += 1
+    mask = get_watershed_mask(field, erode_distance=erode_distance)
+    # edges = flow.sobel(field, direction="uphill", method="cubic")
+    # # edges[markers != 0] = 0
+    # edges[edges > 0] += 1
     anvil_labels = flow.watershed(
-        edges - field, markers, mask=mask, structure=ndi.generate_binary_structure(3, 1)
+        get_combined_edge_field(flow, field),
+        markers,
+        mask=mask,
+        structure=ndi.generate_binary_structure(3, 1),
     )
     anvil_labels *= ndi.binary_opening(anvil_labels != 0, structure=s_struct).astype(
         int
@@ -518,8 +532,68 @@ def detect_anvils(
     return anvil_labels
 
 
+def get_watershed_mask(
+    field: np.ndarray[float], erode_distance: int = 1
+) -> np.ndarray[bool]:
+    """Create a mask for watershedding where the field <= 0, and erode the mask
+    by erode distance while keeping NaN regions masked
+
+    Parameters
+    ----------
+    field : np.ndarray[float]
+        field to be segmented
+    erode_distance : int, optional
+        number of pixels to erode the mask, by default 1
+
+    Returns
+    -------
+    np.ndarray[bool]
+        mask
+    """
+    wh_field_nan = np.isnan(field)
+
+    mask = ndi.binary_erosion(
+        np.logical_or(field <= 0, wh_field_nan),
+        structure=np.ones([3, 3, 3]),
+        iterations=erode_distance,
+        border_value=1,
+    )
+    mask[wh_field_nan] = True
+    return mask
+
+
+def get_combined_edge_field(
+    flow: Flow, field: np.ndarray[float], **kwargs
+) -> np.ndarray[float]:
+    """Apply sobel edge filter to a field, and then subtract the field from
+    regions where the edges == 0 to use with watershed segmentation
+
+    Parameters
+    ----------
+    flow : Flow
+        flow object
+    field : np.ndarray[float]
+        the field to calculate edges from
+
+    Returns
+    -------
+    np.ndarray[float]
+        combined edges field for segmentation
+    """
+    edges = flow.sobel(field, direction="uphill", method="cubic")
+    edges[edges > 0] += 1
+    edges = edges - field
+    edges[np.isnan(field)] = np.inf
+    return edges
+
+
 def relabel_anvils(
-    flow, anvil_labels, markers=None, overlap=0.5, absolute_overlap=5, min_length=3
+    flow: Flow,
+    anvil_labels: np.ndarray[int],
+    markers: np.ndarray[bool] = None,
+    overlap: float = 0.5,
+    absolute_overlap: int = 5,
+    min_length: int = 3,
 ):
     anvil_labels = flow.link_overlap(
         make_step_labels(anvil_labels),
