@@ -42,6 +42,7 @@ parser.add_argument("-x0", help="Initial subset x location", default=0, type=int
 parser.add_argument("-x1", help="End subset x location", default=3712, type=int)
 parser.add_argument("-y0", help="Initial subset y location", default=0, type=int)
 parser.add_argument("-y1", help="End subset y location", default=3712, type=int)
+parser.add_argument("-t_offset", help="Number of time steps for offset", default=2, type=int)
 parser.add_argument(
     "-sd",
     help="Directory to save preprocess files",
@@ -95,7 +96,7 @@ x0 = int(args.x0)
 x1 = int(args.x1)
 y0 = int(args.y0)
 y1 = int(args.y1)
-t_offset = 2
+t_offset = args.t_offset
 
 save_dir = pathlib.Path(args.sd)
 if not save_dir.exists():
