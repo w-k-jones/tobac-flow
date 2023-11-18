@@ -166,6 +166,7 @@ def main() -> None:
     overlap = 0.5
     absolute_overlap = 4
     subsegment_shrink = 0.0
+    min_length = 2
 
     core_labels = detect_cores(
         flow,
@@ -177,7 +178,7 @@ def main() -> None:
         overlap=overlap,
         absolute_overlap=absolute_overlap,
         subsegment_shrink=subsegment_shrink,
-        min_length=t_offset,
+        min_length=min_length,
         use_wvd=False,
     )
 
@@ -196,7 +197,7 @@ def main() -> None:
         overlap=overlap,
         absolute_overlap=absolute_overlap,
         subsegment_shrink=subsegment_shrink,
-        min_length=t_offset,
+        min_length=min_length,
     )
 
     print("Final thick anvil markers: area =", np.sum(anvil_markers != 0), flush=True)
@@ -209,7 +210,7 @@ def main() -> None:
         upper_threshold=upper_threshold,
         lower_threshold=lower_threshold,
         erode_distance=erode_distance,
-        min_length=t_offset,
+        min_length=min_length,
     )
 
     print(
@@ -225,7 +226,7 @@ def main() -> None:
         markers=anvil_markers,
         overlap=overlap,
         absolute_overlap=absolute_overlap,
-        min_length=t_offset,
+        min_length=min_length,
     )
 
     print(
@@ -245,7 +246,7 @@ def main() -> None:
         upper_threshold=upper_threshold,
         lower_threshold=lower_threshold,
         erode_distance=erode_distance,
-        min_length=t_offset,
+        min_length=min_length,
     )
 
     print("Detected thin anvils: area =", np.sum(thin_anvil_labels != 0), flush=True)
