@@ -8,6 +8,7 @@ dependencies:
   - scikit-learn
   - pandas
   - xarray
+  - satpy
   - dask
   - requests
   - opencv
