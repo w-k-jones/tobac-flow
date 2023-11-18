@@ -7,6 +7,7 @@ This module contains functions relating to goemetric operations with
 """
 from datetime import datetime
 import numpy as np
+from pyproj import Geod
 
 
 def get_sza(dt, lat, lon):
@@ -175,3 +176,27 @@ def get_sza_and_azi(dt, lat, lon):
     # print('Hour Angle (in degrees) :           ',r2d(omega) )
     # Function return is solar zenith in radians
     return sza, azim
+
+def get_pixel_lengths(lat, lon) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Returns the length scales in x and y of each pixel in the input dataset in
+        km.
+    """
+    g = Geod(ellps="WGS84")
+    dy, dx = np.zeros(lat.shape, dtype=float), np.zeros(lat.shape, dtype=float)
+    dy[:-1] = g.inv(lon[:-1], lat[:-1], lon[1:], lat[1:])[-1] / 1e3
+    dx[:, :-1] = g.inv(lon[:, :-1], lat[:, :-1], lon[:, 1:], lat[:, 1:])[-1] / 1e3
+    dy[1:] += dy[:-1]
+    dy[1:-1] /= 2
+    dx[:, 1:] += dx[:, :-1]
+    dx[:, 1:-1] /= 2
+    return dx, dy
+
+
+def get_pixel_area(lat, lon) -> np.ndarray:
+    """
+    Returns the area of each pixel in the input dataset in square km
+    """
+    dx, dy = get_pixel_lengths(lat, lon)
+    area = dx * dy
+    return area
