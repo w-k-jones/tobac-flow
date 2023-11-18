@@ -757,9 +757,9 @@ def seviri_nat_dataloader(
 
     ds.coords["t"] = ("t", dates)
 
-    bt = ds.IR_108.load()
-    wvd = (ds.WV_062 - ds.WV_073).load()
-    twd = (ds.IR_087 - ds.IR_120).load()
+    bt = ds.IR_108.isel(y=slice(y0,y1), x=slice(x0,x1)).load()
+    wvd = (ds.WV_062 - ds.WV_073).isel(y=slice(y0,y1), x=slice(x0,x1)).load()
+    twd = (ds.IR_087 - ds.IR_120).isel(y=slice(y0,y1), x=slice(x0,x1)).load()
     twd = np.maximum(twd, 0)
 
     all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(twd)], 0)
