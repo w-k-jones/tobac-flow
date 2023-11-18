@@ -41,14 +41,18 @@ parser.add_argument("-x0", help="Initial subset x location", default=52, type=in
 parser.add_argument("-x1", help="End subset x location", default=3659, type=int)
 parser.add_argument("-y0", help="Initial subset y location", default=54, type=int)
 parser.add_argument("-y1", help="End subset y location", default=3657, type=int)
-parser.add_argument("-t_offset", help="Number of time steps for offset", default=2, type=int)
+parser.add_argument(
+    "-t_offset", help="Number of time steps for offset", default=2, type=int
+)
 parser.add_argument(
     "-sd",
     help="Directory to save preprocess files",
     default="../data/dcc_detect",
     type=str,
 )
-parser.add_argument("-fd", help="Input file directory", default="../data/seviri", type=str)
+parser.add_argument(
+    "-fd", help="Input file directory", default="../data/seviri", type=str
+)
 
 parser.add_argument(
     "--save_bt",

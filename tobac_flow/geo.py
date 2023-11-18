@@ -177,6 +177,7 @@ def get_sza_and_azi(dt, lat, lon):
     # Function return is solar zenith in radians
     return sza, azim
 
+
 def get_pixel_lengths(lat, lon) -> tuple[np.ndarray, np.ndarray]:
     """
     Returns the length scales in x and y of each pixel in the input dataset in

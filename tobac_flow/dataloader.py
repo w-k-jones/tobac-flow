@@ -660,19 +660,20 @@ def seviri_dataloader(
     else:
         return bt, wvd, swd
 
+
 def glob_seviri_nat_files(
     start_date, end_date, satellite=None, file_path=pathlib.Path("../data/seviri/")
 ):
     if satellite is None:
         satellite = "[1234]"
-    elif satellite not in [1,2,3,4, "1", "2", "3", "4"]:
+    elif satellite not in [1, 2, 3, 4, "1", "2", "3", "4"]:
         raise ValueError("satellite keywrod must be one of '1', '2', '3', '4'")
 
     if isinstance(file_path, str):
         file_path = pathlib.Path(file_path)
     elif not isinstance(file_path, pathlib.Path):
         raise ValueError("file_path must be either a string or a Path object")
-    
+
     dates = pd.date_range(
         start_date, end_date, freq="H", inclusive="left"
     ).to_pydatetime()
@@ -682,7 +683,9 @@ def glob_seviri_nat_files(
     for date in dates:
         datestr = date.strftime("%Y%m%d%H")
         glob_str = f"MSG{satellite}-SEVI-MSG*-NA-{datestr}*-NA.nat"
-        seviri_files.extend(list((file_path / date.strftime("%Y/%m/%d")).glob(glob_str)))
+        seviri_files.extend(
+            list((file_path / date.strftime("%Y/%m/%d")).glob(glob_str))
+        )
 
     return sorted(seviri_files)
 
@@ -691,7 +694,7 @@ def find_seviri_nat_files(
     start_date,
     end_date,
     n_pad_files=1,
-    satellite=None, 
+    satellite=None,
     file_path=pathlib.Path("../data/seviri/"),
 ):
     seviri_files = glob_seviri_nat_files(start_date, end_date, satellite, file_path)
@@ -715,14 +718,16 @@ def find_seviri_nat_files(
 
     return seviri_files
 
+
 def get_seviri_nat_date_from_filename(filename):
     if isinstance(filename, pathlib.Path):
         filename = filename.name
     elif isinstance(filename, str):
         filename = filename.split("/")[-1]
 
-    date = datetime.strptime(filename[24:38], '%Y%m%d%H%M%S')
+    date = datetime.strptime(filename[24:38], "%Y%m%d%H%M%S")
     return date
+
 
 def seviri_nat_dataloader(
     start_date,
@@ -741,13 +746,15 @@ def seviri_nat_dataloader(
         start_date,
         end_date,
         n_pad_files=n_pad_files,
-        satellite=satellite, 
+        satellite=satellite,
         file_path=file_path,
     )
 
     scn = satpy.Scene(reader="seviri_l1b_native", filenames=files)
 
-    warnings.filterwarnings("ignore", category=UserWarning, message="Converting non-nanosecond.*")
+    warnings.filterwarnings(
+        "ignore", category=UserWarning, message="Converting non-nanosecond.*"
+    )
     scn.load(["WV_062", "WV_073", "IR_087", "IR_108", "IR_120"], generate=False)
 
     ds = scn.to_xarray()
@@ -758,9 +765,9 @@ def seviri_nat_dataloader(
 
     ds.coords["t"] = ("t", dates)
 
-    bt = ds.IR_108.isel(y=slice(y0,y1), x=slice(x0,x1)).load()
-    wvd = (ds.WV_062 - ds.WV_073).isel(y=slice(y0,y1), x=slice(x0,x1)).load()
-    twd = (ds.IR_087 - ds.IR_120).isel(y=slice(y0,y1), x=slice(x0,x1)).load()
+    bt = ds.IR_108.isel(y=slice(y0, y1), x=slice(x0, x1)).load()
+    wvd = (ds.WV_062 - ds.WV_073).isel(y=slice(y0, y1), x=slice(x0, x1)).load()
+    twd = (ds.IR_087 - ds.IR_120).isel(y=slice(y0, y1), x=slice(x0, x1)).load()
     twd = np.maximum(twd, 0)
 
     all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(twd)], 0)
@@ -780,13 +787,21 @@ def seviri_nat_dataloader(
 
         add_dataarray_to_ds(
             create_dataarray(
-                ds.latitude.values[0], ("y", "x"), "lat", long_name="latitude", dtype=np.float32
+                ds.latitude.isel(t=0, y=slice(y0, y1), x=slice(x0, x1)),
+                ("y", "x"),
+                "lat",
+                long_name="latitude",
+                dtype=np.float32,
             ),
             new_ds,
         )
         add_dataarray_to_ds(
             create_dataarray(
-                ds.longitude.values[0], ("y", "x"), "lon", long_name="longitude", dtype=np.float32
+                ds.longitude.isel(t=0, y=slice(y0, y1), x=slice(x0, x1)),
+                ("y", "x"),
+                "lon",
+                long_name="longitude",
+                dtype=np.float32,
             ),
             new_ds,
         )
@@ -804,7 +819,7 @@ def seviri_nat_dataloader(
             ),
             new_ds,
         )
-    
+
     bt = fill_time_gap_nan(bt, time_gap)
     wvd = fill_time_gap_nan(wvd, time_gap)
     twd = fill_time_gap_nan(twd, time_gap)
