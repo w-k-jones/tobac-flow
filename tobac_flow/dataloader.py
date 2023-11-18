@@ -747,7 +747,8 @@ def seviri_nat_dataloader(
 
     scn = satpy.Scene(reader="seviri_l1b_native", filenames=files)
 
-    scn.load(["WV_062", "WV_073", "IR_087", "IR_108", "IR_120"])
+    warnings.filterwarnings("ignore", category=UserWarning, message="Converting non-nanosecond.*")
+    scn.load(["WV_062", "WV_073", "IR_087", "IR_108", "IR_120"], generate=False)
 
     ds = scn.to_xarray()
 
@@ -790,7 +791,7 @@ def seviri_nat_dataloader(
             new_ds,
         )
 
-        area = get_pixel_area(ds.latitude.values, ds.longitude.values)
+        area = get_pixel_area(new_ds.latitude.values, new_ds.longitude.values)
 
         add_dataarray_to_ds(
             create_dataarray(
