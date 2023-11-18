@@ -90,7 +90,7 @@ args = parser.parse_args()
 start_date = parse_date(args.date, fuzzy=True)
 end_date = start_date + timedelta(hours=args.hours)
 
-satellite = int(args.sat)
+satellite = args.sat
 x0 = int(args.x0)
 x1 = int(args.x1)
 y0 = int(args.y0)
@@ -99,7 +99,10 @@ t_offset = 2
 
 save_dir = pathlib.Path(args.sd)
 if not save_dir.exists():
-    raise ValueError(f"save_dir does not exist!")
+    try:
+        save_dir.mkdir()
+    except (FileExistsError, OSError):
+        pass
 
 if satellite is not None:
     save_name = "detected_dccs_MSG%02d_S%s_E%s_X%04d_%04d_Y%04d_%04d.nc" % (
