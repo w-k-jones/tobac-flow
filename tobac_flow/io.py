@@ -35,6 +35,12 @@ storage_client = storage.Client()
 goes_16_bucket = storage_client.get_bucket("gcp-public-data-goes-16")
 goes_17_bucket = storage_client.get_bucket("gcp-public-data-goes-17")
 
+# Some files are corrupt and will always fail, here's a list so we can avoid them
+CORRUPT_BLOBS = [
+    "OR_ABI-L2-MCMIPC-M6_G16_s20202471646151_e20202471648524_c20202471649090.nc",
+    "OR_ABI-L2-MCMIPF-M6_G16_s20202471650186_e20202471659494_c20202471659592.nc",
+]
+
 
 def _test_subprocess_command(shell_command):
     """
@@ -481,34 +487,35 @@ def find_abi_files(
     )
     files = []
     for blob in blobs:
-        if download_missing:
-            try:
-                save_file = download_blob(
-                    blob,
-                    save_dir,
-                    replicate_path=replicate_path,
-                    check_download=check_download,
-                    n_attempts=n_attempts,
-                    clobber=clobber,
-                    min_storage=min_storage,
-                    verbose=verbose,
-                )
-            except OSError as e:
-                warnings.warn(str(e.args[0]))
-                download_missing = False
-            except RuntimeError as e:
-                warnings.warn(str(e.args[0]))
+        if os.path.split(str(blob.name))[-1] not in CORRUPT_BLOBS:
+            if download_missing:
+                try:
+                    save_file = download_blob(
+                        blob,
+                        save_dir,
+                        replicate_path=replicate_path,
+                        check_download=check_download,
+                        n_attempts=n_attempts,
+                        clobber=clobber,
+                        min_storage=min_storage,
+                        verbose=verbose,
+                    )
+                except OSError as e:
+                    warnings.warn(str(e.args[0]))
+                    download_missing = False
+                except RuntimeError as e:
+                    warnings.warn(str(e.args[0]))
+                else:
+                    if os.path.exists(save_file):
+                        files += [save_file]
             else:
-                if os.path.exists(save_file):
-                    files += [save_file]
-        else:
-            local_file = _get_download_destination(
-                blob, save_dir, replicate_path=replicate_path
-            )
-            if _check_if_file_exists_and_is_valid(
-                local_file, blob, remove_corrupt=remove_corrupt
-            ):
-                files += [local_file]
+                local_file = _get_download_destination(
+                    blob, save_dir, replicate_path=replicate_path
+                )
+                if _check_if_file_exists_and_is_valid(
+                    local_file, blob, remove_corrupt=remove_corrupt
+                ):
+                    files += [local_file]
     return files
 
 

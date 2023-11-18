@@ -28,7 +28,3 @@ dependencies:
   - arm_pyart
   - cmcrameri
   - palettable
-  - pip
-  - pip:
-     - "--editable=git+https://github.com/deeplycloudy/lmatools.git#egg=lmatools"
-     - "--editable=git+https://github.com/deeplycloudy/glmtools.git#egg=glmtools"

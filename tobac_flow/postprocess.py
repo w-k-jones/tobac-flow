@@ -22,6 +22,7 @@ from tobac_flow.utils import (
     cooling_rate_groupby,
     idxmax_cooling_rate_groupby,
 )
+from tobac_flow.utils.geo_utils import get_mean_object_azimuth_and_speed
 
 
 def get_cre(flux, clear_flux):
@@ -317,6 +318,8 @@ def process_core_properties(dataset):
         dataset.core,
     )
 
+    dataset["core_initial_core_step_index"] = core_start_step
+
     dataset["core_start_x"] = dataset.core_step_x.loc[core_start_step]
     dataset["core_start_y"] = dataset.core_step_y.loc[core_start_step]
     dataset["core_start_lat"] = dataset.core_step_lat.loc[core_start_step]
@@ -363,6 +366,11 @@ def process_core_properties(dataset):
         dataset.core_step_area,
         dataset.core_step_core_index,
         dataset.core,
+    )
+
+    dataset["core_average_area"] = xr.DataArray(
+        dataset.core_step_area.groupby(dataset.core_step_core_index).mean().data,
+        {"core": dataset.core},
     )
 
     dataset["core_total_area"] = xr.DataArray(
@@ -447,6 +455,26 @@ def process_core_properties(dataset):
             dataset.core,
             t_steps=3,
         )
+
+    core_azimuths, core_speed = apply_func_to_labels(
+        dataset.core_step_core_index.to_numpy(),
+        dataset.core_step_lon.to_numpy(),
+        dataset.core_step_lat.to_numpy(),
+        dataset.core_step_t.to_numpy(),
+        func=get_mean_object_azimuth_and_speed,
+        index=dataset.core.to_numpy(),
+        default=[np.nan, np.nan],
+    )
+
+    dataset["core_propagation_direction"] = xr.DataArray(
+        core_azimuths,
+        {"core": dataset.core},
+    )
+
+    dataset["core_propagation_speed"] = xr.DataArray(
+        core_speed,
+        {"core": dataset.core},
+    )
 
     for var in dataset.data_vars:
         if dataset[var].dims == ("core_step",):
@@ -597,6 +625,13 @@ def process_thick_anvil_properties(dataset):
         dataset.anvil,
     )
 
+    dataset["thick_anvil_average_area"] = xr.DataArray(
+        dataset.thick_anvil_step_area.groupby(dataset.thick_anvil_step_anvil_index)
+        .mean()
+        .data,
+        {"anvil": dataset.anvil},
+    )
+
     dataset["thick_anvil_total_area"] = xr.DataArray(
         dataset.thick_anvil_step_area.groupby(dataset.thick_anvil_step_anvil_index)
         .sum()
@@ -646,11 +681,31 @@ def process_thick_anvil_properties(dataset):
             dataset.anvil,
         )
 
-        dataset["thick_anvil_min_BT__thick_anvil_step_index"] = idxmin_groupby(
+        dataset["thick_anvil_min_BT_thick_anvil_step_index"] = idxmin_groupby(
             dataset.thick_anvil_step_BT_mean,
             dataset.thick_anvil_step_anvil_index,
             dataset.anvil,
         )
+
+    anvil_azimuths, anvil_speed = apply_func_to_labels(
+        dataset.thick_anvil_step_anvil_index.to_numpy(),
+        dataset.thick_anvil_step_lon.to_numpy(),
+        dataset.thick_anvil_step_lat.to_numpy(),
+        dataset.thick_anvil_step_t.to_numpy(),
+        func=get_mean_object_azimuth_and_speed,
+        index=dataset.anvil.to_numpy(),
+        default=[np.nan, np.nan],
+    )
+
+    dataset["anvil_propagation_direction"] = xr.DataArray(
+        anvil_azimuths,
+        {"anvil": dataset.anvil},
+    )
+
+    dataset["anvil_propagation_speed"] = xr.DataArray(
+        anvil_speed,
+        {"anvil": dataset.anvil},
+    )
 
     for var in dataset.data_vars:
         if dataset[var].dims == ("thick_anvil_step",):
@@ -794,6 +849,13 @@ def process_thin_anvil_properties(dataset):
         dataset.thin_anvil_step_area,
         dataset.thin_anvil_step_anvil_index,
         dataset.anvil,
+    )
+
+    dataset["thin_anvil_average_area"] = xr.DataArray(
+        dataset.thin_anvil_step_area.groupby(dataset.thin_anvil_step_anvil_index)
+        .mean()
+        .data,
+        {"anvil": dataset.anvil},
     )
 
     dataset["thin_anvil_total_area"] = xr.DataArray(
@@ -1003,6 +1065,7 @@ def add_validity_flags(dataset):
                 np.logical_or.reduce(
                     [
                         anvil_has_invalid_cores.data,
+                        dataset.anvil_no_growth_flag,
                         dataset.thick_anvil_edge_label_flag.data,
                         dataset.thick_anvil_start_label_flag.data,
                         dataset.thick_anvil_end_label_flag.data,
@@ -1018,6 +1081,7 @@ def add_validity_flags(dataset):
                 np.logical_or.reduce(
                     [
                         anvil_has_invalid_cores.data,
+                        dataset.anvil_no_growth_flag,
                         dataset.thick_anvil_edge_label_flag.data,
                         dataset.thick_anvil_start_label_flag.data,
                         dataset.thick_anvil_end_label_flag.data,
@@ -1033,6 +1097,7 @@ def add_validity_flags(dataset):
                 np.logical_or.reduce(
                     [
                         anvil_has_invalid_cores.data,
+                        dataset.anvil_no_growth_flag,
                         dataset.thin_anvil_edge_label_flag.data,
                         dataset.thin_anvil_start_label_flag.data,
                         dataset.thin_anvil_end_label_flag.data,
@@ -1048,6 +1113,7 @@ def add_validity_flags(dataset):
                 np.logical_or.reduce(
                     [
                         anvil_has_invalid_cores.data,
+                        dataset.anvil_no_growth_flag,
                         dataset.thin_anvil_edge_label_flag.data,
                         dataset.thin_anvil_start_label_flag.data,
                         dataset.thin_anvil_end_label_flag.data,

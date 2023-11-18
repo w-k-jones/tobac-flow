@@ -178,7 +178,7 @@ def flat_label(
 def make_step_labels(labels):
     step_labels = flat_label(labels != 0)
     step_labels += labels * step_labels.max()
-    return relabel_objects(step_labels)
+    return relabel_objects(step_labels, inplace=True)
 
 
 def get_step_labels_for_label(
@@ -215,7 +215,7 @@ def get_step_labels_for_label(
     ]
 
 
-def relabel_objects(labels: np.ndarray[int]) -> np.ndarray[int]:
+def relabel_objects(labels: np.ndarray[int], inplace=False) -> np.ndarray[int]:
     """
     Given an array of labelled regions, renumber the labels so that they are
         contiguous integers
@@ -232,13 +232,14 @@ def relabel_objects(labels: np.ndarray[int]) -> np.ndarray[int]:
     """
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
-    new_labels = np.zeros_like(labels)
+    if not inplace:
+        labels = np.zeros_like(labels)
     counter = 1
     for i in range(bins.size - 1):
         if bins[i + 1] > bins[i]:
-            new_labels.ravel()[args[bins[i] : bins[i + 1]]] = counter
+            labels.ravel()[args[bins[i] : bins[i + 1]]] = counter
             counter += 1
-    return new_labels
+    return labels
 
 
 def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
@@ -260,13 +261,51 @@ def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
         An array of labels corresponding the regions associated with the input
             labels at individual time steps
     """
-    step_labels = np.zeros_like(labels)
-    max_label = 0
-    for i in range(labels.shape[0]):
-        step_labels[i] = relabel_objects(labels[i])
-        step_labels[i][np.nonzero(step_labels[i])] += max_label
-        max_label = step_labels.max()
+    # step_labels = np.zeros_like(labels)
+    # max_label = 0
+    # for i in range(labels.shape[0]):
+    #     step_labels[i] = relabel_objects(labels[i])
+    #     step_labels[i][np.nonzero(step_labels[i])] += max_label
+    #     max_label = step_labels.max()
+    max_step_label = np.cumsum(
+        np.max(labels, axis=tuple(range(1, len(labels.shape)))),
+        dtype=np.int32,
+    )
+    max_step_label[1:] = max_step_label[:-1]
+    max_step_label[0] = 0
+    max_step_label = max_step_label.reshape([-1] + [1] * (len(labels.shape) - 1))
+
+    step_labels = labels + max_step_label
+    step_labels[labels == 0] = 0
+    step_labels = relabel_objects(step_labels, inplace=True)
     return step_labels
+
+
+def find_overlapping_labels(
+    labels: np.ndarray[int],
+    locs: np.ndarray[int],
+    bins: np.ndarray[int],
+    overlap: float = 0,
+    absolute_overlap: int = 0,
+) -> list[int]:
+    """
+    Find which labels overlap at the locations given by locs, accounting for
+    (proportional) overlap and absolute overlap requirements
+    """
+    n_locs = len(locs)
+    if n_locs > 0:
+        overlap_labels = labels.ravel()[locs]
+        overlap_bins = np.bincount(np.maximum(overlap_labels, 0))
+        return [
+            new_label
+            for new_label in np.unique(overlap_labels)
+            if new_label != 0
+            and overlap_bins[new_label] > absolute_overlap
+            and overlap_bins[new_label]
+            >= overlap * np.minimum(n_locs, bins[new_label] - bins[new_label - 1])
+        ]
+    else:
+        return []
 
 
 __all__ = (
@@ -277,4 +316,5 @@ __all__ = (
     "get_step_labels_for_label",
     "relabel_objects",
     "slice_labels",
+    "find_overlapping_labels",
 )

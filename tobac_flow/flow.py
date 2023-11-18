@@ -283,7 +283,9 @@ class Flow(Abstract_Flow):
         structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
         dtype: type = np.int32,
         overlap: float = 0,
+        absolute_overlap: int = 1,
         subsegment_shrink: float = 0,
+        peak_min_distance: int = 5,
     ) -> np.ndarray[int]:
         """
         Label 3d connected objects in a semi-Lagrangian reference frame
@@ -302,6 +304,8 @@ class Flow(Abstract_Flow):
             The required minimum overlap between subsequent labels (when accounting
                 for Lagrangian motion) to consider them a continous object. Defaults
                 to 0.
+        absolute_overlap : int, optional (default: 1)
+            The required minimum overlap in pixels
         subsegment_shrink : float - optional
             The proportion of each regions approximate radius to shrink it by when
                 performing subsegmentation. If 0 subsegmentation will not be
@@ -321,7 +325,9 @@ class Flow(Abstract_Flow):
             structure=structure,
             dtype=dtype,
             overlap=overlap,
+            absolute_overlap=absolute_overlap,
             subsegment_shrink=subsegment_shrink,
+            peak_min_distance=peak_min_distance,
         )
 
         return labels
@@ -332,6 +338,7 @@ class Flow(Abstract_Flow):
         structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
         dtype: type = np.int32,
         overlap: float = 0,
+        absolute_overlap: int = 1,
     ) -> np.ndarray[int]:
         """
         Link existing labels to form new, contiguous labels
@@ -342,6 +349,7 @@ class Flow(Abstract_Flow):
             structure=structure,
             dtype=dtype,
             overlap=overlap,
+            absolute_overlap=absolute_overlap,
         )
 
         return labels

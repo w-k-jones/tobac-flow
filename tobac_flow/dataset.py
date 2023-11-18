@@ -4,7 +4,11 @@ from scipy import ndimage as ndi
 import xarray as xr
 from tobac_flow.abi import get_abi_lat_lon, get_abi_pixel_area
 from tobac_flow.utils.xarray_utils import create_dataarray, add_dataarray_to_ds
-from tobac_flow.utils.label_utils import labeled_comprehension, slice_labels
+from tobac_flow.utils.label_utils import (
+    apply_func_to_labels,
+    labeled_comprehension,
+    slice_labels,
+)
 from tobac_flow.utils.datetime_utils import get_datetime_from_coord
 from tobac_flow.utils.legacy_utils import apply_weighted_func_to_labels
 from tobac_flow.utils.stats_utils import find_overlap_mode, n_unique_along_axis
@@ -181,11 +185,9 @@ def create_new_goes_ds(goes_ds):
 
 
 def add_step_labels(dataset: xr.Dataset) -> None:
-    core_step_labels = slice_labels(dataset.core_label.data)
-
     add_dataarray_to_ds(
         create_dataarray(
-            core_step_labels,
+            slice_labels(dataset.core_label.data),
             ("t", "y", "x"),
             "core_step_label",
             coords={"t": dataset.t},
@@ -196,11 +198,9 @@ def add_step_labels(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thick_anvil_step_labels = slice_labels(dataset.thick_anvil_label.data)
-
     add_dataarray_to_ds(
         create_dataarray(
-            thick_anvil_step_labels,
+            slice_labels(dataset.thick_anvil_label.data),
             ("t", "y", "x"),
             "thick_anvil_step_label",
             coords={"t": dataset.t},
@@ -211,11 +211,9 @@ def add_step_labels(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thin_anvil_step_labels = slice_labels(dataset.thin_anvil_label.data)
-
     add_dataarray_to_ds(
         create_dataarray(
-            thin_anvil_step_labels,
+            slice_labels(dataset.thin_anvil_label.data),
             ("t", "y", "x"),
             "thin_anvil_step_label",
             coords={"t": dataset.t},
@@ -228,39 +226,84 @@ def add_step_labels(dataset: xr.Dataset) -> None:
 
 
 def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
-    cores = np.unique(dataset.core_label.data).astype(np.int32)
-    if cores[0] == 0 and cores.size > 1:
-        cores = cores[1:]
-    anvils = np.unique(dataset.thick_anvil_label.data).astype(np.int32)
-    if anvils[0] == 0 and anvils.size > 1:
-        anvils = anvils[1:]
-    core_steps = np.unique(dataset.core_step_label.data).astype(np.int32)
-    if core_steps[0] == 0 and core_steps.size > 1:
-        core_steps = core_steps[1:]
-    thick_anvil_steps = np.unique(dataset.thick_anvil_step_label.data).astype(np.int32)
-    if thick_anvil_steps[0] == 0 and thick_anvil_steps.size > 1:
-        thick_anvil_steps = thick_anvil_steps[1:]
-    thin_anvil_steps = np.unique(dataset.thin_anvil_step_label.data).astype(np.int32)
-    if thin_anvil_steps[0] == 0 and thin_anvil_steps.size > 1:
-        thin_anvil_steps = thin_anvil_steps[1:]
-    return dataset.assign_coords(
-        {
-            "core": cores,
-            "core_step": core_steps,
-            "anvil": anvils,
-            "thick_anvil_step": thick_anvil_steps,
-            "thin_anvil_step": thin_anvil_steps,
-        }
+    new_coords = {}
+
+    cores = np.asarray(
+        sorted(
+            list(set(np.unique(dataset.core_label.data).astype(np.int32)) - set([0]))
+        ),
+        dtype=np.int32,
     )
+    new_coords["core"] = cores
+
+    anvils = np.asarray(
+        sorted(
+            list(
+                (
+                    set(np.unique(dataset.thick_anvil_label.data))
+                    | set(np.unique(dataset.thin_anvil_label.data))
+                )
+                - set([0])
+            )
+        ),
+        dtype=np.int32,
+    )
+    new_coords["anvil"] = anvils
+
+    if "core_step_label" in dataset.data_vars:
+        core_steps = np.asarray(
+            sorted(
+                list(
+                    set(np.unique(dataset.core_step_label.data).astype(np.int32))
+                    - set([0])
+                )
+            ),
+            dtype=np.int32,
+        )
+        new_coords["core_step"] = core_steps
+
+    if "thick_anvil_step_label" in dataset.data_vars:
+        thick_anvil_steps = np.asarray(
+            sorted(
+                list(
+                    set(np.unique(dataset.thick_anvil_step_label.data).astype(np.int32))
+                    - set([0])
+                )
+            ),
+            dtype=np.int32,
+        )
+        new_coords["thick_anvil_step"] = thick_anvil_steps
+
+    if "thin_anvil_step_label" in dataset.data_vars:
+        thin_anvil_steps = np.asarray(
+            sorted(
+                list(
+                    set(np.unique(dataset.thin_anvil_step_label.data).astype(np.int32))
+                    - set([0])
+                )
+            ),
+            dtype=np.int32,
+        )
+        new_coords["thin_anvil_step"] = thin_anvil_steps
+
+    return dataset.assign_coords(new_coords)
 
 
 def link_step_labels(dataset: xr.Dataset) -> None:
     # Add linking indices between each label
-    core_step_core_index = labeled_comprehension(
-        dataset.core_label.data,
-        dataset.core_step_label.data,
-        find_overlap_mode,
-        dtype=np.int32,
+    # core_step_core_index = labeled_comprehension(
+    #     dataset.core_label.data,
+    #     dataset.core_step_label.data,
+    #     find_overlap_mode,
+    #     dtype=np.int32,
+    #     default=0,
+    # )
+
+    core_step_core_index = apply_func_to_labels(
+        dataset.core_step_label.to_numpy(),
+        dataset.core_label.to_numpy(),
+        func=find_overlap_mode,
+        index=dataset.core_step.to_numpy(),
         default=0,
     )
 
@@ -275,13 +318,21 @@ def link_step_labels(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    core_anvil_index = labeled_comprehension(
-        dataset.thick_anvil_label.data,
-        dataset.core_label.data,
-        find_overlap_mode,
-        dtype=np.int32,
+    # core_anvil_index = labeled_comprehension(
+    #     dataset.thick_anvil_label.data,
+    #     dataset.core_label.data,
+    #     find_overlap_mode,
+    #     dtype=np.int32,
+    #     default=0,
+    # )
+    core_anvil_index = apply_func_to_labels(
+        dataset.core_label.to_numpy(),
+        dataset.thick_anvil_label.to_numpy(),
+        func=find_overlap_mode,
+        index=dataset.core.to_numpy(),
         default=0,
     )
+
     add_dataarray_to_ds(
         create_dataarray(
             core_anvil_index,
@@ -293,13 +344,21 @@ def link_step_labels(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thick_anvil_step_anvil_index = labeled_comprehension(
-        dataset.thick_anvil_label.data,
-        dataset.thick_anvil_step_label.data,
-        find_overlap_mode,
-        dtype=np.int32,
+    # thick_anvil_step_anvil_index = labeled_comprehension(
+    #     dataset.thick_anvil_label.data,
+    #     dataset.thick_anvil_step_label.data,
+    #     find_overlap_mode,
+    #     dtype=np.int32,
+    #     default=0,
+    # )
+    thick_anvil_step_anvil_index = apply_func_to_labels(
+        dataset.thick_anvil_step_label.to_numpy(),
+        dataset.thick_anvil_label.to_numpy(),
+        func=find_overlap_mode,
+        index=dataset.thick_anvil_step.to_numpy(),
         default=0,
     )
+
     add_dataarray_to_ds(
         create_dataarray(
             thick_anvil_step_anvil_index,
@@ -311,13 +370,21 @@ def link_step_labels(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    thin_anvil_step_anvil_index = labeled_comprehension(
-        dataset.thin_anvil_label.data,
-        dataset.thin_anvil_step_label.data,
-        find_overlap_mode,
-        dtype=np.int32,
+    # thin_anvil_step_anvil_index = labeled_comprehension(
+    #     dataset.thin_anvil_label.data,
+    #     dataset.thin_anvil_step_label.data,
+    #     find_overlap_mode,
+    #     dtype=np.int32,
+    #     default=0,
+    # )
+    thin_anvil_step_anvil_index = apply_func_to_labels(
+        dataset.thin_anvil_step_label.to_numpy(),
+        dataset.thin_anvil_label.to_numpy(),
+        func=find_overlap_mode,
+        index=dataset.thin_anvil_step.to_numpy(),
         default=0,
     )
+
     add_dataarray_to_ds(
         create_dataarray(
             thin_anvil_step_anvil_index,

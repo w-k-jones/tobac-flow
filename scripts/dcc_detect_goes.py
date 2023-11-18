@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 import numpy as np
 
-from tobac_flow.flow import create_flow, combine_flow
+from tobac_flow.flow import create_flow
 from tobac_flow.dataloader import goes_dataloader
 from tobac_flow.dataset import (
     add_label_coords,
@@ -84,7 +84,11 @@ parser.add_argument(
     help="Save statistics of label spatial properties to output file",
     action="store_true",
 )
-
+parser.add_argument(
+    "--save_anvil_markers",
+    help="Save anvil markers to output file",
+    action="store_true",
+)
 
 args = parser.parse_args()
 start_date = parse_date(args.date, fuzzy=True)
@@ -145,7 +149,7 @@ def main() -> None:
     bt, wvd, swd, dataset = goes_dataloader(
         start_date,
         end_date,
-        n_pad_files=6,
+        n_pad_files=t_offset * 2,
         x0=x0,
         x1=x1,
         y0=y0,
@@ -164,6 +168,7 @@ def main() -> None:
     wvd_threshold = 0.25
     bt_threshold = 0.5
     overlap = 0.5
+    absolute_overlap = 4
     subsegment_shrink = 0.0
 
     core_labels = detect_cores(
@@ -174,8 +179,10 @@ def main() -> None:
         wvd_threshold=wvd_threshold,
         bt_threshold=bt_threshold,
         overlap=overlap,
+        absolute_overlap=absolute_overlap,
         subsegment_shrink=subsegment_shrink,
         min_length=t_offset,
+        use_wvd=False,
     )
 
     print("Final detected core count: n =", core_labels.max())
@@ -191,6 +198,7 @@ def main() -> None:
         wvd - swd,
         threshold=upper_threshold,
         overlap=overlap,
+        absolute_overlap=absolute_overlap,
         subsegment_shrink=subsegment_shrink,
         min_length=t_offset,
     )
@@ -220,6 +228,7 @@ def main() -> None:
         thick_anvil_labels,
         markers=anvil_markers,
         overlap=overlap,
+        absolute_overlap=absolute_overlap,
         min_length=t_offset,
     )
 
@@ -293,11 +302,32 @@ def main() -> None:
         dataset,
     )
 
+    # Anvil markers
+    if args.save_anvil_markers:
+        add_dataarray_to_ds(
+            create_dataarray(
+                anvil_markers,
+                ("t", "y", "x"),
+                "anvil_marker_label",
+                coords={"t": bt.t},
+                long_name="labels for anvil marker regions",
+                units="",
+                dtype=np.int32,
+            ).sel(t=dataset.t),
+            dataset,
+        )
+
     # bt, wvd, swd = bt.sel(t=dataset.t), wvd.sel(t=dataset.t), swd.sel(t=dataset.t)
 
     add_step_labels(dataset)
 
     dataset = add_label_coords(dataset)
+
+    if args.save_anvil_markers:
+        marker_coord = np.unique(dataset.anvil_marker_label.data).astype(np.int32)
+        if marker_coord[0] == 0 and marker_coord.size > 1:
+            marker_coord = marker_coord[1:]
+        dataset = dataset.assign_coords({"anvil_marker": marker_coord})
 
     link_step_labels(dataset)
 
