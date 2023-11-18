@@ -760,6 +760,7 @@ def seviri_nat_dataloader(
     bt = ds.IR_108.load()
     wvd = (ds.WV_062 - ds.WV_073).load()
     twd = (ds.IR_087 - ds.IR_120).load()
+    twd = np.maximum(twd, 0)
 
     all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(twd)], 0)
 
