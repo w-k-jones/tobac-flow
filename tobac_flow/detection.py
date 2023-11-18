@@ -1,3 +1,4 @@
+from math import e
 import warnings
 from functools import partial
 import numpy as np
@@ -443,7 +444,10 @@ def detect_cores(
             / 60
         )
 
-        return np.nanmax(step_bt_diff)
+        if step_bt_diff.size > 0:
+            return np.nanmax(step_bt_diff)
+        else:
+            return 0
 
     core_bt_diff_mean = labeled_comprehension(
         core_step_bt_mean,
