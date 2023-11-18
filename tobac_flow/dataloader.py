@@ -791,7 +791,7 @@ def seviri_nat_dataloader(
             new_ds,
         )
 
-        area = get_pixel_area(new_ds.latitude.values, new_ds.longitude.values)
+        area = get_pixel_area(new_ds.lat.values, new_ds.lon.values)
 
         add_dataarray_to_ds(
             create_dataarray(
