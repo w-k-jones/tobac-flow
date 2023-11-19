@@ -164,6 +164,4 @@ def watershed(
 
     output = crop(output, pad_width, copy=True)
 
-    output[output == -1] = 0
-
     return output

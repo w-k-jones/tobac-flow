@@ -516,11 +516,15 @@ def detect_anvils(
         mask=None,
         connectivity=ndi.generate_binary_structure(3, 1),
     )
+
+    anvil_labels[anvil_labels < 0] = 0
+
     anvil_labels *= ndi.binary_opening(anvil_labels != 0, structure=s_struct).astype(
         int
     )
 
-    anvil_labels[markers != 0] = markers[markers != 0]
+    wh_markers = markers > 0
+    anvil_labels[wh_markers] = markers[wh_markers]
 
     marker_label_lengths = find_object_lengths(anvil_labels)
     marker_label_threshold = mask_labels(anvil_labels, markers != 0)
@@ -552,9 +556,9 @@ def get_watershed_mask(
         mask
     """
     wh_field_nan = np.isnan(field)
-
+    mask = np.logical_or(field <= 0, wh_field_nan)
     mask = ndi.binary_erosion(
-        np.logical_or(field <= 0, wh_field_nan),
+        mask,
         structure=np.ones([3, 3, 3]),
         iterations=erode_distance,
         border_value=1,
