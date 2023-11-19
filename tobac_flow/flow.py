@@ -238,7 +238,7 @@ class Flow(Abstract_Flow):
         field: np.ndarray[float],
         markers: np.ndarray[int],
         mask: np.ndarray[bool] | None = None,
-        structure: np.ndarray[bool] = ndi.generate_binary_structure(3, 1),
+        connectivity: int | np.ndarray[bool] = 1,
     ) -> np.ndarray[int]:
         """
         Watershed segmentation of a sequence of images in a Semi-Lagrangian
@@ -272,7 +272,7 @@ class Flow(Abstract_Flow):
             field,
             markers,
             mask=mask,
-            structure=structure,
+            connectivity=connectivity,
         )
 
         return output

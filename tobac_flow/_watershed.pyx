@@ -152,7 +152,7 @@ cdef inline void heappush(Heap *heap, Heapitem *new_elem) nogil:
             break
 
 cdef struct Heapitem:
-    cnp.float64_t value
+    cnp.float32_t value
     cnp.int32_t age
     Py_ssize_t index
     Py_ssize_t source
@@ -186,7 +186,7 @@ cdef inline double _euclid_dist(Py_ssize_t pt0, Py_ssize_t pt1,
 @cython.boundscheck(False)
 @cython.cdivision(True)
 @cython.unraisable_tracebacks(False)
-cdef inline DTYPE_BOOL_t _diff_neighbors(cnp.intp_t[::1] output,
+cdef inline DTYPE_BOOL_t _diff_neighbors(cnp.int32_t[::1] output,
                                          cnp.intp_t[::1] structure,
                                          DTYPE_BOOL_t[::1] mask,
                                          Py_ssize_t index) nogil:
@@ -218,17 +218,17 @@ cdef inline DTYPE_BOOL_t _diff_neighbors(cnp.intp_t[::1] output,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def watershed_raveled(cnp.float64_t[::1] image,
+def watershed_raveled(cnp.float32_t[::1] image,
                       cnp.intp_t[::1] marker_locations,
                       cnp.intp_t[::1] structure,
-                      cnp.intp_t[::1] forward_offset,
-                      cnp.intp_t[::1] backward_offset,
-                      cnp.intp_t[::1] forward_offset_locations,
-                      cnp.intp_t[::1] backward_offset_locations,
+                      cnp.int32_t[::1] forward_offset,
+                      cnp.int32_t[::1] backward_offset,
+                      cnp.int32_t[::1] forward_offset_locations,
+                      cnp.int32_t[::1] backward_offset_locations,
                       DTYPE_BOOL_t[::1] mask,
                       cnp.intp_t[::1] strides,
                       cnp.double_t compactness,
-                      cnp.intp_t[::1] output,
+                      cnp.int32_t[::1] output,
                       DTYPE_BOOL_t wsl):
     """Perform watershed algorithm using a raveled image and neighborhood.
     Parameters

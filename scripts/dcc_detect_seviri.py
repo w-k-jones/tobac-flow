@@ -273,7 +273,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
 
     edges = flow.sobel(field, direction="uphill", method="linear")
 
-    watershed = flow.watershed(edges, markers, mask=mask, structure=structure)
+    watershed = flow.watershed(edges, markers, mask=mask, connectivity=structure)
 
     print(datetime.now(), "Labelling thick anvil region", flush=True)
     thick_anvil_labels = flow.label(
@@ -316,7 +316,7 @@ def main(start_date, end_date, x0, x1, y0, y1, save_path, seviri_data_path):
 
     edges = flow.sobel(field, direction="uphill", method="linear")
 
-    thin_anvil_labels = flow.watershed(edges, markers, mask=mask, structure=structure)
+    thin_anvil_labels = flow.watershed(edges, markers, mask=mask, connectivity=structure)
 
     thin_anvil_labels *= ndi.binary_opening(
         thin_anvil_labels, structure=s_struct
