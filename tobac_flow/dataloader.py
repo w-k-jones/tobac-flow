@@ -757,6 +757,9 @@ def seviri_nat_dataloader(
     )
     scn.load(["WV_062", "WV_073", "IR_087", "IR_108", "IR_120"], generate=False)
 
+    warnings.filterwarnings(
+        "ignore", category=UserWarning, message='Cannot pretty-format *'
+    )
     ds = scn.to_xarray()
 
     ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
@@ -765,9 +768,24 @@ def seviri_nat_dataloader(
 
     ds.coords["t"] = ("t", dates)
 
-    bt = ds.IR_108.isel(y=slice(y0, y1), x=slice(x0, x1)).load()
-    wvd = (ds.WV_062 - ds.WV_073).isel(y=slice(y0, y1), x=slice(x0, x1)).load()
-    twd = (ds.IR_087 - ds.IR_120).isel(y=slice(y0, y1), x=slice(x0, x1)).load()
+    # Add x and y to coords so that when they are sliced we can retain their position
+    if "x" not in ds.coords:
+        ds.coords["x"] = np.arange(ds.x.size, dtype=int)
+    if "y" not in ds.coords:
+        ds.coords["y"] = np.arange(ds.y.size, dtype=int)
+
+    ds = ds.isel(y=slice(y0, y1), x=slice(x0, x1))
+
+    if return_new_ds:
+        lat = ds.latitude.isel(t=0)
+        lon = ds.longitude.isel(t=0)
+
+    # Now drop coords that aren't related to dims
+    ds = ds.drop_vars([coord for coord in bt.coords if coord not in ["t", "y", "x"]])
+
+    bt = ds.IR_108
+    wvd = (ds.WV_062 - ds.WV_073)
+    twd = (ds.IR_087 - ds.IR_120)
     twd = np.maximum(twd, 0)
 
     all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(twd)], 0)
@@ -787,7 +805,7 @@ def seviri_nat_dataloader(
 
         add_dataarray_to_ds(
             create_dataarray(
-                ds.latitude.isel(t=0, y=slice(y0, y1), x=slice(x0, x1)),
+                lat,
                 ("y", "x"),
                 "lat",
                 long_name="latitude",
@@ -797,7 +815,7 @@ def seviri_nat_dataloader(
         )
         add_dataarray_to_ds(
             create_dataarray(
-                ds.longitude.isel(t=0, y=slice(y0, y1), x=slice(x0, x1)),
+                lon,
                 ("y", "x"),
                 "lon",
                 long_name="longitude",
