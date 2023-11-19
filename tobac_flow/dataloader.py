@@ -781,7 +781,7 @@ def seviri_nat_dataloader(
         lon = ds.longitude.isel(t=0)
 
     # Now drop coords that aren't related to dims
-    ds = ds.drop_vars([coord for coord in bt.coords if coord not in ["t", "y", "x"]])
+    ds = ds.drop_vars([coord for coord in ds.coords if coord not in ["t", "y", "x"]])
 
     bt = ds.IR_108
     wvd = (ds.WV_062 - ds.WV_073)
