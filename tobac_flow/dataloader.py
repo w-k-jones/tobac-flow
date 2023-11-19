@@ -757,6 +757,9 @@ def seviri_nat_dataloader(
     )
     scn.load(["WV_062", "WV_073", "IR_087", "IR_108", "IR_120"], generate=False)
 
+    warnings.filterwarnings(
+        "ignore", category=UserWarning, message='Cannot pretty-format *'
+    )
     ds = scn.to_xarray()
 
     ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
