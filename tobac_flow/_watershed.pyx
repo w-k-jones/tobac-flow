@@ -170,7 +170,7 @@ cdef inline int smaller(Heapitem *a, Heapitem *b) nogil:
 @cython.overflowcheck(False)
 @cython.unraisable_tracebacks(False)
 cdef inline double _euclid_dist(Py_ssize_t pt0, Py_ssize_t pt1,
-                                cnp.intp_t[::1] strides) nogil:
+                                cnp.int32_t[::1] strides) nogil:
     """Return the Euclidean distance between raveled points pt0 and pt1."""
     cdef double result = 0
     cdef double curr = 0
@@ -226,7 +226,7 @@ def watershed_raveled(cnp.float32_t[::1] image,
                       cnp.int32_t[::1] forward_offset_locations,
                       cnp.int32_t[::1] backward_offset_locations,
                       DTYPE_BOOL_t[::1] mask,
-                      cnp.intp_t[::1] strides,
+                      cnp.int32_t[::1] strides,
                       cnp.double_t compactness,
                       cnp.int32_t[::1] output,
                       DTYPE_BOOL_t wsl):
