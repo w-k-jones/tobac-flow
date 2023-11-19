@@ -64,8 +64,8 @@ def watershed(
         field = field.astype(np.float32)
     if markers.shape != field.shape:
         message = (
-            f'`markers` (shape {markers.shape}) must have same '
-            f'shape as `image` (shape {field.shape})'
+            f"`markers` (shape {markers.shape}) must have same "
+            f"shape as `image` (shape {field.shape})"
         )
         raise ValueError(message)
     if markers.dtype != np.int32:
@@ -78,11 +78,11 @@ def watershed(
             mask = mask.astype(np.int8)
         if mask.shape != field.shape:
             message = (
-                f'`mask` (shape {mask.shape}) must have same shape '
-                f'as `image` (shape {field.shape})'
+                f"`mask` (shape {mask.shape}) must have same shape "
+                f"as `image` (shape {field.shape})"
             )
             raise ValueError(message)
-    
+
     connectivity, offset = _validate_connectivity(field.ndim, connectivity, offset)
 
     # pad the image, markers, and mask so that we can use the mask to
