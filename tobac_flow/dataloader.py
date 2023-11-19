@@ -771,16 +771,18 @@ def seviri_nat_dataloader(
     if "y" not in ds.coords:
         ds.coords["y"] = np.arange(ds.y.size, dtype=int)
 
+    ds = ds.isel(y=slice(y0, y1), x=slice(x0, x1))
+
     if return_new_ds:
-        lat = ds.latitude.isel(t=0, y=slice(y0, y1), x=slice(x0, x1))
-        lon = ds.longitude.isel(t=0, y=slice(y0, y1), x=slice(x0, x1))
+        lat = ds.latitude.isel(t=0)
+        lon = ds.longitude.isel(t=0)
 
     # Now drop coords that aren't related to dims
     ds = ds.drop_vars([coord for coord in bt.coords if coord not in ["t", "y", "x"]])
 
-    bt = ds.IR_108.isel(y=slice(y0, y1), x=slice(x0, x1))
-    wvd = (ds.WV_062 - ds.WV_073).isel(y=slice(y0, y1), x=slice(x0, x1))
-    twd = (ds.IR_087 - ds.IR_120).isel(y=slice(y0, y1), x=slice(x0, x1))
+    bt = ds.IR_108
+    wvd = (ds.WV_062 - ds.WV_073)
+    twd = (ds.IR_087 - ds.IR_120)
     twd = np.maximum(twd, 0)
 
     all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(twd)], 0)
