@@ -783,9 +783,9 @@ def seviri_nat_dataloader(
     # Now drop coords that aren't related to dims
     ds = ds.drop_vars([coord for coord in ds.coords if coord not in ["t", "y", "x"]])
 
-    bt = ds.IR_108
-    wvd = (ds.WV_062 - ds.WV_073)
-    twd = (ds.IR_087 - ds.IR_120)
+    bt = ds.IR_108.load()
+    wvd = (ds.WV_062 - ds.WV_073).load()
+    twd = (ds.IR_087 - ds.IR_120).load()
     twd = np.maximum(twd, 0)
 
     all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(twd)], 0)
