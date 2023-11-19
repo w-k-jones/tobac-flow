@@ -552,9 +552,9 @@ def get_watershed_mask(
         mask
     """
     wh_field_nan = np.isnan(field)
-
+    mask = np.logical_or(field <= 0, wh_field_nan)
     mask = ndi.binary_erosion(
-        np.logical_or(field <= 0, wh_field_nan),
+        mask,
         structure=np.ones([3, 3, 3]),
         iterations=erode_distance,
         border_value=1,
