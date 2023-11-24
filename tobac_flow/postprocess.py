@@ -116,21 +116,21 @@ def weighted_label_stats(
 
     if uncertainty:
         stats = apply_func_to_labels(
-            labels.to_numpy(),
-            dataset[var].to_numpy(),
-            dataset[f"{var}_uncertainty"].to_numpy(),
-            weights.to_numpy(),
+            labels.values,
+            dataset[var].values,
+            dataset[f"{var}_uncertainty"].values,
+            weights.values,
             func=weighted_stats_and_uncertainties,
-            index=coord.to_numpy(),
+            index=coord.values,
             default=[np.nan] * 8,
         )
     else:
         stats = apply_func_to_labels(
-            labels.to_numpy(),
-            dataset[var].to_numpy(),
-            weights.to_numpy(),
+            labels.values,
+            dataset[var].values,
+            weights.values,
             func=weighted_stats,
-            index=coord.to_numpy(),
+            index=coord.values,
             default=[np.nan] * 4,
         )
     mean = xr.DataArray(
@@ -268,9 +268,9 @@ def get_weighted_proportions_da(
     new_dim = (dim, flag_da.name)
     new_coord = {dim: index, flag_da.name: flag_values}
     proportions = apply_func_to_labels(
-        labels.to_numpy(),
-        flag_da.to_numpy(),
-        weights.to_numpy(),
+        labels.values,
+        flag_da.values,
+        weights.values,
         func=partial(get_weighted_proportions, flag_values=flag_values),
         index=index,
         default=np.asarray([np.nan] * len(flag_meanings)),
@@ -457,12 +457,12 @@ def process_core_properties(dataset):
         )
 
     core_azimuths, core_speed = apply_func_to_labels(
-        dataset.core_step_core_index.to_numpy(),
-        dataset.core_step_lon.to_numpy(),
-        dataset.core_step_lat.to_numpy(),
-        dataset.core_step_t.to_numpy(),
+        dataset.core_step_core_index.values,
+        dataset.core_step_lon.values,
+        dataset.core_step_lat.values,
+        dataset.core_step_t.values,
         func=get_mean_object_azimuth_and_speed,
-        index=dataset.core.to_numpy(),
+        index=dataset.core.values,
         default=[np.nan, np.nan],
     )
 
@@ -688,12 +688,12 @@ def process_thick_anvil_properties(dataset):
         )
 
     anvil_azimuths, anvil_speed = apply_func_to_labels(
-        dataset.thick_anvil_step_anvil_index.to_numpy(),
-        dataset.thick_anvil_step_lon.to_numpy(),
-        dataset.thick_anvil_step_lat.to_numpy(),
-        dataset.thick_anvil_step_t.to_numpy(),
+        dataset.thick_anvil_step_anvil_index.values,
+        dataset.thick_anvil_step_lon.values,
+        dataset.thick_anvil_step_lat.values,
+        dataset.thick_anvil_step_t.values,
         func=get_mean_object_azimuth_and_speed,
-        index=dataset.anvil.to_numpy(),
+        index=dataset.anvil.values,
         default=[np.nan, np.nan],
     )
 
