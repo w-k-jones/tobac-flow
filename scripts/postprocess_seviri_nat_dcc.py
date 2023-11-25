@@ -166,11 +166,11 @@ def main():
         for f in cld_files
     ]
     cld_ds.coords["t"] = dataset.t.sel(
-        t=cld_dates, method="nearest", tolerance=timedelta(seconds=2)
+        t=cld_dates, method="nearest", tolerance=timedelta(seconds=10)
     )
     if cld_ds.t.size != dataset.t.size:
         print("Reindexing cloud dataset", flush=True)
-        cld_ds = cld_ds.reindex(t=dataset.t)
+        cld_ds = cld_ds.reindex(t=dataset.t, fill_value={var:(np.nan if np.issubdtype(cld_ds[var].dtype, np.floating) else 0) for var in cld_ds.data_vars})
 
     print(datetime.now(), "Processing cloud properties", flush=True)
     weights = (
