@@ -138,7 +138,7 @@ def main():
                         / date.strftime("%d")
                         / date.strftime("%H")
                     ).glob(
-                        f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-L2_CLOUD-CLD_PRODUCTS-SEVIRI-MSG4-fv3.0.nc"
+                        f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-L2_CLOUD-CLD_PRODUCTS-SEVIRI-MSG[1-4]-fv3.0.nc"
                     )
                 )
                 for date in dates
@@ -170,7 +170,13 @@ def main():
     )
     if cld_ds.t.size != dataset.t.size:
         print("Reindexing cloud dataset", flush=True)
-        cld_ds = cld_ds.reindex(t=dataset.t, fill_value={var:(np.nan if np.issubdtype(cld_ds[var].dtype, np.floating) else 0) for var in cld_ds.data_vars})
+        cld_ds = cld_ds.reindex(
+            t=dataset.t,
+            fill_value={
+                var: (np.nan if np.issubdtype(cld_ds[var].dtype, np.floating) else 0)
+                for var in cld_ds.data_vars
+            },
+        )
 
     print(datetime.now(), "Processing cloud properties", flush=True)
     weights = (
@@ -223,7 +229,7 @@ def main():
                         / date.strftime("%d")
                         / date.strftime("%H")
                     ).glob(
-                        f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-TOA-SEVIRI-MSG4-fv3.0.nc"
+                        f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-TOA-SEVIRI-MSG[1-4]-fv3.0.nc"
                     )
                 )
                 for date in dates
