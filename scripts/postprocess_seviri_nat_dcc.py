@@ -139,7 +139,7 @@ def main():
                         / date.strftime("%d")
                         / date.strftime("%H")
                     ).glob(
-                        f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-L2_CLOUD-CLD_PRODUCTS-SEVIRI-MSG4-fv3.0.nc"
+                        f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-L2_CLOUD-CLD_PRODUCTS-SEVIRI-MSG[1-4]-fv3.0.nc"
                     )
                 )
                 for date in dates
@@ -166,16 +166,23 @@ def main():
         + timedelta(minutes=12, seconds=42)
         for f in cld_files
     ]
-    cld_ds.coords["t"] = dataset.t.sel(
-        t=cld_dates, method="nearest", tolerance=timedelta(seconds=10)
+    cld_ds.coords["t"] = cld_dates
+    cld_ds = cld_ds.reindex(
+        t=dataset.t,
+        method="nearest",
+        tolerance=timedelta(minutes=1),
+        fill_value={
+            var: (np.nan if np.issubdtype(cld_ds[var].dtype, np.floating) else 0)
+            for var in cld_ds.data_vars
+        },
     )
-    if cld_ds.t.size != dataset.t.size:
-        print("Reindexing cloud dataset", flush=True)
-        cld_ds = cld_ds.reindex(t=dataset.t, fill_value={var:(np.nan if np.issubdtype(cld_ds[var].dtype, np.floating) else 0) for var in cld_ds.data_vars})
 
     print(datetime.now(), "Processing cloud properties", flush=True)
     weights = (
-        weights * (cld_ds.qcflag == 0).astype(float) * (cld_ds.cth < 30).astype(float)
+        weights
+        * (cld_ds.qcflag == 0).astype(np.float32)
+        * (cld_ds.cth < 30).astype(np.float32)
+        * np.isfinite(cld_ds.cot).astype(np.float32)
     )
     weights = xr.DataArray(weights, cld_ds.lat.coords, cld_ds.lat.dims)
     weights = weights.compute()
@@ -224,7 +231,7 @@ def main():
                         / date.strftime("%d")
                         / date.strftime("%H")
                     ).glob(
-                        f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-TOA-SEVIRI-MSG4-fv3.0.nc"
+                        f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-TOA-SEVIRI-MSG[1-4]-fv3.0.nc"
                     )
                 )
                 for date in dates
@@ -250,10 +257,16 @@ def main():
         + timedelta(minutes=12, seconds=42)
         for f in flx_files
     ]
-    flx_ds.coords["t"] = dataset.t.sel(
-        t=flx_dates, method="nearest", tolerance=timedelta(seconds=2)
+    flx_ds.coords["t"] = flx_dates
+    flx_ds = flx_ds.reindex(
+        t=dataset.t,
+        method="nearest",
+        tolerance=timedelta(minutes=1),
+        fill_value={
+            var: (np.nan if np.issubdtype(flx_ds[var].dtype, np.floating) else 0)
+            for var in flx_ds.data_vars
+        },
     )
-    flx_ds = flx_ds.reindex(t=dataset.t)
 
     print(datetime.now(), "Processing flux properties", flush=True)
     flx_ds = add_cre_to_dataset(flx_ds)
