@@ -272,7 +272,7 @@ def get_weighted_proportions_da(
         flag_da.values,
         weights.values,
         func=partial(get_weighted_proportions, flag_values=flag_values),
-        index=index,
+        index=index.values,
         default=np.asarray([np.nan] * len(flag_meanings)),
     )
     proportions = xr.DataArray(
