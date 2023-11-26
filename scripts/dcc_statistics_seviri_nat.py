@@ -29,7 +29,7 @@ start_str = dcc_files[0].stem.split("_S")[-1][:15]
 end_str = dcc_files[-1].stem.split("_E")[-1][:15]
 x_str = dcc_files[0].stem.split("_X")[-1][:9]
 y_str = dcc_files[0].stem.split("_Y")[-1][:9]
-new_filename = f"dcc_statistics_G16_S{start_str}_E{end_str}_X{x_str}_Y{y_str}.nc"
+new_filename = f"dcc_statistics_MSG_S{start_str}_E{end_str}_X{x_str}_Y{y_str}.nc"
 new_filename
 
 save_dir = pathlib.Path(args.sd)
