@@ -1026,7 +1026,7 @@ def add_validity_flags(dataset):
 
     dataset["anvil_no_initial_core_flag"] = (
         dataset.thick_anvil_start_t
-        < dataset.core_start_t[dataset.anvil_initial_core_index]
+        < dataset.core_start_t.loc[dataset.anvil_initial_core_index]
     )
 
     # Add valid flags combining the exisiting data flags
