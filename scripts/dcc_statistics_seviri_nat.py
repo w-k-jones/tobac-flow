@@ -1,7 +1,7 @@
 #!/home/users/wkjones/miniconda3/envs/tobac_flow/bin/python
 import argparse
 import pathlib
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import xarray as xr
 from tobac_flow.postprocess import (
@@ -140,11 +140,21 @@ print(datetime.now(), "Removing orphaned items", flush=True)
 
 # Remove invalid cores and process core properties
 print(datetime.now(), "Filtering and processing cores", flush=True)
-dataset = filter_cores(dataset, verbose=True)
+dataset = filter_cores(
+    dataset,
+    verbose=True,
+    min_lifetime=timedelta(minutes=29),
+    max_time_gap=timedelta(minutes=31),
+)
 dataset = process_core_properties(dataset)
 
 print(datetime.now(), "Filtering and processing anvils", flush=True)
-dataset = filter_anvils(dataset, verbose=True)
+dataset = filter_anvils(
+    dataset,
+    verbose=True,
+    min_lifetime=timedelta(minutes=29),
+    max_time_gap=timedelta(minutes=31),
+)
 dataset = process_thick_anvil_properties(dataset)
 dataset = process_thin_anvil_properties(dataset)
 
