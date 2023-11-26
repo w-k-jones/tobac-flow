@@ -29,7 +29,12 @@ def remove_orphan_coords(dataset: xr.Dataset) -> xr.Dataset:
     return dataset
 
 
-def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
+def filter_cores(
+    dataset: xr.Dataset,
+    verbose: bool = False,
+    min_lifetime: timedelta = timedelta(minutes=14),
+    max_time_gap: timedelta = timedelta(minutes=16),
+) -> xr.Dataset:
     if verbose:
         print(f"Initial core count: {dataset.core.size}")
 
@@ -61,9 +66,7 @@ def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
         dataset.core_step_core_index
     ).reduce(max_t_diff)
 
-    core_invalid_time_diff = core_max_time_diff > np.timedelta64(
-        timedelta(minutes=15, seconds=1)
-    )
+    core_invalid_time_diff = core_max_time_diff > np.timedelta64(max_time_gap)
     if verbose:
         print(f"Valid time gaps: {np.logical_not(core_invalid_time_diff.data).sum()}")
 
@@ -74,9 +77,7 @@ def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
         end_start_diff
     )
 
-    core_invalid_lifetime = core_lifetime < np.timedelta64(
-        timedelta(minutes=14, seconds=59)
-    )
+    core_invalid_lifetime = core_lifetime < np.timedelta64(min_lifetime)
     if verbose:
         print(f"Valid lifetime: {np.logical_not(core_invalid_lifetime.data).sum()}")
 
