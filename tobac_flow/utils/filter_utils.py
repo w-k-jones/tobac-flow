@@ -127,7 +127,12 @@ def filter_cores(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
     return dataset
 
 
-def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
+def filter_anvils(
+    dataset: xr.Dataset,
+    verbose: bool = False,
+    min_lifetime: timedelta = timedelta(minutes=14),
+    max_time_gap: timedelta = timedelta(minutes=16),
+) -> xr.Dataset:
     # Filter no cores associated
     if verbose:
         print(f"Initial anvil count: {dataset.anvil.size}")
@@ -175,9 +180,7 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
         dataset.thick_anvil_step_anvil_index
     ).reduce(start_end_diff)
 
-    anvil_invalid_lifetime = anvil_lifetime < np.timedelta64(
-        timedelta(minutes=14, seconds=59)
-    )
+    anvil_invalid_lifetime = anvil_lifetime < np.timedelta64(min_lifetime)
     if verbose:
         print(f"Valid lifetime: {np.logical_not(anvil_invalid_lifetime.data).sum()}")
 
@@ -193,7 +196,7 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
     ).reduce(max_t_diff)
 
     thick_anvil_invalid_time_diff = thick_anvil_max_time_diff > np.timedelta64(
-        timedelta(minutes=15, seconds=1)
+        max_time_gap
     )
     if verbose:
         print(
@@ -220,24 +223,24 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
         print(f"Valid anvil area: {np.logical_not(wh_anvil_area_invalid.data).sum()}")
 
     # Filter anvil starts before first core starts
-    anvil_start_t = xr.DataArray(
-        dataset.thick_anvil_step_t.groupby(dataset.thick_anvil_step_anvil_index)
-        .min()
-        .data,
-        {"anvil": dataset.anvil},
-    )
-    anvil_core_start_t = xr.DataArray(
-        dataset.core_start_t[wh_core_has_anvil]
-        .groupby(dataset.core_anvil_index[wh_core_has_anvil])
-        .min()
-        .data,
-        {"anvil": dataset.anvil},
-    )
-    wh_anvil_start_t_invalid = anvil_start_t < anvil_core_start_t
-    if verbose:
-        print(
-            f"Valid anvil start time: {np.logical_not(wh_anvil_start_t_invalid.data).sum()}"
-        )
+    # anvil_start_t = xr.DataArray(
+    #     dataset.thick_anvil_step_t.groupby(dataset.thick_anvil_step_anvil_index)
+    #     .min()
+    #     .data,
+    #     {"anvil": dataset.anvil},
+    # )
+    # anvil_core_start_t = xr.DataArray(
+    #     dataset.core_start_t[wh_core_has_anvil]
+    #     .groupby(dataset.core_anvil_index[wh_core_has_anvil])
+    #     .min()
+    #     .data,
+    #     {"anvil": dataset.anvil},
+    # )
+    # wh_anvil_start_t_invalid = anvil_start_t < anvil_core_start_t
+    # if verbose:
+    #     print(
+    #         f"Valid anvil start time: {np.logical_not(wh_anvil_start_t_invalid.data).sum()}"
+    #     )
 
     # Filter anvil ends before last core ends
     anvil_end_t = xr.DataArray(
@@ -265,7 +268,7 @@ def filter_anvils(dataset: xr.Dataset, verbose: bool = False) -> xr.Dataset:
             anvil_invalid_lifetime.data,
             thick_anvil_invalid_time_diff.data,
             wh_anvil_area_invalid.data,
-            wh_anvil_start_t_invalid.data,
+            # wh_anvil_start_t_invalid.data,
             wh_anvil_end_t_invalid.data,
         ]
     )

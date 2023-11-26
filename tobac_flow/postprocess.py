@@ -1024,6 +1024,10 @@ def add_validity_flags(dataset):
         <= dataset.core_end_t.loc[dataset.anvil_initial_core_index]
     )
 
+    dataset["anvil_no_initial_core_flag"] = (
+        dataset.anvil_start_t < dataset.core_start_t[dataset.anvil_initial_core_index]
+    )
+
     # Add valid flags combining the exisiting data flags
     if "core_nan_flag" in dataset.data_vars:
         dataset["core_is_valid"] = xr.DataArray(
@@ -1065,7 +1069,8 @@ def add_validity_flags(dataset):
                 np.logical_or.reduce(
                     [
                         anvil_has_invalid_cores.data,
-                        dataset.anvil_no_growth_flag,
+                        dataset.anvil_no_growth_flag.data,
+                        dataset.anvil_no_initial_core_flag.data,
                         dataset.thick_anvil_edge_label_flag.data,
                         dataset.thick_anvil_start_label_flag.data,
                         dataset.thick_anvil_end_label_flag.data,
@@ -1081,7 +1086,8 @@ def add_validity_flags(dataset):
                 np.logical_or.reduce(
                     [
                         anvil_has_invalid_cores.data,
-                        dataset.anvil_no_growth_flag,
+                        dataset.anvil_no_growth_flag.data,
+                        dataset.anvil_no_initial_core_flag.data,
                         dataset.thick_anvil_edge_label_flag.data,
                         dataset.thick_anvil_start_label_flag.data,
                         dataset.thick_anvil_end_label_flag.data,
