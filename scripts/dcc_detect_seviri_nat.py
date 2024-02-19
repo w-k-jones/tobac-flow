@@ -155,6 +155,7 @@ def main() -> None:
         y0=y0,
         y1=y1,
         return_new_ds=True,
+        match_cld_files=True,
     )
 
     print(datetime.now(), "Calculating flow field", flush=True)
@@ -165,9 +166,9 @@ def main() -> None:
 
     print(datetime.now(), "Detecting growth markers", flush=True)
     wvd_threshold = 0.25
-    bt_threshold = 0.5
+    bt_threshold = 0.25
     overlap = 0.5
-    absolute_overlap = 4
+    absolute_overlap = 1
     subsegment_shrink = 0.0
     min_length = 2
 

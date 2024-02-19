@@ -662,8 +662,12 @@ def seviri_dataloader(
 
 
 def glob_seviri_nat_files(
-    start_date, end_date, satellite=None, file_path=pathlib.Path("../data/seviri/")
-):
+    start_date: datetime, 
+    end_date: datetime, 
+    satellite: int | list | None = None, 
+    file_path: pathlib.Path = pathlib.Path("../data/seviri/"), 
+    match_cld_files: bool = False
+) -> list[pathlib.Path]:
     if satellite is None:
         satellite = "[1234]"
     elif satellite not in [1, 2, 3, 4, "1", "2", "3", "4"]:
@@ -680,12 +684,45 @@ def glob_seviri_nat_files(
 
     seviri_files = []
 
-    for date in dates:
-        datestr = date.strftime("%Y%m%d%H")
-        glob_str = f"MSG{satellite}-SEVI-MSG*-NA-{datestr}*-NA.nat"
-        seviri_files.extend(
-            list((file_path / date.strftime("%Y/%m/%d")).glob(glob_str))
+    if match_cld_files:
+        seviri_file_path = pathlib.Path(
+            "/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/Data"
         )
+        cld_files = sorted(
+            sum(
+                [
+                    list(
+                        (
+                            seviri_file_path
+                            / date.strftime("%Y")
+                            / date.strftime("%m")
+                            / date.strftime("%d")
+                            / date.strftime("%H")
+                        ).glob(
+                            f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-L2_CLOUD-CLD_PRODUCTS-SEVIRI-MSG{satellite}-fv3.0.nc"
+                        )
+                    )
+                    for date in dates
+                ],
+                [],
+                )
+            )
+        
+        for file in cld_files:
+            date = datetime.strptime(file.name[:14], '%Y%m%d%H%M%S') + timedelta(minutes=12)
+            satcode = file.name[-13:-9]
+            glob_str = f"{satcode}-SEVI-MSG15*-NA-{date.strftime("%Y%m%d%H%M")}*-NA.nat"
+            seviri_files.extend(
+                list((file_path / date.strftime("%Y/%m/%d")).glob(glob_str))
+            )
+
+    else:
+        for date in dates:
+            datestr = date.strftime("%Y%m%d%H")
+            glob_str = f"MSG{satellite}-SEVI-MSG*-NA-{datestr}*-NA.nat"
+            seviri_files.extend(
+                list((file_path / date.strftime("%Y/%m/%d")).glob(glob_str))
+            )
 
     return sorted(seviri_files)
 
@@ -696,20 +733,21 @@ def find_seviri_nat_files(
     n_pad_files=1,
     satellite=None,
     file_path=pathlib.Path("../data/seviri/"),
+    match_cld_files=False,
 ):
-    seviri_files = glob_seviri_nat_files(start_date, end_date, satellite, file_path)
+    seviri_files = glob_seviri_nat_files(start_date, end_date, satellite, file_path, match_cld_files=match_cld_files)
 
     if n_pad_files > 0:
         pad_hours = int(np.ceil(n_pad_files / 4))
 
         seviri_pre_file = glob_seviri_nat_files(
-            start_date - timedelta(hours=pad_hours), start_date, satellite, file_path
+            start_date - timedelta(hours=pad_hours), start_date, satellite, file_path, match_cld_files=match_cld_files
         )
         if len(seviri_pre_file):
             seviri_pre_file = seviri_pre_file[-n_pad_files:]
 
         seviri_post_file = glob_seviri_nat_files(
-            end_date, end_date + timedelta(hours=pad_hours), satellite, file_path
+            end_date, end_date + timedelta(hours=pad_hours), satellite, file_path, match_cld_files=match_cld_files
         )
         if len(seviri_post_file):
             seviri_post_file = seviri_post_file[:n_pad_files]
@@ -741,6 +779,7 @@ def seviri_nat_dataloader(
     y1=None,
     time_gap=timedelta(minutes=30),
     return_new_ds=False,
+    match_cld_files=False,
 ):
     files = find_seviri_nat_files(
         start_date,
@@ -748,6 +787,7 @@ def seviri_nat_dataloader(
         n_pad_files=n_pad_files,
         satellite=satellite,
         file_path=file_path,
+        match_cld_files=match_cld_files,
     )
 
     scn = satpy.Scene(reader="seviri_l1b_native", filenames=files)
