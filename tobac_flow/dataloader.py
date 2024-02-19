@@ -711,7 +711,7 @@ def glob_seviri_nat_files(
         for file in cld_files:
             date = datetime.strptime(file.name[:14], '%Y%m%d%H%M%S') + timedelta(minutes=12)
             satcode = file.name[-13:-9]
-            glob_str = f"{satcode}-SEVI-MSG15*-NA-{date.strftime("%Y%m%d%H%M")}*-NA.nat"
+            glob_str = f"{satcode}-SEVI-MSG15*-NA-{date.strftime('%Y%m%d%H%M')}*-NA.nat"
             seviri_files.extend(
                 list((file_path / date.strftime("%Y/%m/%d")).glob(glob_str))
             )
