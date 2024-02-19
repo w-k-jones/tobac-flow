@@ -36,6 +36,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("date", help="Date on which to start process", type=str)
 parser.add_argument("hours", help="Number of hours to process", type=float)
+parser.add_argument("-offset", help="Number of days to offset from start date", default=0, type=int)
 parser.add_argument("-sat", help="MSG satellite", default=None, type=int)
 parser.add_argument("-x0", help="Initial subset x location", default=53, type=int)
 parser.add_argument("-x1", help="End subset x location", default=3658, type=int)
@@ -92,6 +93,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 start_date = parse_date(args.date, fuzzy=True)
+start_date = start_date + timedelta(days=args.offset)
 end_date = start_date + timedelta(hours=args.hours)
 
 satellite = args.sat
