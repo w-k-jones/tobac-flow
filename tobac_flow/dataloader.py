@@ -801,18 +801,12 @@ def seviri_nat_dataloader(
         "ignore", category=UserWarning, message="Cannot pretty-format *"
     )
     ds = scn.to_xarray()
-    # Coarsen to separate time dimension
-    ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
-
-    if return_new_ds:
-        lat = ds.latitude.isel(t=0)
-        lon = ds.longitude.isel(t=0)
-
+    
     # Now drop coords that aren't related to dims
     ds = ds.drop_vars([coord for coord in ds.coords if coord not in ["t", "y", "x"]])
 
     # Coarsen to separate time dimension
-    # ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
+    ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
     dates = [get_seviri_nat_date_from_filename(f) for f in files]
     ds.coords["t"] = ("t", dates)
 
@@ -823,6 +817,10 @@ def seviri_nat_dataloader(
         ds.coords["y"] = np.arange(ds.y.size, dtype=int)
 
     ds = ds.isel(y=slice(y0, y1), x=slice(x0, x1))
+
+    if return_new_ds:
+        lat = ds.latitude.isel(t=0)
+        lon = ds.longitude.isel(t=0)
 
     bt = ds.IR_108.load()
     wvd = (ds.WV_062 - ds.WV_073).load()
@@ -846,7 +844,7 @@ def seviri_nat_dataloader(
 
         add_dataarray_to_ds(
             create_dataarray(
-                lat.isel(y=slice(y0, y1), x=slice(x0, x1)),
+                lat,
                 ("y", "x"),
                 "lat",
                 long_name="latitude",
@@ -856,7 +854,7 @@ def seviri_nat_dataloader(
         )
         add_dataarray_to_ds(
             create_dataarray(
-                lon.isel(y=slice(y0, y1), x=slice(x0, x1)),
+                lon,
                 ("y", "x"),
                 "lon",
                 long_name="longitude",
@@ -866,8 +864,8 @@ def seviri_nat_dataloader(
         )
 
         area = get_pixel_area(
-            new_ds.lat.isel(y=slice(y0, y1), x=slice(x0, x1)).values,
-            new_ds.lon.isel(y=slice(y0, y1), x=slice(x0, x1)).values, 
+            new_ds.lat.values,
+            new_ds.lon.values, 
         )
 
         add_dataarray_to_ds(
