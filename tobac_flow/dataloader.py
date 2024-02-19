@@ -802,9 +802,6 @@ def seviri_nat_dataloader(
     )
     ds = scn.to_xarray()
     
-    # Now drop coords that aren't related to dims
-    ds = ds.drop_vars([coord for coord in ds.coords if coord not in ["t", "y", "x"]])
-
     # Coarsen to separate time dimension
     ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
     dates = [get_seviri_nat_date_from_filename(f) for f in files]
@@ -821,6 +818,9 @@ def seviri_nat_dataloader(
     if return_new_ds:
         lat = ds.latitude.isel(t=0)
         lon = ds.longitude.isel(t=0)
+
+    # Now drop coords that aren't related to dims
+    ds = ds.drop_vars([coord for coord in ds.coords if coord not in ["t", "y", "x"]])
 
     bt = ds.IR_108.load()
     wvd = (ds.WV_062 - ds.WV_073).load()
