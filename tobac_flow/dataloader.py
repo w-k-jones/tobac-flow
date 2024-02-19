@@ -801,6 +801,7 @@ def seviri_nat_dataloader(
         "ignore", category=UserWarning, message="Cannot pretty-format *"
     )
     ds = scn.to_xarray()
+    ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
 
     if return_new_ds:
         lat = ds.latitude.isel(t=0)
@@ -844,7 +845,7 @@ def seviri_nat_dataloader(
 
         add_dataarray_to_ds(
             create_dataarray(
-                lat,
+                lat.isel(y=slice(y0, y1), x=slice(x0, x1)),
                 ("y", "x"),
                 "lat",
                 long_name="latitude",
@@ -854,7 +855,7 @@ def seviri_nat_dataloader(
         )
         add_dataarray_to_ds(
             create_dataarray(
-                lon,
+                lon.isel(y=slice(y0, y1), x=slice(x0, x1)),
                 ("y", "x"),
                 "lon",
                 long_name="longitude",
@@ -863,7 +864,10 @@ def seviri_nat_dataloader(
             new_ds,
         )
 
-        area = get_pixel_area(new_ds.lat.values, new_ds.lon.values)
+        area = get_pixel_area(
+            new_ds.lat.isel(y=slice(y0, y1), x=slice(x0, x1)).values,
+            new_ds.lon.isel(y=slice(y0, y1), x=slice(x0, x1)).values, 
+        )
 
         add_dataarray_to_ds(
             create_dataarray(
