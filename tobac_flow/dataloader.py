@@ -801,6 +801,7 @@ def seviri_nat_dataloader(
         "ignore", category=UserWarning, message="Cannot pretty-format *"
     )
     ds = scn.to_xarray()
+    # Coarsen to separate time dimension
     ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
 
     if return_new_ds:
@@ -811,7 +812,7 @@ def seviri_nat_dataloader(
     ds = ds.drop_vars([coord for coord in ds.coords if coord not in ["t", "y", "x"]])
 
     # Coarsen to separate time dimension
-    ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
+    # ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
     dates = [get_seviri_nat_date_from_filename(f) for f in files]
     ds.coords["t"] = ("t", dates)
 
