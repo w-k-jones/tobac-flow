@@ -1,12 +1,12 @@
 #!/home/users/wkjones/miniconda3/envs/tobac_flow/bin/python
 import numpy as np
+import pandas as pd
 import xarray as xr
 import argparse
 import pathlib
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 from scipy.stats import binned_statistic_2d
-from tobac_flow.dataloader import find_seviri_nat_files
 from tobac_flow.postprocess import add_cre_to_dataset
 from tobac_flow.utils import add_area_to_dataset
 
@@ -41,13 +41,37 @@ lats = lat_bins[1:] - 0.5
 
 print(datetime.now(), "Loading flux properties", flush=True)
 
-flx_files = find_seviri_nat_files(
-    start_date,
-    end_date,
-    n_pad_files=0,
-    file_type="flux",
-    file_path="/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/Data/",
+flx_files = sorted(
+    sum(
+        [
+            list(
+                (
+                    pathlib.Path("/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/Data/")
+                    / date.strftime("%Y")
+                    / date.strftime("%m")
+                    / date.strftime("%d")
+                    / date.strftime("%H")
+                ).glob(
+                    f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-TOA-SEVIRI-MSG[1-4]-fv3.0.nc"
+                )
+            )
+            for date in pd.date_range(start_date, end_date, freq="h", inclusive="left")
+        ],
+        [],
+    )
 )
+
+flx_ds = xr.open_mfdataset(
+    flx_files, combine="nested", concat_dim="t", decode_times=False
+)
+
+# Add time coord to flx_ds
+flx_dates = [
+    datetime.strptime(f.name[:14], "%Y%m%d%H%M%S")
+    + timedelta(minutes=12, seconds=42)
+    for f in flx_files
+]
+flx_ds.coords["t"] = flx_dates
 
 flx_ds = xr.open_mfdataset(flx_files, combine="nested", concat_dim="t").squeeze()
 
