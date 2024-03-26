@@ -72,12 +72,6 @@ flx_dates = [
 ]
 flx_ds.coords["t"] = flx_dates
 
-flx_ds = xr.open_mfdataset(flx_files, combine="nested", concat_dim="t").squeeze()
-
-flx_ds = add_area_to_dataset(flx_ds)
-
-flx_ds = flx_ds.assign_coords(t=[parse_date(f[-46:-34]) for f in flx_files])
-
 print(datetime.now(), "Processing flux properties", flush=True)
 flx_ds = add_cre_to_dataset(flx_ds)
 
