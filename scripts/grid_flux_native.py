@@ -1,3 +1,4 @@
+#!/home/users/wkjones/miniconda3/envs/tobac_flow/bin/python
 import numpy as np
 import xarray as xr
 import argparse
