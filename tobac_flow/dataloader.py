@@ -671,7 +671,7 @@ def glob_seviri_nat_files(
     if satellite is None:
         satellite = "[1234]"
     elif satellite not in [1, 2, 3, 4, "1", "2", "3", "4"]:
-        raise ValueError("satellite keywrod must be one of '1', '2', '3', '4'")
+        raise ValueError("satellite keyword must be one of '1', '2', '3', '4'")
 
     if isinstance(file_path, str):
         file_path = pathlib.Path(file_path)
