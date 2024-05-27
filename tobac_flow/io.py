@@ -55,7 +55,7 @@ def _test_subprocess_command(shell_command):
     """
     try:
         test = subprocess.check_output(shell_command.split(" "))
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return False
     else:
         return True
