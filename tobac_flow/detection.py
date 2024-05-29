@@ -1,3 +1,4 @@
+from math import e
 import warnings
 from functools import partial
 import numpy as np
@@ -443,7 +444,10 @@ def detect_cores(
             / 60
         )
 
-        return np.nanmax(step_bt_diff)
+        if step_bt_diff.size > 0:
+            return np.nanmax(step_bt_diff)
+        else:
+            return 0
 
     core_bt_diff_mean = labeled_comprehension(
         core_step_bt_mean,
@@ -502,24 +506,25 @@ def detect_anvils(
     s_struct = structure * np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
     if markers is None:
         markers = field >= 1
-    # else:
-    #     field[markers!=0] = 1
-    markers = markers * ndi.binary_erosion(markers != 0, structure=s_struct).astype(int)
+    eroded_markers = markers * ndi.binary_erosion(markers != 0, structure=s_struct).astype(int)
     mask = get_watershed_mask(field, erode_distance=erode_distance)
-    # edges = flow.sobel(field, direction="uphill", method="cubic")
-    # # edges[markers != 0] = 0
-    # edges[edges > 0] += 1
+    eroded_markers[mask] = -1
+    edges = get_combined_edge_field(flow, field)
     anvil_labels = flow.watershed(
-        get_combined_edge_field(flow, field),
-        markers,
-        mask=mask,
-        structure=ndi.generate_binary_structure(3, 1),
+        edges,
+        eroded_markers,
+        mask=None,
+        connectivity=ndi.generate_binary_structure(3, 1),
     )
+
+    anvil_labels[anvil_labels < 0] = 0
+
     anvil_labels *= ndi.binary_opening(anvil_labels != 0, structure=s_struct).astype(
         int
     )
 
-    anvil_labels[markers != 0] = markers[markers != 0]
+    wh_markers = markers > 0
+    anvil_labels[wh_markers] = markers[wh_markers]
 
     marker_label_lengths = find_object_lengths(anvil_labels)
     marker_label_threshold = mask_labels(anvil_labels, markers != 0)
@@ -551,9 +556,9 @@ def get_watershed_mask(
         mask
     """
     wh_field_nan = np.isnan(field)
-
+    mask = np.logical_or(field <= 0, wh_field_nan)
     mask = ndi.binary_erosion(
-        np.logical_or(field <= 0, wh_field_nan),
+        mask,
         structure=np.ones([3, 3, 3]),
         iterations=erode_distance,
         border_value=1,

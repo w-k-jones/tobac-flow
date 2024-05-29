@@ -1,6 +1,6 @@
 import argparse
 import pathlib
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import xarray as xr
 from tobac_flow.postprocess import (
@@ -29,7 +29,7 @@ start_str = dcc_files[0].stem.split("_S")[-1][:15]
 end_str = dcc_files[-1].stem.split("_E")[-1][:15]
 x_str = dcc_files[0].stem.split("_X")[-1][:9]
 y_str = dcc_files[0].stem.split("_Y")[-1][:9]
-new_filename = f"dcc_statistics_G16_S{start_str}_E{end_str}_X{x_str}_Y{y_str}.nc"
+new_filename = f"dcc_statistics_MSG_S{start_str}_E{end_str}_X{x_str}_Y{y_str}.nc"
 new_filename
 
 save_dir = pathlib.Path(args.sd)
@@ -46,8 +46,13 @@ with xr.open_dataset(dcc_files[0]) as dcc_ds:
     var_list = [
         var
         for var in dcc_ds.data_vars
-        if dcc_ds.data_vars[var].dims
-        in [("core_step",), ("thick_anvil_step",), ("thin_anvil_step",)]
+        if any(
+            [
+                dim in ["core_step", "thick_anvil_step", "thin_anvil_step"] 
+                for dim in dcc_ds.data_vars[var].dims
+            ]
+        )
+        
     ]
     var_list = [
         "core_edge_label_flag",
@@ -139,11 +144,21 @@ print(datetime.now(), "Removing orphaned items", flush=True)
 
 # Remove invalid cores and process core properties
 print(datetime.now(), "Filtering and processing cores", flush=True)
-dataset = filter_cores(dataset, verbose=True)
+dataset = filter_cores(
+    dataset,
+    verbose=True,
+    min_lifetime=timedelta(minutes=29),
+    max_time_gap=timedelta(minutes=31),
+)
 dataset = process_core_properties(dataset)
 
 print(datetime.now(), "Filtering and processing anvils", flush=True)
-dataset = filter_anvils(dataset, verbose=True)
+dataset = filter_anvils(
+    dataset,
+    verbose=True,
+    min_lifetime=timedelta(minutes=29),
+    max_time_gap=timedelta(minutes=31),
+)
 dataset = process_thick_anvil_properties(dataset)
 dataset = process_thin_anvil_properties(dataset)
 

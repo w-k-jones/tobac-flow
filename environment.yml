@@ -2,12 +2,14 @@ name: tobac_flow
 channels:
   - conda-forge
 dependencies:
+  - python=3.11
   - numpy
   - scipy
   - scikit-image
   - scikit-learn
   - pandas
   - xarray
+  - satpy
   - dask
   - requests
   - opencv
