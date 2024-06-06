@@ -47,8 +47,13 @@ with xr.open_dataset(dcc_files[0]) as dcc_ds:
     var_list = [
         var
         for var in dcc_ds.data_vars
-        if dcc_ds.data_vars[var].dims
-        in [("core_step",), ("thick_anvil_step",), ("thin_anvil_step",)]
+        if any(
+            [
+                dim in ["core_step", "thick_anvil_step", "thin_anvil_step"] 
+                for dim in dcc_ds.data_vars[var].dims
+            ]
+        )
+        
     ]
     var_list = [
         "core_edge_label_flag",
