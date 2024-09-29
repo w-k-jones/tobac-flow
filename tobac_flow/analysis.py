@@ -355,8 +355,8 @@ def weighted_statistics_on_labels(labels, da, weights, name=None, dim=None, dtyp
     weighted_std = (
         lambda x, w: weighted_average((x - weighted_average(x, w)) ** 2, w) ** 0.5
     )
-    weighted_stats = (
-        lambda x, w: [
+    weighted_stats = lambda x, w: (
+        [
             weighted_average(x, w),
             weighted_std(x, w),
             np.nanmax(x[w > 0]),

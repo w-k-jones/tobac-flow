@@ -506,7 +506,9 @@ def detect_anvils(
     s_struct = structure * np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
     if markers is None:
         markers = field >= 1
-    eroded_markers = markers * ndi.binary_erosion(markers != 0, structure=s_struct).astype(int)
+    eroded_markers = markers * ndi.binary_erosion(
+        markers != 0, structure=s_struct
+    ).astype(int)
     mask = get_watershed_mask(field, erode_distance=erode_distance)
     eroded_markers[mask] = -1
     edges = get_combined_edge_field(flow, field)

@@ -2,6 +2,7 @@
 Utilities for calculating various statistical properties, inclduing weighted
     statistics and statistics over labels
 """
+
 import numpy as np
 import xarray as xr
 from scipy import stats

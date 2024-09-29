@@ -711,9 +711,9 @@ def flow_network_watershed(
                 new_label[max_markers + 1 :][wh] = new
         for k in range(max_markers + 1, n_bins):
             if region_bins[k] < region_bins[k + 1]:
-                fill.ravel()[
-                    region_inds[region_bins[k] : region_bins[k + 1]]
-                ] = new_label[k]
+                fill.ravel()[region_inds[region_bins[k] : region_bins[k + 1]]] = (
+                    new_label[k]
+                )
         if debug_mode:
             print("Iteration:", iter)
             print("Remaining labels:", np.unique(fill).size)
@@ -754,12 +754,14 @@ def flow_label(data, flow, structure=ndi.generate_binary_structure(3, 1)):
         )
         #     Map each label to its smallest overlapping label at the previous time step
         p_label_map = {
-            i: int(np.nanmin(p_labels.ravel()[args[bin_edges[i - 1] : bin_edges[i]]]))
-            if bin_edges[i - 1] < bin_edges[i]
-            and np.any(
-                np.isfinite(p_labels.ravel()[args[bin_edges[i - 1] : bin_edges[i]]])
+            i: (
+                int(np.nanmin(p_labels.ravel()[args[bin_edges[i - 1] : bin_edges[i]]]))
+                if bin_edges[i - 1] < bin_edges[i]
+                and np.any(
+                    np.isfinite(p_labels.ravel()[args[bin_edges[i - 1] : bin_edges[i]]])
+                )
+                else i
             )
-            else i
             for i in range(1, len(bin_edges))
         }
         #     Converge to lowest value label
@@ -789,12 +791,14 @@ def flow_label(data, flow, structure=ndi.generate_binary_structure(3, 1)):
         args = np.argsort(np.fmax(t_labels.ravel(), 0).astype(int))
         #     map each label to the smallest overlapping label at the next time step
         n_label_map = {
-            i: int(np.nanmin(n_labels.ravel()[args[bin_edges[i - 1] : bin_edges[i]]]))
-            if bin_edges[i - 1] < bin_edges[i]
-            and np.any(
-                np.isfinite(n_labels.ravel()[args[bin_edges[i - 1] : bin_edges[i]]])
+            i: (
+                int(np.nanmin(n_labels.ravel()[args[bin_edges[i - 1] : bin_edges[i]]]))
+                if bin_edges[i - 1] < bin_edges[i]
+                and np.any(
+                    np.isfinite(n_labels.ravel()[args[bin_edges[i - 1] : bin_edges[i]]])
+                )
+                else i
             )
-            else i
             for i in range(1, len(bin_edges))
         }
         # converge

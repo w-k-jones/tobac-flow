@@ -1,6 +1,7 @@
 """
 Utilities for filtering various detected features
 """
+
 from datetime import timedelta
 import numpy as np
 import xarray as xr

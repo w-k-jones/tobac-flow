@@ -1,6 +1,7 @@
 """
 Tools for working with GLM data. Mostly adapted from glmtools/lmatools
 """
+
 from datetime import datetime, timedelta
 import warnings
 import pathlib

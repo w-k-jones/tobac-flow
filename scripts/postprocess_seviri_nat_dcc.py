@@ -77,45 +77,46 @@ def main():
     print(datetime.now(), "Calculating pixel weights", flush=True)
     weights = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
 
-    for field in (dataset.BT,):
-        [
-            add_dataarray_to_ds(da[dataset.core_step.data - 1], dataset)
-            for da in weighted_statistics_on_labels(
-                dataset.core_step_label,
-                field.compute(),
-                weights,
-                name="core_step",
-                dim="core_step",
-                dtype=np.float32,
-            )
-        ]
+    if "BT" in dataset.data_vars:
+        for field in (dataset.BT,):
+            [
+                add_dataarray_to_ds(da[dataset.core_step.data - 1], dataset)
+                for da in weighted_statistics_on_labels(
+                    dataset.core_step_label,
+                    field.compute(),
+                    weights,
+                    name="core_step",
+                    dim="core_step",
+                    dtype=np.float32,
+                )
+            ]
 
-        [
-            add_dataarray_to_ds(da[dataset.thick_anvil_step.data - 1], dataset)
-            for da in weighted_statistics_on_labels(
-                dataset.thick_anvil_step_label,
-                field.compute(),
-                weights,
-                name="thick_anvil_step",
-                dim="thick_anvil_step",
-                dtype=np.float32,
-            )
-        ]
+            [
+                add_dataarray_to_ds(da[dataset.thick_anvil_step.data - 1], dataset)
+                for da in weighted_statistics_on_labels(
+                    dataset.thick_anvil_step_label,
+                    field.compute(),
+                    weights,
+                    name="thick_anvil_step",
+                    dim="thick_anvil_step",
+                    dtype=np.float32,
+                )
+            ]
 
-        [
-            add_dataarray_to_ds(da[dataset.thin_anvil_step.data - 1], dataset)
-            for da in weighted_statistics_on_labels(
-                dataset.thin_anvil_step_label,
-                field.compute(),
-                weights,
-                name="thin_anvil_step",
-                dim="thin_anvil_step",
-                dtype=np.float32,
-            )
-        ]
+            [
+                add_dataarray_to_ds(da[dataset.thin_anvil_step.data - 1], dataset)
+                for da in weighted_statistics_on_labels(
+                    dataset.thin_anvil_step_label,
+                    field.compute(),
+                    weights,
+                    name="thin_anvil_step",
+                    dim="thin_anvil_step",
+                    dtype=np.float32,
+                )
+            ]
 
-    # Remove BT to reduce file size
-    dataset = dataset.drop_vars("BT")
+        # Remove BT to reduce file size
+        dataset = dataset.drop_vars("BT")
 
     # Load cloud properties file
     print(datetime.now(), "Loading cloud properties", flush=True)
@@ -271,6 +272,7 @@ def main():
     flx_ds = add_cre_to_dataset(flx_ds)
 
     for var in (
+        "toa_swdn",
         "toa_swup",
         "toa_swup_cre",
         "toa_lwup",

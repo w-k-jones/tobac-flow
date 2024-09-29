@@ -1,6 +1,7 @@
 """
 Watershed segmentation operations in a semi-Lagrangian framework.
 """
+
 import numpy as np
 import scipy.ndimage as ndi
 from skimage.morphology._util import (
