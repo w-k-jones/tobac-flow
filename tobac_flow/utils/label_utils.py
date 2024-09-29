@@ -121,14 +121,18 @@ def apply_func_to_labels(
 
     return np.stack(
         [
-            func(
-                *[
-                    field.ravel()[args[bins[i - min_label - 1] : bins[i - min_label]]]
-                    for field in broadcast_fields
-                ]
+            (
+                func(
+                    *[
+                        field.ravel()[
+                            args[bins[i - min_label - 1] : bins[i - min_label]]
+                        ]
+                        for field in broadcast_fields
+                    ]
+                )
+                if bins[i - min_label] > bins[i - min_label - 1]
+                else default_vals
             )
-            if bins[i - min_label] > bins[i - min_label - 1]
-            else default_vals
             for i in index
         ],
         -1,
@@ -208,9 +212,11 @@ def get_step_labels_for_label(
     bins = np.cumsum(np.bincount(labels.ravel()))
     args = np.argsort(labels.ravel())
     return [
-        np.unique(step_labels.ravel()[args[bins[i] : bins[i + 1]]])
-        if bins[i + 1] > bins[i]
-        else None
+        (
+            np.unique(step_labels.ravel()[args[bins[i] : bins[i + 1]]])
+            if bins[i + 1] > bins[i]
+            else None
+        )
         for i in range(bins.size - 1)
     ]
 

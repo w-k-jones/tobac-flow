@@ -1,6 +1,7 @@
 """
 Functions for performing normalisation over a range of data
 """
+
 from typing import Callable
 import numpy as np
 import scipy.ndimage as ndi

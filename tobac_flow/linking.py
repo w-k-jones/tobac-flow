@@ -1010,9 +1010,9 @@ class Label_Linker:
                     == 0,  # Original labels are zero
                 )
                 # Update core labels
-                ds.core_label.sel(t=t_overlap[1:-1]).data[
-                    wh_combine
-                ] = remapped_cores.sel(t=t_overlap[1:-1]).values[wh_combine]
+                ds.core_label.sel(t=t_overlap[1:-1]).data[wh_combine] = (
+                    remapped_cores.sel(t=t_overlap[1:-1]).values[wh_combine]
+                )
 
                 # Now repeat for anvils
                 remapped_thick_anvils, remapped_thin_anvils = self.relabel_anvils(
@@ -1045,9 +1045,9 @@ class Label_Linker:
                 )
 
                 # Update thick anvil labels
-                ds.thick_anvil_label.sel(t=t_overlap[1:-1]).data[
-                    wh_combine
-                ] = remapped_thick_anvils.sel(t=t_overlap[1:-1]).values[wh_combine]
+                ds.thick_anvil_label.sel(t=t_overlap[1:-1]).data[wh_combine] = (
+                    remapped_thick_anvils.sel(t=t_overlap[1:-1]).values[wh_combine]
+                )
 
                 combine_thin_anvil_set = (
                     set(
@@ -1075,9 +1075,9 @@ class Label_Linker:
                 )
 
                 # Update thin anvil labels
-                ds.thin_anvil_label.sel(t=t_overlap[1:-1]).data[
-                    wh_combine
-                ] = remapped_thin_anvils.sel(t=t_overlap[1:-1]).values[wh_combine]
+                ds.thin_anvil_label.sel(t=t_overlap[1:-1]).data[wh_combine] = (
+                    remapped_thin_anvils.sel(t=t_overlap[1:-1]).values[wh_combine]
+                )
 
     def output_a_file(self, file, prev_file, next_file) -> None:
         print(datetime.now(), "Processing output for:", file, flush=True)

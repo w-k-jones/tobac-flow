@@ -19,9 +19,11 @@ def apply_func_to_labels(
     args = np.argsort(labels.ravel())
     return np.array(
         [
-            func(field.ravel()[args[bins[i] : bins[i + 1]]])
-            if bins[i + 1] > bins[i]
-            else default
+            (
+                func(field.ravel()[args[bins[i] : bins[i + 1]]])
+                if bins[i + 1] > bins[i]
+                else default
+            )
             for i in range(bins.size - 1)
         ]
     )
@@ -45,12 +47,14 @@ def apply_weighted_func_to_labels(
     args = np.argsort(labels.ravel())
     return np.array(
         [
-            func(
-                field.ravel()[args[bins[i] : bins[i + 1]]],
-                weights.ravel()[args[bins[i] : bins[i + 1]]],
+            (
+                func(
+                    field.ravel()[args[bins[i] : bins[i + 1]]],
+                    weights.ravel()[args[bins[i] : bins[i + 1]]],
+                )
+                if bins[i + 1] > bins[i]
+                else default
             )
-            if bins[i + 1] > bins[i]
-            else default
             for i in range(bins.size - 1)
         ]
     )

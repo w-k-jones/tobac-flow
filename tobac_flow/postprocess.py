@@ -1,6 +1,7 @@
 """
 Functions for processing data associated with detected regions
 """
+
 from functools import partial
 import numpy as np
 import xarray as xr
@@ -478,12 +479,14 @@ def process_core_properties(dataset, time_steps=3):
             t_steps=time_steps,
         )
 
-        dataset["core_ctt_corrected_cooling_rate_core_step_index"] = idxmax_cooling_rate_groupby(
-            dataset.core_step_ctt_corrected_mean,
-            dataset.core_step_t,
-            dataset.core_step_core_index,
-            dataset.core,
-            t_steps=time_steps,
+        dataset["core_ctt_corrected_cooling_rate_core_step_index"] = (
+            idxmax_cooling_rate_groupby(
+                dataset.core_step_ctt_corrected_mean,
+                dataset.core_step_t,
+                dataset.core_step_core_index,
+                dataset.core,
+                t_steps=time_steps,
+            )
         )
 
     if "core_step_cth_mean" in dataset.data_vars:
@@ -538,14 +541,15 @@ def process_core_properties(dataset, time_steps=3):
             t_steps=time_steps,
         )
 
-        dataset["core_cth_corrected_growth_rate_core_step_index"] = idxmax_cooling_rate_groupby(
-            -dataset.core_step_cth_corrected_mean,
-            dataset.core_step_t,
-            dataset.core_step_core_index,
-            dataset.core,
-            t_steps=time_steps,
+        dataset["core_cth_corrected_growth_rate_core_step_index"] = (
+            idxmax_cooling_rate_groupby(
+                -dataset.core_step_cth_corrected_mean,
+                dataset.core_step_t,
+                dataset.core_step_core_index,
+                dataset.core,
+                t_steps=time_steps,
+            )
         )
-    
 
     core_azimuths, core_speed = apply_func_to_labels(
         dataset.core_step_core_index.values,
@@ -777,7 +781,7 @@ def process_thick_anvil_properties(dataset):
             dataset.thick_anvil_step_anvil_index,
             dataset.anvil,
         )
-    
+
     if "thick_anvil_step_ctt_corrected_mean" in dataset.data_vars:
         dataset["thick_anvil_min_ctt_corrected_t"] = argmin_groupby(
             dataset.thick_anvil_step_t,
@@ -786,12 +790,14 @@ def process_thick_anvil_properties(dataset):
             dataset.anvil,
         )
 
-        dataset["thick_anvil_min_ctt_corrected_thick_anvil_step_index"] = idxmin_groupby(
-            dataset.thick_anvil_step_ctt_corrected_mean,
-            dataset.thick_anvil_step_anvil_index,
-            dataset.anvil,
+        dataset["thick_anvil_min_ctt_corrected_thick_anvil_step_index"] = (
+            idxmin_groupby(
+                dataset.thick_anvil_step_ctt_corrected_mean,
+                dataset.thick_anvil_step_anvil_index,
+                dataset.anvil,
+            )
         )
-    
+
     if "thick_anvil_step_cth_mean" in dataset.data_vars:
         dataset["thick_anvil_min_ctt_t"] = argmax_groupby(
             dataset.thick_anvil_step_t,
@@ -805,7 +811,7 @@ def process_thick_anvil_properties(dataset):
             dataset.thick_anvil_step_anvil_index,
             dataset.anvil,
         )
-    
+
     if "thick_anvil_step_cth_corrected_mean" in dataset.data_vars:
         dataset["thick_anvil_min_ctt_corrected_t"] = argmax_groupby(
             dataset.thick_anvil_step_t,
@@ -814,12 +820,13 @@ def process_thick_anvil_properties(dataset):
             dataset.anvil,
         )
 
-        dataset["thick_anvil_min_cth_corrected_thick_anvil_step_index"] = idxmax_groupby(
-            dataset.thick_anvil_step_cth_corrected_mean,
-            dataset.thick_anvil_step_anvil_index,
-            dataset.anvil,
+        dataset["thick_anvil_min_cth_corrected_thick_anvil_step_index"] = (
+            idxmax_groupby(
+                dataset.thick_anvil_step_cth_corrected_mean,
+                dataset.thick_anvil_step_anvil_index,
+                dataset.anvil,
+            )
         )
-    
 
     anvil_azimuths, anvil_speed = apply_func_to_labels(
         dataset.thick_anvil_step_anvil_index.values,
@@ -1060,7 +1067,7 @@ def process_thin_anvil_properties(dataset):
             dataset.thin_anvil_step_anvil_index,
             dataset.anvil,
         )
-    
+
     if "thin_anvil_step_cth_mean" in dataset.data_vars:
         dataset["thin_anvil_min_ctt_t"] = argmax_groupby(
             dataset.thin_anvil_step_t,
@@ -1074,7 +1081,7 @@ def process_thin_anvil_properties(dataset):
             dataset.thin_anvil_step_anvil_index,
             dataset.anvil,
         )
-    
+
     if "thin_anvil_step_cth_corrected_mean" in dataset.data_vars:
         dataset["thin_anvil_min_ctt_corrected_t"] = argmax_groupby(
             dataset.thin_anvil_step_t,
@@ -1088,7 +1095,6 @@ def process_thin_anvil_properties(dataset):
             dataset.thin_anvil_step_anvil_index,
             dataset.anvil,
         )
-
 
     for var in dataset.data_vars:
         if dataset[var].dims == ("thin_anvil_step",):
