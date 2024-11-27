@@ -2,7 +2,9 @@ import pathlib
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 import numpy as np
+import xarray as xr
 
+import tobac_flow
 from tobac_flow.flow import create_flow
 from tobac_flow.dataloader import goes_dataloader
 from tobac_flow.dataset import (
@@ -11,8 +13,9 @@ from tobac_flow.dataset import (
     add_label_coords,
     flag_edge_labels,
     flag_nan_adjacent_labels,
-    link_step_labels,
     calculate_label_properties,
+    link_cores_and_anvils,
+    link_step_labels
 )
 from tobac_flow.analysis import (
     get_label_stats,
@@ -25,7 +28,6 @@ from tobac_flow.detection import (
     relabel_anvils,
 )
 from tobac_flow.utils import (
-    create_dataarray,
     add_dataarray_to_ds,
 )
 
@@ -143,7 +145,7 @@ def main() -> None:
     bt, wvd, swd, dataset = goes_dataloader(
         start_date,
         end_date,
-        n_pad_files=t_offset * 2,
+        n_pad_files=12,
         x0=x0,
         x1=x1,
         y0=y0,
@@ -179,7 +181,7 @@ def main() -> None:
         use_wvd=False,
     )
 
-    print("Final detected core count: n =", core_labels.max())
+    print("Final detected core count: n =", core_labels.values.max())
 
     print(datetime.now(), "Detecting thick anvil region", flush=True)
     # Detect anvil regions
@@ -195,10 +197,11 @@ def main() -> None:
         absolute_overlap=absolute_overlap,
         subsegment_shrink=subsegment_shrink,
         min_length=t_offset,
+        name = "anvil_marker_label", 
     )
 
-    print("Final thick anvil markers: area =", np.sum(anvil_markers != 0), flush=True)
-    print("Final thick anvil markers: n =", anvil_markers.max(), flush=True)
+    print("Final thick anvil markers: area =", np.sum(anvil_markers.values != 0), flush=True)
+    print("Final thick anvil markers: n =", anvil_markers.values.max(), flush=True)
 
     thick_anvil_labels = detect_anvils(
         flow,
@@ -208,14 +211,16 @@ def main() -> None:
         lower_threshold=lower_threshold,
         erode_distance=erode_distance,
         min_length=t_offset,
+        name="thick_anvil_label", 
+        attributes=dict(long_name="Labels of detected thick anvil regions"), 
     )
 
     print(
         "Initial detected thick anvils: area =",
-        np.sum(thick_anvil_labels != 0),
+        np.sum(thick_anvil_labels.values != 0),
         flush=True,
     )
-    print("Initial detected thick anvils: n =", thick_anvil_labels.max(), flush=True)
+    print("Initial detected thick anvils: n =", thick_anvil_labels.values.max(), flush=True)
 
     thick_anvil_labels = relabel_anvils(
         flow,
@@ -224,14 +229,16 @@ def main() -> None:
         overlap=overlap,
         absolute_overlap=absolute_overlap,
         min_length=t_offset,
+        name="thick_anvil_label", 
+        attributes=dict(long_name="Labels of detected thick anvil regions"), 
     )
 
     print(
         "Final detected thick anvils: area =",
-        np.sum(thick_anvil_labels != 0),
+        np.sum(thick_anvil_labels.values != 0),
         flush=True,
     )
-    print("Final detected thick anvils: n =", thick_anvil_labels.max(), flush=True)
+    print("Final detected thick anvils: n =", thick_anvil_labels.values.max(), flush=True)
 
     print(datetime.now(), "Detecting thin anvil region", flush=True)
     # Detect thin anvil regions
@@ -246,72 +253,29 @@ def main() -> None:
         lower_threshold=lower_threshold,
         erode_distance=erode_distance,
         min_length=t_offset,
+        name="thin_anvil_label", 
+        attributes=dict(long_name="Labels of detected thin anvil regions"), 
     )
 
-    print("Detected thin anvils: area =", np.sum(thin_anvil_labels != 0), flush=True)
-    print("Detected thin anvils: n =", np.max(thin_anvil_labels), flush=True)
+    print("Detected thin anvils: area =", np.sum(thin_anvil_labels.values != 0), flush=True)
+    print("Detected thin anvils: n =", np.max(thin_anvil_labels.values), flush=True)
 
     print(datetime.now(), "Preparing output", flush=True)
 
-    # Create output dataset
-    # Core labels
-    add_dataarray_to_ds(
-        create_dataarray(
-            core_labels,
-            ("t", "y", "x"),
-            "core_label",
-            coords={"t": bt.t},
-            long_name="labels for detected cores",
-            units="",
-            dtype=np.int32,
-        ).sel(t=dataset.t),
-        dataset,
-    )
-
-    # Thick anvil
-    add_dataarray_to_ds(
-        create_dataarray(
-            thick_anvil_labels,
-            ("t", "y", "x"),
-            "thick_anvil_label",
-            coords={"t": bt.t},
-            long_name="labels for detected thick anvil regions",
-            units="",
-            dtype=np.int32,
-        ).sel(t=dataset.t),
-        dataset,
-    )
-
-    # Thin anvil
-    add_dataarray_to_ds(
-        create_dataarray(
-            thin_anvil_labels,
-            ("t", "y", "x"),
-            "thin_anvil_label",
-            coords={"t": bt.t},
-            long_name="labels for detected thin anvil regions",
-            units="",
-            dtype=np.int32,
-        ).sel(t=dataset.t),
-        dataset,
-    )
-
-    # Anvil markers
     if args.save_anvil_markers:
-        add_dataarray_to_ds(
-            create_dataarray(
-                anvil_markers,
-                ("t", "y", "x"),
-                "anvil_marker_label",
-                coords={"t": bt.t},
-                long_name="labels for anvil marker regions",
-                units="",
-                dtype=np.int32,
-            ).sel(t=dataset.t),
-            dataset,
+        dataset = xr.merge(
+            [dataset, core_labels, anvil_markers, thick_anvil_labels, thin_anvil_labels], 
+            join="left",
+        )
+    else:
+        dataset = xr.merge(
+            [dataset, core_labels, thick_anvil_labels, thin_anvil_labels], 
+            join="left",
         )
 
-    # bt, wvd, swd = bt.sel(t=dataset.t), wvd.sel(t=dataset.t), swd.sel(t=dataset.t)
+    dataset = add_label_coords(dataset)
+
+    link_cores_and_anvils(dataset)
 
     add_step_labels(dataset)
 
@@ -431,6 +395,17 @@ def main() -> None:
             ]
 
     print(datetime.now(), "Saving to %s" % (save_path), flush=True)
+
+    # Add global attributes:
+    dataset = dataset.assign_attrs(
+        title=f'Dataset of detected DCCs in GOES-{satellite} observations using tobac-flow',
+        author="William Jones",
+        institution="University of Oxford/JASMIN",
+        source=f'Cloud tracking dataset using tobac-flow v{tobac_flow.__version__} on geostationary satellite observations from NOAA-GOES-{satellite}', 
+        history=f'Processed on {datetime.now().isoformat()}', 
+        references="https://doi.org/10.5194/amt-16-1043-2023", 
+    )
+
     # Add compression encoding
     comp = dict(zlib=True, complevel=5, shuffle=True)
     for var in dataset.data_vars:
@@ -443,6 +418,8 @@ def main() -> None:
     wvd.close()
     swd.close()
 
+    return dataset
+
 
 if __name__ == "__main__":
     start_time = datetime.now()
@@ -454,7 +431,7 @@ if __name__ == "__main__":
     print("Output save path:", save_path)
     print("GOES data path:", goes_data_path)
 
-    main()
+    dataset = main()
 
     print(
         datetime.now(),

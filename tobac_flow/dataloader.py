@@ -260,16 +260,18 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     for da in [wvd, swd, bt]:
         if "ancillary_variables" in da.attrs:
             del da.attrs["ancillary_variables"]
+        if "sensor_band_bit_depth" in da.attrs:
+            del da.attrs["sensor_band_bit_depth"]
 
     # Set additional attributes
-    wvd.name = "WVD"
+    wvd.name = "wvd"
     wvd.attrs["long_name"] = "ABI Cloud and Moisture Imagery water vapour difference temperature at top of atmosphere"
     wvd.attrs["units_metadata"] = "temperature: difference"
     
-    bt.name = "BT"
+    bt.name = "bt"
     bt.attrs["units_metadata"] = "temperature: on_scale"
     
-    swd.name = "SWD"
+    swd.name = "swd"
     swd.attrs["long_name"] = "ABI Cloud and Moisture Imagery split window difference temperature at top of atmosphere"
     swd.attrs["units_metadata"] = "temperature: difference"
 

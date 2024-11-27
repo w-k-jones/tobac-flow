@@ -7,7 +7,7 @@ from typing import Callable
 import numpy as np
 
 
-class Abstract_Flow(ABC):
+class AbstractFlow(ABC):
     @abstractmethod
     def __init__(
         self, forward_flow: np.ndarray[float], backward_flow: np.ndarray[float]
@@ -20,7 +20,7 @@ class Abstract_Flow(ABC):
         pass
 
     @abstractmethod
-    def __getitem__(self, items: tuple) -> "Abstract_Flow":
+    def __getitem__(self, items: tuple) -> "AbstractFlow":
         pass
 
     @abstractmethod
@@ -84,4 +84,4 @@ class Abstract_Flow(ABC):
         pass
 
 
-__all__ = ("Abstract_Flow",)
+__all__ = ("AbstractFlow",)

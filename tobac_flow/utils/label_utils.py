@@ -1,7 +1,7 @@
 from multiprocessing import Value
 import numpy as np
 import scipy.ndimage as ndi
-from typing import Callable
+from typing import Callable, Optional
 
 
 def labeled_comprehension(
@@ -180,6 +180,8 @@ def flat_label(
 
 
 def make_step_labels(labels):
+    if hasattr(labels, "values"):
+        labels = labels.values
     step_labels = flat_label(labels != 0)
     step_labels += labels * step_labels.max()
     return relabel_objects(step_labels, inplace=True)
@@ -246,6 +248,50 @@ def relabel_objects(labels: np.ndarray[int], inplace=False) -> np.ndarray[int]:
             labels.ravel()[args[bins[i] : bins[i + 1]]] = counter
             counter += 1
     return labels
+
+
+def remap_labels(
+    labels: np.ndarray[int], 
+    locations: Optional[np.ndarray[bool] | np.ndarray[int]] = None, 
+    new_labels: Optional[np.ndarray[int]] = None, 
+) -> np.ndarray[int]:
+    """
+    Remap a label array to a new array of contiguous values for the labels that
+        are True in locations
+
+    Parameters
+    ----------
+    labels : numpy.ndarray
+        The array of labeled regions to remap
+    locations : numpy.ndarray
+        An array of length (labels.max()) with values of True for labels that
+            are to be retained and renumbered, and False for labels to be
+            removed
+
+    Returns
+    -------
+    remapped_labels : numpy.ndarray
+        A label array of the same shape as the labels parameter, with the
+            regions corresponding to the True values in 'locations' retained
+            and renumbered with contiguous integer values
+    """
+    remapper = np.zeros(np.nanmax(labels) + 1, labels.dtype)
+    if new_labels is None:
+        new_labels = np.arange(1, np.sum(locations) + 1)
+    if locations is not None:
+        if locations.dtype == bool:
+            assert (
+                locations.size == labels.max()
+            ), "The size of the locations parameter must be equal to the maximum label in the labels parameter"
+            remapper[1:][locations] = new_labels
+        else:
+            remapper[locations] = new_labels
+    else:
+        remapper[1:] = new_labels
+    
+    remapped_labels = remapper[labels]
+
+    return remapped_labels
 
 
 def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
@@ -323,4 +369,5 @@ __all__ = (
     "relabel_objects",
     "slice_labels",
     "find_overlapping_labels",
+    "remap_labels", 
 )

@@ -11,8 +11,8 @@ from tobac_flow.analysis import (
     filter_labels_by_length_and_multimask_legacy,
     find_object_lengths,
     mask_labels,
-    remap_labels,
 )
+from tobac_flow.decorators import configure_dataarray
 from tobac_flow.utils import (
     get_time_diff_from_coord,
     linearise_field,
@@ -20,6 +20,7 @@ from tobac_flow.utils import (
     labeled_comprehension,
     make_step_labels,
 )
+from tobac_flow.utils.label_utils import remap_labels
 from tobac_flow.flow import Flow
 
 
@@ -352,7 +353,13 @@ def get_combined_filters(flow, bt, wvd, swd, use_wvd=True):
 
     return combined_filter
 
-
+@configure_dataarray(
+    name="core_label", 
+    drop_attrs=["standard_name", "units", "valid_range", "_FillValue", "missing_value", "cell_methods", "units_metadata"], 
+    long_name="Labels of detected core regions", 
+    units="",
+    cell_measures="area: area", 
+)
 def detect_cores(
     flow,
     bt,
@@ -465,7 +472,13 @@ def detect_cores(
 
     return core_labels
 
-
+@configure_dataarray(
+    name="anvil_marker_label", 
+    drop_attrs=["standard_name", "units", "valid_range", "_FillValue", "missing_value", "cell_methods", "units_metadata"], 
+    long_name="labels for anvil markers", 
+    units="",
+    cell_measures="area: area", 
+)
 def get_anvil_markers(
     flow,
     field,
@@ -488,7 +501,13 @@ def get_anvil_markers(
     marker_labels = remap_labels(marker_labels, marker_label_lengths > min_length)
     return marker_labels
 
-
+@configure_dataarray(
+    name="anvil_label", 
+    drop_attrs=["standard_name", "units", "valid_range", "_FillValue", "missing_value", "cell_methods", "units_metadata"], 
+    long_name="Labels of detected anvil regions", 
+    units="",
+    cell_measures="area: area", 
+)
 def detect_anvils(
     flow: Flow,
     field: np.ndarray[float],
@@ -506,6 +525,8 @@ def detect_anvils(
     s_struct = structure * np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
     if markers is None:
         markers = field >= 1
+    if hasattr(markers, "values"):
+        markers = markers.values
     eroded_markers = markers * ndi.binary_erosion(
         markers != 0, structure=s_struct
     ).astype(int)
@@ -594,6 +615,13 @@ def get_combined_edge_field(
     return edges
 
 
+@configure_dataarray(
+    name="anvil_label", 
+    drop_attrs=["standard_name", "units", "valid_range", "_FillValue", "missing_value", "cell_methods", "units_metadata"], 
+    long_name="Labels of detected anvil regions", 
+    units="",
+    cell_measures="area: area", 
+)
 def relabel_anvils(
     flow: Flow,
     anvil_labels: np.ndarray[int],

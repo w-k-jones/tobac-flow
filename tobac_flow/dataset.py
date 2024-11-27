@@ -8,6 +8,7 @@ from tobac_flow.utils.label_utils import (
     apply_func_to_labels,
     labeled_comprehension,
     slice_labels,
+    remap_labels, 
 )
 from tobac_flow.utils.datetime_utils import get_datetime_from_coord
 from tobac_flow.utils.legacy_utils import apply_weighted_func_to_labels
@@ -288,6 +289,48 @@ def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
 
     return dataset.assign_coords(new_coords)
 
+def link_cores_and_anvils(dataset: xr.Dataset, add_cores_to_anvils=True) -> None:
+    core_anvil_index = apply_func_to_labels(
+        dataset.core_label.to_numpy(),
+        dataset.thick_anvil_label.to_numpy(),
+        func=find_overlap_mode,
+        index=dataset.core.to_numpy(),
+        default=0,
+    )
+
+    add_dataarray_to_ds(
+        create_dataarray(
+            core_anvil_index,
+            ("core",),
+            "core_anvil_index",
+            long_name="anvil index for each core",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
+
+    if add_cores_to_anvils:
+        remapped_cores = remap_labels(
+            dataset.core_label.values, new_labels=core_anvil_index
+        )
+        wh_core_labels = remapped_cores!=0
+        dataset.thick_anvil_label.data[wh_core_labels] = remapped_cores[wh_core_labels]
+        dataset.thin_anvil_label.data[wh_core_labels] = remapped_cores[wh_core_labels]
+
+    anvil_core_count = np.asarray(
+        [np.sum(core_anvil_index == i) for i in dataset.anvil.data]
+    )
+    add_dataarray_to_ds(
+        create_dataarray(
+            anvil_core_count,
+            ("anvil",),
+            "anvil_core_count",
+            long_name="number of cores associated with anvil",
+            dtype=np.int32,
+        ),
+        dataset,
+    )
+
 
 def link_step_labels(dataset: xr.Dataset) -> None:
     # Add linking indices between each label
@@ -325,25 +368,7 @@ def link_step_labels(dataset: xr.Dataset) -> None:
     #     dtype=np.int32,
     #     default=0,
     # )
-    core_anvil_index = apply_func_to_labels(
-        dataset.core_label.to_numpy(),
-        dataset.thick_anvil_label.to_numpy(),
-        func=find_overlap_mode,
-        index=dataset.core.to_numpy(),
-        default=0,
-    )
-
-    add_dataarray_to_ds(
-        create_dataarray(
-            core_anvil_index,
-            ("core",),
-            "core_anvil_index",
-            long_name="anvil index for each core",
-            dtype=np.int32,
-        ),
-        dataset,
-    )
-
+    
     # thick_anvil_step_anvil_index = labeled_comprehension(
     #     dataset.thick_anvil_label.data,
     #     dataset.thick_anvil_step_label.data,
@@ -396,19 +421,6 @@ def link_step_labels(dataset: xr.Dataset) -> None:
         dataset,
     )
 
-    anvil_core_count = np.asarray(
-        [np.sum(core_anvil_index == i) for i in dataset.anvil.data]
-    )
-    add_dataarray_to_ds(
-        create_dataarray(
-            anvil_core_count,
-            ("anvil",),
-            "anvil_core_count",
-            long_name="number of cores associated with anvil",
-            dtype=np.int32,
-        ),
-        dataset,
-    )
 
 
 def flag_edge_labels(dataset, start_date, end_date):

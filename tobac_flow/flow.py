@@ -10,7 +10,7 @@ from tobac_flow.label import flow_label, flow_link_overlap
 from tobac_flow.sobel import sobel
 from tobac_flow.watershed import watershed
 
-from tobac_flow.core import Abstract_Flow
+from tobac_flow.core import AbstractFlow
 from tobac_flow.utils import (
     to_8bit,
     select_normalisation_method,
@@ -21,8 +21,8 @@ from tobac_flow.utils import (
 
 
 def create_flow(
-    data: np.ndarray,
-    model: str = "DIS",
+    data: np.ndarray | xr.DataArray,
+    model: str = "Farneback",
     vr_steps: int = 0,
     smoothing_passes: int = 0,
     interp_method: str = "linear",
@@ -65,7 +65,7 @@ def create_flow(
     return flow
 
 
-class Flow(Abstract_Flow):
+class Flow(AbstractFlow):
     """
     Class to perform semi-lagrangian operations using optical flow
     """
@@ -361,7 +361,7 @@ vr_model = cv2.VariationalRefinement.create()
 
 def calculate_flow(
     data: np.ndarray | xr.DataArray,
-    model: str = "DIS",
+    model: str = "Farneback",
     vr_steps: int = 0,
     smoothing_passes: int = 0,
     interp_method: str = "linear",
@@ -431,7 +431,7 @@ def calculate_flow(
 def calculate_flow_2(
     a: np.ndarray | xr.DataArray,
     b: np.ndarray | xr.DataArray,
-    model: str = "DIS",
+    model: str = "Farneback",
     vr_steps: int = 0,
     smoothing_passes: int = 0,
     normalisation_method: str = "linear",

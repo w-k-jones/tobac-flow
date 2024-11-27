@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 from scipy import ndimage as ndi
 from tobac_flow.dataset import (
@@ -60,42 +61,6 @@ def mask_labels(labels: np.ndarray[int], mask: np.ndarray[bool]) -> np.ndarray[b
     output = np.zeros(labels.max() + 1, dtype=bool)
     output[masked_labels] = True
     return output[1:]
-
-
-def remap_labels(
-    labels: np.ndarray[int], locations: np.ndarray[bool] | np.ndarray[int]
-) -> np.ndarray[int]:
-    """
-    Remap a label array to a new array of contiguous values for the labels that
-        are True in locations
-
-    Parameters
-    ----------
-    labels : numpy.ndarray
-        The array of labeled regions to remap
-    locations : numpy.ndarray
-        An array of length (labels.max()) with values of True for labels that
-            are to be retained and renumbered, and False for labels to be
-            removed
-
-    Returns
-    -------
-    remapped_labels : numpy.ndarray
-        A label array of the same shape as the labels parameter, with the
-            regions corresponding to the True values in 'locations' retained
-            and renumbered with contiguous integer values
-    """
-    assert (
-        locations.size == labels.max()
-    ), "The size of the locations parameter must be equal to the maximum label in the labels parameter"
-    remapper = np.zeros(np.nanmax(labels) + 1, labels.dtype)
-    if locations.dtype == bool:
-        remapper[1:][locations] = np.arange(1, np.sum(locations) + 1)
-    else:
-        remapper[locations] = np.arange(1, np.sum(locations) + 1)
-    remapped_labels = remapper[labels]
-
-    return remapped_labels
 
 
 def filter_labels_by_length(labels, min_length):

@@ -8,18 +8,16 @@ from scipy import stats
 
 from tobac_flow.flow import create_flow
 from tobac_flow.dataloader import seviri_dataloader, find_seviri_files
-from tobac_flow.utils.label_utils import labeled_comprehension
+from tobac_flow.utils.label_utils import labeled_comprehension, remap_labels
 from tobac_flow.utils.xarray_utils import (
     add_dataarray_to_ds,
     create_dataarray,
 )
-from tobac_flow.utils.datetime_utils import get_time_diff_from_coord
 from tobac_flow.analysis import (
     get_label_stats,
     apply_weighted_func_to_labels,
     weighted_statistics_on_labels,
     find_object_lengths,
-    remap_labels,
     mask_labels,
 )
 from tobac_flow.detection import get_curvature_filter, get_growth_rate
