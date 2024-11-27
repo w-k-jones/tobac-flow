@@ -353,12 +353,21 @@ def get_combined_filters(flow, bt, wvd, swd, use_wvd=True):
 
     return combined_filter
 
+
 @configure_dataarray(
-    name="core_label", 
-    drop_attrs=["standard_name", "units", "valid_range", "_FillValue", "missing_value", "cell_methods", "units_metadata"], 
-    long_name="Labels of detected core regions", 
+    name="core_label",
+    drop_attrs=[
+        "standard_name",
+        "units",
+        "valid_range",
+        "_FillValue",
+        "missing_value",
+        "cell_methods",
+        "units_metadata",
+    ],
+    long_name="Labels of detected core regions",
     units="",
-    cell_measures="area: area", 
+    cell_measures="area: area",
 )
 def detect_cores(
     flow,
@@ -472,12 +481,21 @@ def detect_cores(
 
     return core_labels
 
+
 @configure_dataarray(
-    name="anvil_marker_label", 
-    drop_attrs=["standard_name", "units", "valid_range", "_FillValue", "missing_value", "cell_methods", "units_metadata"], 
-    long_name="labels for anvil markers", 
+    name="anvil_marker_label",
+    drop_attrs=[
+        "standard_name",
+        "units",
+        "valid_range",
+        "_FillValue",
+        "missing_value",
+        "cell_methods",
+        "units_metadata",
+    ],
+    long_name="labels for anvil markers",
     units="",
-    cell_measures="area: area", 
+    cell_measures="area: area",
 )
 def get_anvil_markers(
     flow,
@@ -501,12 +519,21 @@ def get_anvil_markers(
     marker_labels = remap_labels(marker_labels, marker_label_lengths > min_length)
     return marker_labels
 
+
 @configure_dataarray(
-    name="anvil_label", 
-    drop_attrs=["standard_name", "units", "valid_range", "_FillValue", "missing_value", "cell_methods", "units_metadata"], 
-    long_name="Labels of detected anvil regions", 
+    name="anvil_label",
+    drop_attrs=[
+        "standard_name",
+        "units",
+        "valid_range",
+        "_FillValue",
+        "missing_value",
+        "cell_methods",
+        "units_metadata",
+    ],
+    long_name="Labels of detected anvil regions",
     units="",
-    cell_measures="area: area", 
+    cell_measures="area: area",
 )
 def detect_anvils(
     flow: Flow,
@@ -616,11 +643,19 @@ def get_combined_edge_field(
 
 
 @configure_dataarray(
-    name="anvil_label", 
-    drop_attrs=["standard_name", "units", "valid_range", "_FillValue", "missing_value", "cell_methods", "units_metadata"], 
-    long_name="Labels of detected anvil regions", 
+    name="anvil_label",
+    drop_attrs=[
+        "standard_name",
+        "units",
+        "valid_range",
+        "_FillValue",
+        "missing_value",
+        "cell_methods",
+        "units_metadata",
+    ],
+    long_name="Labels of detected anvil regions",
     units="",
-    cell_measures="area: area", 
+    cell_measures="area: area",
 )
 def relabel_anvils(
     flow: Flow,

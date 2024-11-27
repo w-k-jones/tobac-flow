@@ -211,7 +211,7 @@ def get_satellite_viewing_angles(
         geo_dist**2 < (Rgeo**2 - Re**2), zenith_angle, 180 - zenith_angle
     )
 
-    # Calculate satellite azimuthal angle 
+    # Calculate satellite azimuthal angle
     x_sat = np.cos(np.radians(lat - sat_lat)) * np.sin(np.radians(lon - sat_lon))
     y_sat = np.sin(np.radians(lat - sat_lat))
     azimuth_angle = np.where(

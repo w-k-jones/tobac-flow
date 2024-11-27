@@ -251,9 +251,9 @@ def relabel_objects(labels: np.ndarray[int], inplace=False) -> np.ndarray[int]:
 
 
 def remap_labels(
-    labels: np.ndarray[int], 
-    locations: Optional[np.ndarray[bool] | np.ndarray[int]] = None, 
-    new_labels: Optional[np.ndarray[int]] = None, 
+    labels: np.ndarray[int],
+    locations: Optional[np.ndarray[bool] | np.ndarray[int]] = None,
+    new_labels: Optional[np.ndarray[int]] = None,
 ) -> np.ndarray[int]:
     """
     Remap a label array to a new array of contiguous values for the labels that
@@ -288,7 +288,7 @@ def remap_labels(
             remapper[locations] = new_labels
     else:
         remapper[1:] = new_labels
-    
+
     remapped_labels = remapper[labels]
 
     return remapped_labels
@@ -369,5 +369,5 @@ __all__ = (
     "relabel_objects",
     "slice_labels",
     "find_overlapping_labels",
-    "remap_labels", 
+    "remap_labels",
 )

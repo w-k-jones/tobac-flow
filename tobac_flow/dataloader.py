@@ -265,14 +265,18 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
 
     # Set additional attributes
     wvd.name = "wvd"
-    wvd.attrs["long_name"] = "ABI Cloud and Moisture Imagery water vapour difference temperature at top of atmosphere"
+    wvd.attrs["long_name"] = (
+        "ABI Cloud and Moisture Imagery water vapour difference temperature at top of atmosphere"
+    )
     wvd.attrs["units_metadata"] = "temperature: difference"
-    
+
     bt.name = "bt"
     bt.attrs["units_metadata"] = "temperature: on_scale"
-    
+
     swd.name = "swd"
-    swd.attrs["long_name"] = "ABI Cloud and Moisture Imagery split window difference temperature at top of atmosphere"
+    swd.attrs["long_name"] = (
+        "ABI Cloud and Moisture Imagery split window difference temperature at top of atmosphere"
+    )
     swd.attrs["units_metadata"] = "temperature: difference"
 
     # Check for missing data and DQF flags in any channels, propagate to all data
