@@ -183,6 +183,29 @@ def main() -> None:
 
     print("Final detected core count: n =", core_labels.values.max())
 
+    # To save some memory, save bt and core_labels, then reopen after anvil detection
+    if args.save_bt:
+        add_dataarray_to_ds(
+            bt.sel(t=dataset.t),
+            dataset,
+        )
+    dataset = xr.merge(
+        [dataset, core_labels], 
+        join="left",
+    )
+
+    comp = dict(zlib=True, complevel=5, shuffle=True)
+    for var in dataset.data_vars:
+        dataset[var].encoding.update(comp)
+
+    dataset.to_netcdf(save_path)
+
+    bt.close()
+    del bt
+    dataset.close()
+    del dataset
+    del core_labels
+
     print(datetime.now(), "Detecting thick anvil region", flush=True)
     # Detect anvil regions
     upper_threshold = -5
@@ -261,15 +284,16 @@ def main() -> None:
     print("Detected thin anvils: n =", np.max(thin_anvil_labels.values), flush=True)
 
     print(datetime.now(), "Preparing output", flush=True)
+    dataset = xr.open_dataset(save_path).load()
 
     if args.save_anvil_markers:
         dataset = xr.merge(
-            [dataset, core_labels, anvil_markers, thick_anvil_labels, thin_anvil_labels], 
+            [dataset, anvil_markers, thick_anvil_labels, thin_anvil_labels], 
             join="left",
         )
     else:
         dataset = xr.merge(
-            [dataset, core_labels, thick_anvil_labels, thin_anvil_labels], 
+            [dataset, thick_anvil_labels, thin_anvil_labels], 
             join="left",
         )
 
@@ -291,7 +315,7 @@ def main() -> None:
 
     # Add data quality flags
     flag_edge_labels(dataset, start_date, end_date)
-    flag_nan_adjacent_labels(dataset, bt.sel(t=dataset.t))
+    flag_nan_adjacent_labels(dataset, wvd.sel(t=dataset.t))
 
     if args.save_label_props:
         calculate_label_properties(dataset)
@@ -301,11 +325,6 @@ def main() -> None:
         get_label_stats(dataset.thick_anvil_label, dataset)
         get_label_stats(dataset.thin_anvil_label, dataset)
 
-    if args.save_bt:
-        add_dataarray_to_ds(
-            bt.sel(t=dataset.t),
-            dataset,
-        )
     if args.save_wvd:
         add_dataarray_to_ds(
             wvd.sel(t=dataset.t),
@@ -411,10 +430,9 @@ def main() -> None:
     for var in dataset.data_vars:
         dataset[var].encoding.update(comp)
 
-    dataset.to_netcdf(save_path)
+    dataset.to_netcdf(save_path, mode="a")
 
     dataset.close()
-    bt.close()
     wvd.close()
     swd.close()
 
