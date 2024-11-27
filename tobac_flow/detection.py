@@ -477,7 +477,7 @@ def get_anvil_markers(
 ):
     structure = ndi.generate_binary_structure(3, 1)
     s_struct = structure * np.array([0, 1, 0])[:, np.newaxis, np.newaxis].astype(bool)
-    mask = ndi.binary_opening(field > threshold, structure=s_struct)
+    mask = ndi.binary_opening(field >= threshold, structure=s_struct)
     marker_labels = flow.label(
         mask,
         overlap=overlap,
