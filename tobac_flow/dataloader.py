@@ -170,20 +170,20 @@ def goes_dataloader(
 
     print(f"Loaded {bt.t.size} time steps", flush=True)
 
-    wvd.name = "WVD"
-    wvd.attrs["standard_name"] = wvd.name
-    wvd.attrs["long_name"] = "water vapour difference"
-    wvd.attrs["units"] = "K"
+    # wvd.name = "WVD"
+    # wvd.attrs["standard_name"] = wvd.name
+    # wvd.attrs["long_name"] = "ABI Cloud and Moisture Imagery water vapour difference temperature at top of atmosphere"
+    # wvd.attrs["units"] = "K"
 
-    bt.name = "BT"
-    bt.attrs["standard_name"] = bt.name
-    bt.attrs["long_name"] = "brightness temperature"
-    bt.attrs["units"] = "K"
+    # bt.name = "BT"
+    # bt.attrs["standard_name"] = bt.name
+    # bt.attrs["long_name"] = "brightness temperature"
+    # bt.attrs["units"] = "K"
 
-    swd.name = "SWD"
-    swd.attrs["standard_name"] = swd.name
-    swd.attrs["long_name"] = "split window difference"
-    swd.attrs["units"] = "K"
+    # swd.name = "SWD"
+    # swd.attrs["standard_name"] = swd.name
+    # swd.attrs["long_name"] = "split window difference"
+    # swd.attrs["units"] = "K"
 
     if return_new_ds:
         return bt, wvd, swd, new_ds
@@ -195,7 +195,7 @@ def goes_dataloader(
 def find_goes_files(start_date, end_date, n_pad_files=1, **io_kwargs):
     # Find ABI files
     dates = pd.date_range(
-        start_date, end_date, freq="H", inclusive="left"
+        start_date, end_date, freq="h", inclusive="left"
     ).to_pydatetime()
 
     abi_files = io.find_abi_files(dates, **io_kwargs)
@@ -206,7 +206,7 @@ def find_goes_files(start_date, end_date, n_pad_files=1, **io_kwargs):
         pre_dates = pd.date_range(
             start_date - timedelta(hours=pad_hours),
             start_date,
-            freq="H",
+            freq="h",
             inclusive="left",
         ).to_pydatetime()
         abi_pre_file = io.find_abi_files(pre_dates, **io_kwargs)
@@ -214,7 +214,7 @@ def find_goes_files(start_date, end_date, n_pad_files=1, **io_kwargs):
             abi_pre_file = abi_pre_file[-n_pad_files:]
 
         post_dates = pd.date_range(
-            end_date, end_date + timedelta(hours=pad_hours), freq="H", inclusive="left"
+            end_date, end_date + timedelta(hours=pad_hours), freq="h", inclusive="left"
         ).to_pydatetime()
         abi_post_file = io.find_abi_files(post_dates, **io_kwargs)
         if len(abi_post_file):
@@ -252,11 +252,26 @@ def load_mcmip(files, x0=None, x1=None, y0=None, y1=None):
     # )
 
     # Extract fields and load into memory
-    wvd = (goes_ds.CMI_C08 - goes_ds.CMI_C10).load()
+    with xr.set_options(keep_attrs=True):
+        wvd = (goes_ds.CMI_C08 - goes_ds.CMI_C10).load()
+        bt = goes_ds.CMI_C13.load()
+        swd = bt - goes_ds.CMI_C15.load()
 
-    bt = goes_ds.CMI_C13.load()
+    for da in [wvd, swd, bt]:
+        if "ancillary_variables" in da.attrs:
+            del da.attrs["ancillary_variables"]
 
-    swd = bt - goes_ds.CMI_C15.load()
+    # Set additional attributes
+    wvd.name = "WVD"
+    wvd.attrs["long_name"] = "ABI Cloud and Moisture Imagery water vapour difference temperature at top of atmosphere"
+    wvd.attrs["units_metadata"] = "temperature: difference"
+    
+    bt.name = "BT"
+    bt.attrs["units_metadata"] = "temperature: on_scale"
+    
+    swd.name = "SWD"
+    swd.attrs["long_name"] = "ABI Cloud and Moisture Imagery split window difference temperature at top of atmosphere"
+    swd.attrs["units_metadata"] = "temperature: difference"
 
     # Check for missing data and DQF flags in any channels, propagate to all data
     all_isnan = np.any([~np.isfinite(bt), ~np.isfinite(wvd), ~np.isfinite(swd)], 0)
@@ -337,7 +352,7 @@ def find_full_disk_for_time_gap(start_date, end_date, **io_kwargs):
     """
     start_date = parse_date(start_date.astype("datetime64[s]").astype("str"))
     end_date = parse_date(end_date.astype("datetime64[s]").astype("str"))
-    dates = pd.date_range(start_date, end_date, freq="H").to_pydatetime()
+    dates = pd.date_range(start_date, end_date, freq="h").to_pydatetime()
     #     io_kwargs["view"] = "F"
     F_files = io.find_abi_files(
         dates, **io_kwargs
@@ -499,7 +514,7 @@ def glob_seviri_files(
         )
 
     dates = pd.date_range(
-        start_date, end_date, freq="H", inclusive="left"
+        start_date, end_date, freq="h", inclusive="left"
     ).to_pydatetime()
 
     seviri_files = []
@@ -679,7 +694,7 @@ def glob_seviri_nat_files(
         raise ValueError("file_path must be either a string or a Path object")
 
     dates = pd.date_range(
-        start_date, end_date, freq="H", inclusive="left"
+        start_date, end_date, freq="h", inclusive="left"
     ).to_pydatetime()
 
     seviri_files = []

@@ -103,10 +103,7 @@ t_offset = 3
 
 save_dir = pathlib.Path(args.sd)
 if not save_dir.exists():
-    try:
-        save_dir.mkdir()
-    except (FileExistsError, OSError):
-        pass
+    save_dir.mkdir(exist_ok=True, parents=True)
 
 save_name = "detected_dccs_G%02d_S%s_E%s_X%04d_%04d_Y%04d_%04d.nc" % (
     satellite,
@@ -124,10 +121,7 @@ print("Saving output to:", save_path)
 
 goes_data_path = pathlib.Path(args.gd)
 if not goes_data_path.exists():
-    try:
-        goes_data_path.mkdir()
-    except (FileExistsError, OSError):
-        pass
+    goes_data_path.mkdir(exist_ok=True, parents=True)
 
 
 def main() -> None:
@@ -334,20 +328,6 @@ def main() -> None:
     # Add data quality flags
     flag_edge_labels(dataset, start_date, end_date)
     flag_nan_adjacent_labels(dataset, bt.sel(t=dataset.t))
-
-    # core_max_bt_diff = core_bt_diff_mean[wh_valid_core]
-
-    # add_dataarray_to_ds(
-    #     create_dataarray(
-    #         core_max_bt_diff,
-    #         ("core"),
-    #         "core_max_BT_diff",
-    #         long_name="Maximum change in core brightness temperature per minute",
-    #         units="K/minute",
-    #         dtype=np.float32,
-    #     ),
-    #     dataset,
-    # )
 
     if args.save_label_props:
         calculate_label_properties(dataset)
