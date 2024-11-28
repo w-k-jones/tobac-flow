@@ -184,7 +184,9 @@ def _check_if_file_exists_and_is_valid(filename, blob, remove_corrupt=True):
     -- boolean: True if file can be opened. False if otherwise
     """
     if os.path.exists(filename):
-        if _check_file_size_against_blob(filename, blob):
+        if _check_file_size_against_blob(
+            filename, blob
+        ) and _check_netcdf_file_is_valid(filename):
             return True
         else:
             if remove_corrupt:
@@ -488,7 +490,16 @@ def find_abi_files(
     files = []
     for blob in blobs:
         if os.path.split(str(blob.name))[-1] not in CORRUPT_BLOBS:
-            if download_missing:
+            local_file = _get_download_destination(
+                blob, save_dir, replicate_path=replicate_path
+            )
+            if check_download and _check_if_file_exists_and_is_valid(
+                local_file, blob, remove_corrupt=remove_corrupt
+            ):
+                files += [local_file]
+            elif not check_download and os.path.exists(local_file):
+                files += [local_file]
+            elif download_missing:
                 try:
                     save_file = download_blob(
                         blob,
@@ -500,22 +511,15 @@ def find_abi_files(
                         min_storage=min_storage,
                         verbose=verbose,
                     )
-                except OSError as e:
-                    warnings.warn(str(e.args[0]))
-                    download_missing = False
-                except RuntimeError as e:
+                except (OSError, RuntimeError) as e:
                     warnings.warn(str(e.args[0]))
                 else:
-                    if os.path.exists(save_file):
+                    if check_download and _check_if_file_exists_and_is_valid(
+                        save_file, blob, remove_corrupt=remove_corrupt
+                    ):
                         files += [save_file]
-            else:
-                local_file = _get_download_destination(
-                    blob, save_dir, replicate_path=replicate_path
-                )
-                if _check_if_file_exists_and_is_valid(
-                    local_file, blob, remove_corrupt=remove_corrupt
-                ):
-                    files += [local_file]
+                    elif not check_download and os.path.exists(save_file):
+                        files += [save_file]
     return files
 
 
