@@ -198,7 +198,8 @@ def main() -> None:
     for var in dataset.data_vars:
         dataset[var].encoding.update(comp)
 
-    dataset.to_netcdf(save_path)
+    temp_path = save_path.with_suffix(".temp.nc")
+    dataset.to_netcdf(temp_path)
 
     bt.close()
     del bt
@@ -262,6 +263,21 @@ def main() -> None:
         flush=True,
     )
     print("Final detected thick anvils: n =", thick_anvil_labels.values.max(), flush=True)
+    
+    # Save anvil markers
+    if args.save_anvil_markers:
+        dataset = xr.open_dataset(temp_path).load()
+        dataset = xr.merge(
+            [dataset, anvil_markers], 
+            join="left",
+        )
+        for var in dataset.data_vars:
+            dataset[var].encoding.update(comp)
+        dataset.to_netcdf(temp_path, mode="a")
+        dataset.close()
+        del dataset
+    
+    del anvil_markers
 
     print(datetime.now(), "Detecting thin anvil region", flush=True)
     # Detect thin anvil regions
@@ -284,18 +300,12 @@ def main() -> None:
     print("Detected thin anvils: n =", np.max(thin_anvil_labels.values), flush=True)
 
     print(datetime.now(), "Preparing output", flush=True)
-    dataset = xr.open_dataset(save_path).load()
+    dataset = xr.open_dataset(temp_path).load()
 
-    if args.save_anvil_markers:
-        dataset = xr.merge(
-            [dataset, anvil_markers, thick_anvil_labels, thin_anvil_labels], 
-            join="left",
-        )
-    else:
-        dataset = xr.merge(
-            [dataset, thick_anvil_labels, thin_anvil_labels], 
-            join="left",
-        )
+    dataset = xr.merge(
+        [dataset, thick_anvil_labels, thin_anvil_labels], 
+        join="left",
+    )
 
     dataset = add_label_coords(dataset)
 
@@ -430,9 +440,11 @@ def main() -> None:
     for var in dataset.data_vars:
         dataset[var].encoding.update(comp)
 
-    dataset.to_netcdf(save_path, mode="a")
+    dataset.to_netcdf(temp_path, mode="a")
 
     dataset.close()
+    temp_path.rename(save_path)
+
     wvd.close()
     swd.close()
 
