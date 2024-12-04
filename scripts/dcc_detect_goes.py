@@ -91,6 +91,11 @@ parser.add_argument(
     help="Save anvil markers to output file",
     action="store_true",
 )
+parser.add_argument(
+    "--relabel_anvils",
+    help="Repeat labelling to join overlapping anvils",
+    action="store_true",
+)
 
 args = parser.parse_args()
 start_date = parse_date(args.date, fuzzy=True)
@@ -238,24 +243,25 @@ def main() -> None:
         name="thick_anvil_label", 
         attributes=dict(long_name="Labels of detected thick anvil regions"), 
     )
+    
+    if args.relabel_anvils:
+        print(
+            "Initial detected thick anvils: area =",
+            np.sum(thick_anvil_labels.values != 0),
+            flush=True,
+        )
+        print("Initial detected thick anvils: n =", thick_anvil_labels.values.max(), flush=True)
 
-    print(
-        "Initial detected thick anvils: area =",
-        np.sum(thick_anvil_labels.values != 0),
-        flush=True,
-    )
-    print("Initial detected thick anvils: n =", thick_anvil_labels.values.max(), flush=True)
-
-    thick_anvil_labels = relabel_anvils(
-        flow,
-        thick_anvil_labels,
-        markers=anvil_markers,
-        overlap=overlap,
-        absolute_overlap=absolute_overlap,
-        min_length=t_offset,
-        name="thick_anvil_label", 
-        attributes=dict(long_name="Labels of detected thick anvil regions"), 
-    )
+        thick_anvil_labels = relabel_anvils(
+            flow,
+            thick_anvil_labels,
+            markers=anvil_markers,
+            overlap=overlap,
+            absolute_overlap=absolute_overlap,
+            min_length=t_offset,
+            name="thick_anvil_label", 
+            attributes=dict(long_name="Labels of detected thick anvil regions"), 
+        )
 
     print(
         "Final detected thick anvils: area =",
