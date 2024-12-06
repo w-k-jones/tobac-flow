@@ -1,9 +1,15 @@
 import pathlib
 import warnings
+
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Callable
+
 import numpy as np
+import scipy.sparse
 import xarray as xr
+
+from scipy.ndimage import labeled_comprehension
 
 from tobac_flow.dataset import (
     flag_edge_labels,
@@ -18,6 +24,151 @@ from tobac_flow.utils.datetime_utils import (
 )
 from tobac_flow.utils.label_utils import find_overlapping_labels
 
+# New linking functions
+
+def find_overlaps(x, atol, rtol, max_label, label_counts):
+    overlap_counts = np.bincount(x, minlength=max_label+1)
+    
+    wh_overlap = overlap_counts>=atol if atol > 0 else overlap_counts>0
+
+    if rtol>0:
+        wh_overlap = np.logical_and(
+            wh_overlap,
+            np.maximum(
+                overlap_counts/x.size,
+                overlap_counts/label_counts
+            ) >= rtol
+        )
+
+    wh_overlap[0] = False
+    
+    return np.where(wh_overlap)[0]
+
+def find_overlap_between_cores(current_ds, next_ds):
+    min_core = current_ds.core.max().item()
+    max_core = next_ds.core.max().item()
+    
+    t_overlap = np.intersect1d(current_ds.t, next_ds.t)
+
+    if t_overlap.size > 2:
+        t_overlap = t_overlap[1:-1]
+
+        current_ds_core_overlap = current_ds.core_label.sel(t=t_overlap)
+        next_ds_core_overlap = next_ds.core_label.sel(t=t_overlap)
+
+        label_counts = np.maximum(
+            np.bincount(next_ds_core_overlap.values.flatten(), minlength=max_core+1), 
+            1
+        )
+
+        comp_func = partial(find_overlaps, atol=5, rtol=0.5, max_label=max_core, label_counts=label_counts)
+
+        overlap_labels = labeled_comprehension(
+            next_ds_core_overlap.values.flatten(), current_ds_core_overlap.values.flatten(), 
+            current_ds.core.values, comp_func, list, [[]], 
+        )
+
+        x = np.repeat(current_ds.core.values, [len(n) for n in overlap_labels])
+        y = np.concatenate(overlap_labels, dtype=next_ds_core_overlap.dtype, casting="unsafe")
+
+    else:
+        x = np.array([], dtype=current_ds.core.dtype)
+        y = np.array([], dtype=next_ds.core.dtype)
+
+    return min_core, max_core, x, y 
+
+def find_overlap_between_anvils(current_ds, next_ds):
+    min_anvil = current_ds.anvil.max().item()
+    max_anvil = next_ds.anvil.max().item()
+    
+    t_overlap = np.intersect1d(current_ds.t, next_ds.t)
+
+    if t_overlap.size > 2:
+        t_overlap = t_overlap[1:-1]
+
+        current_ds_anvil_overlap = current_ds.thick_anvil_label.sel(t=t_overlap)
+        next_ds_anvil_overlap = next_ds.thick_anvil_label.sel(t=t_overlap)
+
+        label_counts = np.maximum(
+            np.bincount(next_ds_anvil_overlap.values.flatten(), minlength=max_anvil+1), 
+            1
+        )
+
+        comp_func = partial(find_overlaps, atol=5, rtol=0.5, max_label=max_anvil, label_counts=label_counts)
+
+        overlap_labels = labeled_comprehension(
+            next_ds_anvil_overlap.values.flatten(), current_ds_anvil_overlap.values.flatten(), 
+            current_ds.anvil.values, comp_func, list, [[]], 
+        )
+
+        x = np.repeat(current_ds.anvil.values, [len(n) for n in overlap_labels])
+        y = np.concatenate(overlap_labels, dtype=next_ds_anvil_overlap.dtype, casting="unsafe")
+
+    else:
+        x = np.array([], dtype=current_ds.anvil.dtype)
+        y = np.array([], dtype=next_ds.anvil.dtype)
+
+    return min_anvil, max_anvil, x, y 
+
+def find_overlap_between_files(filename_1, filename_2):
+    with xr.open_dataset(filename_1) as ds_1, xr.open_dataset(filename_2) as ds_2:
+        anvil_result = find_overlap_between_anvils(ds_1, ds_2)
+        core_result = find_overlap_between_cores(ds_1, ds_2)
+    return dict(
+        filename_1=filename_1, 
+        filename_2=filename_2,
+        anvil=anvil_result,
+        core=core_result,
+    )
+
+def find_new_labels(x, y, size):
+    overlap_graph = scipy.sparse.coo_array(
+        (np.ones(x.size), (x, y)),
+        shape=(size, size),
+    )
+
+    return scipy.sparse.csgraph.connected_components(overlap_graph, directed=False)[1]
+
+def process_linking_output(overlap_results):
+    # Create dataset and process filenames:
+    save_ds = xr.Dataset(coords=dict(filename=[
+        str(o["filename_1"]) for o in overlap_results
+    ] + [str(overlap_results[-1]["filename_2"])]))
+    save_ds["previous_filename"] = ("filename", [""] + save_ds.filename.data[:-1].tolist())
+    save_ds["next_filename"] = ("filename", [
+        str(o["filename_2"]) for o in overlap_results
+    ] + [""])
+
+    # Process cores
+    core_start = np.cumsum([0]+[o["core"][0] for o in overlap_results])
+    save_ds["core_start"] = ("filename", core_start)
+    
+    max_core = np.sum([overlap_results[0]["core"][0]] + [o["core"][1] for o in overlap_results])
+    x_core = np.concatenate([
+        o["core"][2] + start for o, start in zip(overlap_results, core_start)
+    ])
+    y_core = np.concatenate([
+        o["core"][3] + start for o, start in zip(overlap_results, core_start[1:])
+    ])
+    save_ds["core_labels"] = ("core", find_new_labels(x_core, y_core, max_core+1))
+    
+
+    # Process anvils
+    anvil_start = np.cumsum([0]+[o["anvil"][0] for o in overlap_results])
+    save_ds["anvil_start"] = ("filename", anvil_start)
+    
+    max_anvil = np.sum([overlap_results[0]["anvil"][0]] + [o["anvil"][1] for o in overlap_results])
+    x_anvil = np.concatenate([
+        o["anvil"][2] + start for o, start in zip(overlap_results, anvil_start)
+    ])
+    y_anvil = np.concatenate([
+        o["anvil"][3] + start for o, start in zip(overlap_results, anvil_start[1:])
+    ])
+    save_ds["anvil_labels"] = ("anvil", find_new_labels(x_anvil, y_anvil, max_anvil+1))
+
+    return save_ds
+
+# Old linking classes
 
 # Functions to link overlapping labels
 def recursive_linker(
