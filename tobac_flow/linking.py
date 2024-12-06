@@ -140,7 +140,7 @@ def process_linking_output(overlap_results):
     ] + [""])
 
     # Process cores
-    core_start = np.cumsum([0]+[o["core"][0] for o in overlap_results])
+    core_start = np.cumsum([0]+[o["core"][0] for o in overlap_results]).astype(np.int32)
     save_ds["core_start"] = ("filename", core_start)
     
     max_core = np.sum([overlap_results[0]["core"][0]] + [o["core"][1] for o in overlap_results])
@@ -150,11 +150,11 @@ def process_linking_output(overlap_results):
     y_core = np.concatenate([
         o["core"][3] + start for o, start in zip(overlap_results, core_start[1:])
     ])
-    save_ds["core_labels"] = ("core", find_new_labels(x_core, y_core, max_core+1))
+    save_ds["core_labels"] = ("core", find_new_labels(x_core, y_core, max_core+1).astype(np.int32))
     
 
     # Process anvils
-    anvil_start = np.cumsum([0]+[o["anvil"][0] for o in overlap_results])
+    anvil_start = np.cumsum([0]+[o["anvil"][0] for o in overlap_results]).astype(np.int32)
     save_ds["anvil_start"] = ("filename", anvil_start)
     
     max_anvil = np.sum([overlap_results[0]["anvil"][0]] + [o["anvil"][1] for o in overlap_results])
@@ -164,7 +164,7 @@ def process_linking_output(overlap_results):
     y_anvil = np.concatenate([
         o["anvil"][3] + start for o, start in zip(overlap_results, anvil_start[1:])
     ])
-    save_ds["anvil_labels"] = ("anvil", find_new_labels(x_anvil, y_anvil, max_anvil+1))
+    save_ds["anvil_labels"] = ("anvil", find_new_labels(x_anvil, y_anvil, max_anvil+1).astype(np.int32))
 
     return save_ds
 
