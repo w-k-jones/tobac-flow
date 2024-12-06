@@ -20,6 +20,8 @@ save_path = pathlib.Path(args.save_path).resolve()
 n_cores = int(args.n)
 
 if __name__ == '__main__':
+    start = datetime.now()
+    print(f'Linking {len(files)} files', flush=True)
     print(f'Commencing linking using {n_cores} processes')
     with multiprocessing.Pool(n_cores) as p:
         overlap_results = p.starmap(find_overlap_between_files, zip(files, files[1:]))
@@ -33,3 +35,4 @@ if __name__ == '__main__':
     dataset.to_netcdf(save_path)
 
     print("Linking finished", datetime.now())
+    print("Time elapsed:", datetime.now() - start)
