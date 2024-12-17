@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(
     description="Combine multiple files of detected DCCs in GOES-16 ABI data"
 )
 parser.add_argument("file", help="List of files to combine", type=str)
-parser.add_argument("link_file", help="Link file containing new labels for each file", type=str)
+parser.add_argument("links_file", help="Link file containing new labels for each file", type=str)
 parser.add_argument(
     "-sd", help="Directory to save output files", default="../data/linked"
 )
