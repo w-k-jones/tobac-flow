@@ -91,6 +91,18 @@ def get_new_attrs_cell_method(attrs: dict, modifier: str, dim_name: str) -> dict
     return new_attrs
 
 
+def add_compression_encoding(ds, time_chunksize=1, xy_chunksize=50, tabular_chunksize=500, **kwargs):
+    for var in ds.data_vars:
+        ds[var] = ds[var].drop_encoding()
+        ds[var].encoding.update(kwargs)
+        dims = ds[var].dims
+        if len(dims) == 1:
+            ds[var].encoding.update(dict(chunksizes=tabular_chunksize))
+        else:
+            chunksizes = tuple(time_chunksize if dim in ["t", "time"] else xy_chunksize for dim in dims)
+            ds[var].encoding.update(dict(chunksizes=chunksizes))
+    return ds
+
 __all__ = (
     "create_dataarray",
     "add_dataarray_to_ds",
@@ -100,4 +112,5 @@ __all__ = (
     "get_ds_core_coords",
     "get_new_attrs",
     "get_new_attrs_cell_method",
+    "add_compression_encoding", 
 )
