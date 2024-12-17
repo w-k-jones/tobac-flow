@@ -313,8 +313,9 @@ def merge_previous_file(ds, file, links_ds):
     if prev_file:
         with load_required_vars(prev_file) as prev_ds:
             prev_ds = prev_ds.sel(t=slice(ds.t[0], ds.t[-1])).isel(t=slice(None, -1))
-            prev_ds = relabel_cores_and_anvils(prev_ds, prev_file, links_ds)
-            ds = combine_labels(ds, prev_ds)
+            if len(prev_ds.t):
+                prev_ds = relabel_cores_and_anvils(prev_ds, prev_file, links_ds)
+                ds = combine_labels(ds, prev_ds)
     return ds
 
 
@@ -323,8 +324,9 @@ def merge_next_file(ds, file, links_ds):
     if next_file:
         with load_required_vars(next_file) as next_ds:
             next_ds = next_ds.sel(t=slice(ds.t[0], ds.t[-1])).isel(t=slice(1, None))
-            next_ds = relabel_cores_and_anvils(next_ds, next_file, links_ds)
-            ds = combine_labels(ds, next_ds)
+            if len(next_ds.t):
+                next_ds = relabel_cores_and_anvils(next_ds, next_file, links_ds)
+                ds = combine_labels(ds, next_ds)
     return ds
 
 
