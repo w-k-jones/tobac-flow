@@ -261,12 +261,15 @@ def remap_labels(
 
     Parameters
     ----------
-    labels : numpy.ndarray
+    labels: numpy.ndarray
         The array of labeled regions to remap
-    locations : numpy.ndarray
+    locations: numpy.ndarray, optional (default None)
         An array of length (labels.max()) with values of True for labels that
-            are to be retained and renumbered, and False for labels to be
-            removed
+        are to be retained and renumbered, and False for labels to be removed
+    new_labels: numpy.ndarray, optional (default None)
+        An array of new labels to be used in place of the either the existing
+        labels or the labels specified by locations instead of a contiguous
+        range
 
     Returns
     -------
@@ -275,14 +278,14 @@ def remap_labels(
             regions corresponding to the True values in 'locations' retained
             and renumbered with contiguous integer values
     """
-    remapper = np.zeros(np.nanmax(labels) + 1, labels.dtype)
+    max_label = np.nanmax(labels)
+    if new_labels is not None:
+        max_label = np.maximum(max_label, new_labels.size)
+    remapper = np.zeros(max_label + 1, labels.dtype)
     if new_labels is None:
         new_labels = np.arange(1, np.sum(locations) + 1)
     if locations is not None:
         if locations.dtype == bool:
-            assert (
-                locations.size == labels.max()
-            ), "The size of the locations parameter must be equal to the maximum label in the labels parameter"
             remapper[1:][locations] = new_labels
         else:
             remapper[locations] = new_labels
@@ -313,12 +316,6 @@ def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
         An array of labels corresponding the regions associated with the input
             labels at individual time steps
     """
-    # step_labels = np.zeros_like(labels)
-    # max_label = 0
-    # for i in range(labels.shape[0]):
-    #     step_labels[i] = relabel_objects(labels[i])
-    #     step_labels[i][np.nonzero(step_labels[i])] += max_label
-    #     max_label = step_labels.max()
     max_step_label = np.cumsum(
         np.max(labels, axis=tuple(range(1, len(labels.shape)))),
         dtype=np.int32,
@@ -329,7 +326,14 @@ def slice_labels(labels: np.ndarray[int]) -> np.ndarray[int]:
 
     step_labels = labels + max_step_label
     step_labels[labels == 0] = 0
-    step_labels = relabel_objects(step_labels, inplace=True)
+
+    wh_labels = np.where(
+        np.bincount(step_labels.ravel()),
+    )[0]
+    label_map = np.zeros(wh_labels[-1] + 1, dtype=int)
+    label_map[wh_labels] = np.arange(wh_labels.size)
+    step_labels = label_map[step_labels]
+
     return step_labels
 
 

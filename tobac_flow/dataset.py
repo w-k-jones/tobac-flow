@@ -423,49 +423,70 @@ def link_step_labels(dataset: xr.Dataset) -> None:
     )
 
 
-def flag_edge_labels(dataset, start_date, end_date):
-    # Add edge flags for cores
-    core_edge_labels = np.unique(
+def find_edge_labels(
+    labels, label_dim, start_date=None, end_date=None, max_time_gap=900
+):
+    # Find labels that touch the sides of the domain:
+    edge_labels = np.unique(
         np.concatenate(
             [
-                np.unique(dataset.core_label[:, 0]),
-                np.unique(dataset.core_label[:, -1]),
-                np.unique(dataset.core_label[:, :, 0]),
-                np.unique(dataset.core_label[:, :, -1]),
+                np.unique(labels[:, 0]),
+                np.unique(labels[:, -1]),
+                np.unique(labels[:, :, 0]),
+                np.unique(labels[:, :, -1]),
             ]
         )
     )
 
-    core_edge_label_flag = xr.zeros_like(dataset.core, dtype=bool)
+    if edge_labels[0] == 0:
+        edge_labels = edge_labels[1:]
 
-    if core_edge_labels[0] == 0:
-        core_edge_label_flag.loc[core_edge_labels[1:]] = True
+    edge_label_flag = xr.zeros_like(label_dim, dtype=bool)
+    edge_label_flag.loc[edge_labels] = True
+
+    # Find labels at the start and end of the period:
+    if (start_date is not None) and (get_datetime_from_coord(labels.t)[0] < start_date):
+        start_labels = np.unique(labels.sel(t=slice(None, start_date)))
     else:
-        core_edge_label_flag.loc[core_edge_labels] = True
+        start_labels = np.unique(labels[0])
 
-    if get_datetime_from_coord(dataset.t)[0] < start_date:
-        core_start_labels = np.unique(dataset.core_label.sel(t=slice(None, start_date)))
+    if (end_date is not None) and (get_datetime_from_coord(labels.t)[-1] > end_date):
+        end_labels = np.unique(labels.sel(t=slice(end_date, None)))
     else:
-        core_start_labels = np.unique(dataset.core_label[0])
+        end_labels = np.unique(labels[-1])
 
-    core_start_label_flag = xr.zeros_like(dataset.core, dtype=bool)
+    # Now find time gaps and append to start and end labels
+    time_gap_locs = np.where((labels.t.diff("t").astype(int) / 1e9 > max_time_gap))[0]
 
-    if core_start_labels[0] == 0:
-        core_start_label_flag.loc[core_start_labels[1:]] = True
-    else:
-        core_start_label_flag.loc[core_start_labels] = True
+    if time_gap_locs.size:
+        start_labels = np.unique(
+            np.concatenate([start_labels, np.unique(labels.isel(t=time_gap_locs))])
+        )
 
-    if get_datetime_from_coord(dataset.t)[-1] > end_date:
-        core_end_labels = np.unique(dataset.core_label.sel(t=slice(end_date, None)))
-    else:
-        core_end_labels = np.unique(dataset.core_label[-1])
+        end_labels = np.unique(
+            np.concatenate([end_labels, np.unique(labels.isel(t=time_gap_locs + 1))])
+        )
 
-    core_end_label_flag = xr.zeros_like(dataset.core, dtype=bool)
+    if start_labels[0] == 0:
+        start_labels = start_labels[1:]
 
-    if core_end_labels[0] == 0:
-        core_end_label_flag.loc[core_end_labels[1:]] = True
-    else:
-        core_end_label_flag.loc[core_end_labels] = True
+    start_label_flag = xr.zeros_like(label_dim, dtype=bool)
+    start_label_flag.loc[start_labels] = True
+
+    if end_labels[0] == 0:
+        end_labels = end_labels[1:]
+
+    end_label_flag = xr.zeros_like(label_dim, dtype=bool)
+    end_label_flag.loc[end_labels] = True
+
+    return edge_label_flag, start_label_flag, end_label_flag
+
+
+def flag_edge_labels(dataset, start_date=None, end_date=None, max_time_gap=900):
+    # Add edge flags for cores
+    core_edge_label_flag, core_start_label_flag, core_end_label_flag = find_edge_labels(
+        dataset.core_label, dataset.core, start_date, end_date, max_time_gap
+    )
 
     add_dataarray_to_ds(
         create_dataarray(
@@ -501,51 +522,13 @@ def flag_edge_labels(dataset, start_date, end_date):
     )
 
     # Add edge flags for thick_anvils
-    thick_anvil_edge_labels = np.unique(
-        np.concatenate(
-            [
-                np.unique(dataset.thick_anvil_label[:, 0]),
-                np.unique(dataset.thick_anvil_label[:, -1]),
-                np.unique(dataset.thick_anvil_label[:, :, 0]),
-                np.unique(dataset.thick_anvil_label[:, :, -1]),
-            ]
-        )
+    (
+        thick_anvil_edge_label_flag,
+        thick_anvil_start_label_flag,
+        thick_anvil_end_label_flag,
+    ) = find_edge_labels(
+        dataset.thick_anvil_label, dataset.anvil, start_date, end_date, max_time_gap
     )
-
-    thick_anvil_edge_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
-
-    if thick_anvil_edge_labels[0] == 0:
-        thick_anvil_edge_label_flag.loc[thick_anvil_edge_labels[1:]] = True
-    else:
-        thick_anvil_edge_label_flag.loc[thick_anvil_edge_labels] = True
-
-    if get_datetime_from_coord(dataset.t)[0] < start_date:
-        thick_anvil_start_labels = np.unique(
-            dataset.thick_anvil_label.sel(t=slice(None, start_date))
-        )
-    else:
-        thick_anvil_start_labels = np.unique(dataset.thick_anvil_label[0])
-
-    thick_anvil_start_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
-
-    if thick_anvil_start_labels[0] == 0:
-        thick_anvil_start_label_flag.loc[thick_anvil_start_labels[1:]] = True
-    else:
-        thick_anvil_start_label_flag.loc[thick_anvil_start_labels] = True
-
-    if get_datetime_from_coord(dataset.t)[-1] > end_date:
-        thick_anvil_end_labels = np.unique(
-            dataset.thick_anvil_label.sel(t=slice(end_date, None))
-        )
-    else:
-        thick_anvil_end_labels = np.unique(dataset.thick_anvil_label[-1])
-
-    thick_anvil_end_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
-
-    if thick_anvil_end_labels[0] == 0:
-        thick_anvil_end_label_flag.loc[thick_anvil_end_labels[1:]] = True
-    else:
-        thick_anvil_end_label_flag.loc[thick_anvil_end_labels] = True
 
     add_dataarray_to_ds(
         create_dataarray(
@@ -581,51 +564,13 @@ def flag_edge_labels(dataset, start_date, end_date):
     )
 
     # Add edge flags for thin_anvils
-    thin_anvil_edge_labels = np.unique(
-        np.concatenate(
-            [
-                np.unique(dataset.thin_anvil_label[:, 0]),
-                np.unique(dataset.thin_anvil_label[:, -1]),
-                np.unique(dataset.thin_anvil_label[:, :, 0]),
-                np.unique(dataset.thin_anvil_label[:, :, -1]),
-            ]
-        )
+    (
+        thin_anvil_edge_label_flag,
+        thin_anvil_start_label_flag,
+        thin_anvil_end_label_flag,
+    ) = find_edge_labels(
+        dataset.thin_anvil_label, dataset.anvil, start_date, end_date, max_time_gap
     )
-
-    thin_anvil_edge_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
-
-    if thin_anvil_edge_labels[0] == 0:
-        thin_anvil_edge_label_flag.loc[thin_anvil_edge_labels[1:]] = True
-    else:
-        thin_anvil_edge_label_flag.loc[thin_anvil_edge_labels] = True
-
-    if get_datetime_from_coord(dataset.t)[0] < start_date:
-        thin_anvil_start_labels = np.unique(
-            dataset.thin_anvil_label.sel(t=slice(None, start_date))
-        )
-    else:
-        thin_anvil_start_labels = np.unique(dataset.thick_anvil_label[0])
-
-    thin_anvil_start_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
-
-    if thin_anvil_start_labels[0] == 0:
-        thin_anvil_start_label_flag.loc[thin_anvil_start_labels[1:]] = True
-    else:
-        thin_anvil_start_label_flag.loc[thin_anvil_start_labels] = True
-
-    if get_datetime_from_coord(dataset.t)[-1] > end_date:
-        thin_anvil_end_labels = np.unique(
-            dataset.thin_anvil_label.sel(t=slice(end_date, None))
-        )
-    else:
-        thin_anvil_end_labels = np.unique(dataset.thick_anvil_label[-1])
-
-    thin_anvil_end_label_flag = xr.zeros_like(dataset.anvil, dtype=bool)
-
-    if thin_anvil_end_labels[0] == 0:
-        thin_anvil_end_label_flag.loc[thin_anvil_end_labels[1:]] = True
-    else:
-        thin_anvil_end_label_flag.loc[thin_anvil_end_labels] = True
 
     add_dataarray_to_ds(
         create_dataarray(
