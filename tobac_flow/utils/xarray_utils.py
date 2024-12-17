@@ -97,7 +97,7 @@ def add_compression_encoding(ds, time_chunksize=1, xy_chunksize=50, tabular_chun
         ds[var].encoding.update(kwargs)
         dims = ds[var].dims
         if len(dims) == 1:
-            ds[var].encoding.update(dict(chunksizes=tabular_chunksize))
+            ds[var].encoding.update(dict(chunksizes=(tabular_chunksize,)))
         else:
             chunksizes = tuple(time_chunksize if dim in ["t", "time"] else xy_chunksize for dim in dims)
             ds[var].encoding.update(dict(chunksizes=chunksizes))
