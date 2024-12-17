@@ -6,7 +6,7 @@ from datetime import datetime
 from dateutil.parser import parse as parse_date
 from tobac_flow.analysis import get_label_stats, weighted_statistics_on_labels
 from tobac_flow.dataset import calculate_label_properties
-from tobac_flow.utils.xarray_utils import add_dataarray_to_ds
+from tobac_flow.utils.xarray_utils import add_compression_encoding, add_dataarray_to_ds
 
 parser = argparse.ArgumentParser(
     description="""Postprocess detected DCCs using GOES-16 data"""
@@ -89,12 +89,11 @@ for field in (dataset.BT,):
 # Remove BT to reduce file size
 dataset = dataset.drop_vars("BT")
 
-print(datetime.now(), "Saving to %s" % (save_path), flush=True)
 # Add compression encoding
-comp = dict(zlib=True, complevel=5, shuffle=True)
-for var in dataset.data_vars:
-    dataset[var].encoding.update(comp)
+print(datetime.now(), "Adding compression encoding", flush=True)
+dataset = add_compression_encoding(dataset, zstd=True, complevel=5, shuffle=True)
 
+print(datetime.now(), "Saving to %s" % (save_path), flush=True)
 dataset.to_netcdf(save_path)
 
 dataset.close()

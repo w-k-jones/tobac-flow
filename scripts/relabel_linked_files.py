@@ -22,12 +22,15 @@ if __name__ == "__main__":
     save_path = pathlib.Path(args.sd)
     save_path.mkdir(parents=True, exist_ok=True)
 
+    filename = pathlib.Path(args.file)
+    assert filename.exists(), f'File {filename} not found'
+
     with xr.open_dataset(args.links_file) as links_ds:
         save_ds = process_file(args.file, links_ds)
         print(datetime.now(), "Adding compression encoding", flush=True)
         save_ds = add_compression_encoding(save_ds, zstd=True, complevel=5, shuffle=True)
 
-        new_filename = save_path / (args.links_file.stem + args.file_suffix + ".nc")
+        new_filename = save_path / (filename.stem + args.file_suffix + ".nc")
         print(datetime.now(), "Saving to %s" % (new_filename), flush=True)
         save_ds.to_netcdf(new_filename)
         save_ds.close()
