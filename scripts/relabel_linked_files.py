@@ -15,7 +15,6 @@ parser.add_argument("links_file", help="Link file containing new labels for each
 parser.add_argument(
     "-sd", help="Directory to save output files", default="../data/linked"
 )
-parser.add_argument("--file_suffix", help="Suffix to save files under", default="")
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -30,7 +29,7 @@ if __name__ == "__main__":
         print(datetime.now(), "Adding compression encoding", flush=True)
         save_ds = add_compression_encoding(save_ds, compression="zstd", complevel=5, shuffle=True)
 
-        new_filename = save_path / (filename.stem + args.file_suffix + ".nc")
+        new_filename = save_path / filename.name
         print(datetime.now(), "Saving to %s" % (new_filename), flush=True)
         save_ds.to_netcdf(new_filename)
         save_ds.close()

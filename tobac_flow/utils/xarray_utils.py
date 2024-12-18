@@ -103,6 +103,37 @@ def add_compression_encoding(ds, time_chunksize=1, xy_chunksize=50, tabular_chun
             ds[var].encoding.update(dict(chunksizes=chunksizes))
     return ds
 
+def sel_anvil(ds, anvil):
+    ds = ds.sel(anvil=anvil)
+    ds = ds.sel(
+        thick_anvil_step=ds.thick_anvil_step[np.isin(ds.thick_anvil_step_anvil_index, ds.anvil)], 
+        thin_anvil_step=ds.thin_anvil_step[np.isin(ds.thin_anvil_step_anvil_index, ds.anvil)], 
+    )
+    return ds
+
+def isel_anvil(ds, anvil):
+    ds = ds.isel(anvil=anvil)
+    ds = ds.sel(
+        thick_anvil_step=ds.thick_anvil_step[np.isin(ds.thick_anvil_step_anvil_index, ds.anvil)], 
+        thin_anvil_step=ds.thin_anvil_step[np.isin(ds.thin_anvil_step_anvil_index, ds.anvil)], 
+    )
+    return ds
+
+def sel_core(ds, core):
+    ds = ds.sel(core=core)
+    ds = ds.sel(
+        core_step=ds.core_step[np.isin(ds.core_step_core_index, ds.core)], 
+    )
+    return ds
+
+def isel_core(ds, core):
+    ds = ds.isel(core=core)
+    ds = ds.sel(
+        core_step=ds.core_step[np.isin(ds.core_step_core_index, ds.core)], 
+    )
+    return ds
+
+
 __all__ = (
     "create_dataarray",
     "add_dataarray_to_ds",
@@ -113,4 +144,8 @@ __all__ = (
     "get_new_attrs",
     "get_new_attrs_cell_method",
     "add_compression_encoding", 
+    "sel_anvil", 
+    "isel_anvil", 
+    "sel_core", 
+    "isel_core", 
 )
