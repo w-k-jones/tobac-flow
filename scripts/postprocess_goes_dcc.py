@@ -91,7 +91,7 @@ dataset = dataset.drop_vars("BT")
 
 # Add compression encoding
 print(datetime.now(), "Adding compression encoding", flush=True)
-dataset = add_compression_encoding(dataset, zstd=True, complevel=5, shuffle=True)
+dataset = add_compression_encoding(dataset, compression="zstd", complevel=5, shuffle=True)
 
 print(datetime.now(), "Saving to %s" % (save_path), flush=True)
 dataset.to_netcdf(save_path)

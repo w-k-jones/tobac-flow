@@ -1,6 +1,7 @@
 import pathlib
 import warnings
 
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Callable
@@ -23,6 +24,7 @@ from tobac_flow.utils.datetime_utils import (
     trim_file_start_and_end,
 )
 from tobac_flow.utils.label_utils import find_overlapping_labels, remap_labels
+
 
 # New linking functions
 
@@ -274,17 +276,6 @@ def combine_labels(ds, merge_ds):
     return ds
 
 
-from contextlib import contextmanager
-
-
-def open_file(name):
-    f = open(name, "w")
-    try:
-        yield f
-    finally:
-        f.close()
-
-
 @contextmanager
 def load_required_vars(filename):
     try:
@@ -312,8 +303,9 @@ def merge_previous_file(ds, file, links_ds):
     prev_file = links_ds.previous_filename.sel(filename=str(file)).item()
     if prev_file:
         with load_required_vars(prev_file) as prev_ds:
-            prev_ds = prev_ds.sel(t=slice(ds.t[0], ds.t[-1])).isel(t=slice(None, -1))
-            if len(prev_ds.t):
+            t_overlap = np.intersect1d(ds.t, prev_ds.t)
+            if t_overlap.size > 1:
+                prev_ds = prev_ds.sel(t=t_overlap[:-1])
                 prev_ds = relabel_cores_and_anvils(prev_ds, prev_file, links_ds)
                 ds = combine_labels(ds, prev_ds)
     return ds
@@ -323,8 +315,9 @@ def merge_next_file(ds, file, links_ds):
     next_file = links_ds.next_filename.sel(filename=str(file)).item()
     if next_file:
         with load_required_vars(next_file) as next_ds:
-            next_ds = next_ds.sel(t=slice(ds.t[0], ds.t[-1])).isel(t=slice(1, None))
-            if len(next_ds.t):
+            t_overlap = np.intersect1d(ds.t, next_ds.t)
+            if t_overlap.size > 1:
+                next_ds = next_ds.sel(t=t_overlap[1:])
                 next_ds = relabel_cores_and_anvils(next_ds, next_file, links_ds)
                 ds = combine_labels(ds, next_ds)
     return ds

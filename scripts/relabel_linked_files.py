@@ -28,7 +28,7 @@ if __name__ == "__main__":
     with xr.open_dataset(args.links_file) as links_ds:
         save_ds = process_file(args.file, links_ds)
         print(datetime.now(), "Adding compression encoding", flush=True)
-        save_ds = add_compression_encoding(save_ds, zstd=True, complevel=5, shuffle=True)
+        save_ds = add_compression_encoding(save_ds, compression="zstd", complevel=5, shuffle=True)
 
         new_filename = save_path / (filename.stem + args.file_suffix + ".nc")
         print(datetime.now(), "Saving to %s" % (new_filename), flush=True)
