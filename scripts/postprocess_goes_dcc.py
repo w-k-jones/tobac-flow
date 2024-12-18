@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     weights = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
 
-    for field in (dataset.BT,):
+    for field in (dataset.bt,):
         [
             add_dataarray_to_ds(da[dataset.core_step.data - 1], dataset)
             for da in weighted_statistics_on_labels(
@@ -89,7 +89,7 @@ if __name__ == "__main__":
         ]
 
     # Remove BT to reduce file size
-    dataset = dataset.drop_vars("BT")
+    dataset = dataset.drop_vars("bt")
 
     # Add compression encoding
     print(datetime.now(), "Adding compression encoding", flush=True)
