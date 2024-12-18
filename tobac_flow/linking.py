@@ -341,9 +341,9 @@ def process_file(file, links_ds):
 
     print(datetime.now(), "Flagging edge labels", flush=True)
     flag_edge_labels(ds, *get_dates_from_filename(file))
-    if "BT" in ds.data_vars:
+    if "bt" in ds.data_vars:
         print(datetime.now(), "Flagging NaN adjacent labels", flush=True)
-        flag_nan_adjacent_labels(ds, ds.BT)
+        flag_nan_adjacent_labels(ds, ds.bt)
 
     # Trim padding from initial processing
     print(datetime.now(), "Trimming file padding", flush=True)
