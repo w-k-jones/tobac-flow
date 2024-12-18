@@ -18,82 +18,84 @@ parser.add_argument(
     help="Save statistics of label spatial properties to output file",
     action="store_true",
 )
-args = parser.parse_args()
 
-fname = pathlib.Path(args.file)
+if __name__ == "__main__":
+    args = parser.parse_args()
 
-if args.sd is None:
-    save_dir = fname.parent
-else:
-    save_dir = pathlib.Path(args.sd)
-if not save_dir.exists():
-    save_dir.mkdir()
+    fname = pathlib.Path(args.file)
 
-save_name = fname.stem + "_processed.nc"
+    if args.sd is None:
+        save_dir = fname.parent
+    else:
+        save_dir = pathlib.Path(args.sd)
+    if not save_dir.exists():
+        save_dir.mkdir()
 
-save_path = save_dir / save_name
+    save_name = fname.stem + "_processed.nc"
 
-print("Saving to:", save_path)
+    save_path = save_dir / save_name
 
-dataset = xr.open_dataset(fname)
+    print("Saving to:", save_path)
 
-start_date = parse_date((str(fname)).split("_S")[-1].split("_E")[0], fuzzy=True)
-end_date = parse_date((str(fname)).split("_E")[-1].split("_X")[0], fuzzy=True)
+    dataset = xr.open_dataset(fname)
 
-calculate_label_properties(dataset)
+    start_date = parse_date((str(fname)).split("_S")[-1].split("_E")[0], fuzzy=True)
+    end_date = parse_date((str(fname)).split("_E")[-1].split("_X")[0], fuzzy=True)
 
-if args.save_spatial_props:
-    get_label_stats(dataset.core_label, dataset)
-    get_label_stats(dataset.thick_anvil_label, dataset)
-    get_label_stats(dataset.thin_anvil_label, dataset)
+    calculate_label_properties(dataset)
 
-weights = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
+    if args.save_spatial_props:
+        get_label_stats(dataset.core_label, dataset)
+        get_label_stats(dataset.thick_anvil_label, dataset)
+        get_label_stats(dataset.thin_anvil_label, dataset)
 
-for field in (dataset.BT,):
-    [
-        add_dataarray_to_ds(da[dataset.core_step.data - 1], dataset)
-        for da in weighted_statistics_on_labels(
-            dataset.core_step_label,
-            field.compute(),
-            weights,
-            name="core_step",
-            dim="core_step",
-            dtype=np.float32,
-        )
-    ]
+    weights = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
 
-    [
-        add_dataarray_to_ds(da[dataset.thick_anvil_step.data - 1], dataset)
-        for da in weighted_statistics_on_labels(
-            dataset.thick_anvil_step_label,
-            field.compute(),
-            weights,
-            name="thick_anvil_step",
-            dim="thick_anvil_step",
-            dtype=np.float32,
-        )
-    ]
+    for field in (dataset.BT,):
+        [
+            add_dataarray_to_ds(da[dataset.core_step.data - 1], dataset)
+            for da in weighted_statistics_on_labels(
+                dataset.core_step_label,
+                field.compute(),
+                weights,
+                name="core_step",
+                dim="core_step",
+                dtype=np.float32,
+            )
+        ]
 
-    [
-        add_dataarray_to_ds(da[dataset.thin_anvil_step.data - 1], dataset)
-        for da in weighted_statistics_on_labels(
-            dataset.thin_anvil_step_label,
-            field.compute(),
-            weights,
-            name="thin_anvil_step",
-            dim="thin_anvil_step",
-            dtype=np.float32,
-        )
-    ]
+        [
+            add_dataarray_to_ds(da[dataset.thick_anvil_step.data - 1], dataset)
+            for da in weighted_statistics_on_labels(
+                dataset.thick_anvil_step_label,
+                field.compute(),
+                weights,
+                name="thick_anvil_step",
+                dim="thick_anvil_step",
+                dtype=np.float32,
+            )
+        ]
 
-# Remove BT to reduce file size
-dataset = dataset.drop_vars("BT")
+        [
+            add_dataarray_to_ds(da[dataset.thin_anvil_step.data - 1], dataset)
+            for da in weighted_statistics_on_labels(
+                dataset.thin_anvil_step_label,
+                field.compute(),
+                weights,
+                name="thin_anvil_step",
+                dim="thin_anvil_step",
+                dtype=np.float32,
+            )
+        ]
 
-# Add compression encoding
-print(datetime.now(), "Adding compression encoding", flush=True)
-dataset = add_compression_encoding(dataset, compression="zstd", complevel=5, shuffle=True)
+    # Remove BT to reduce file size
+    dataset = dataset.drop_vars("BT")
 
-print(datetime.now(), "Saving to %s" % (save_path), flush=True)
-dataset.to_netcdf(save_path)
+    # Add compression encoding
+    print(datetime.now(), "Adding compression encoding", flush=True)
+    dataset = add_compression_encoding(dataset, compression="zstd", complevel=5, shuffle=True)
 
-dataset.close()
+    print(datetime.now(), "Saving to %s" % (save_path), flush=True)
+    dataset.to_netcdf(save_path)
+
+    dataset.close()
