@@ -313,6 +313,8 @@ def link_cores_and_anvils(
         max_label=dataset.core.max().item(),
     )
 
+    from scipy.ndimage import labeled_comprehension
+
     core_anvil_index = labeled_comprehension(
         dataset.thick_anvil_label.values.flatten(),
         dataset.core_label.values.flatten(),
