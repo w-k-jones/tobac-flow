@@ -295,6 +295,7 @@ def load_required_vars(filename):
         ]
         data_vars = [var for var in default_vars if var in ds.data_vars]
         ds = ds.get(data_vars)
+        ds.load()
         yield ds
     finally:
         ds.close()
