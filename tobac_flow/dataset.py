@@ -1,3 +1,4 @@
+from functools import partial
 import numpy as np
 from scipy import stats
 from scipy import ndimage as ndi
@@ -289,14 +290,36 @@ def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
 
     return dataset.assign_coords(new_coords)
 
+def find_max_overlap(x, atol, max_label):
+    overlap_counts = np.bincount(x, minlength=max_label + 1)
 
-def link_cores_and_anvils(dataset: xr.Dataset, add_cores_to_anvils=True) -> None:
-    core_anvil_index = apply_func_to_labels(
-        dataset.core_label.to_numpy(),
-        dataset.thick_anvil_label.to_numpy(),
-        func=find_overlap_mode,
-        index=dataset.core.to_numpy(),
-        default=0,
+    wh_overlap = np.argmax(overlap_counts)
+
+    return wh_overlap if overlap_counts[wh_overlap] >= atol else 0
+
+def link_cores_and_anvils(
+    dataset: xr.Dataset, atol: int = 5, add_cores_to_anvils: bool = True
+) -> None:
+    # core_anvil_index = apply_func_to_labels(
+    #     dataset.core_label.to_numpy(),
+    #     dataset.thick_anvil_label.to_numpy(),
+    #     func=find_overlap_mode,
+    #     index=dataset.core.to_numpy(),
+    #     default=0,
+    # )
+    comp_func = partial(
+        find_max_overlap,
+        atol=atol,
+        max_label=dataset.core.max().item(),
+    )
+
+    core_anvil_index = labeled_comprehension(
+        dataset.anvil_label.values.flatten(),
+        dataset.core_label.values.flatten(),
+        dataset.core.values,
+        comp_func,
+        int,
+        0,
     )
 
     add_dataarray_to_ds(
