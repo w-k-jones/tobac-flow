@@ -17,6 +17,7 @@ from tobac_flow.dataset import (
     flag_nan_adjacent_labels,
     add_step_labels,
     add_label_coords,
+    link_cores_and_anvils,
     link_step_labels,
 )
 from tobac_flow.utils.datetime_utils import (
@@ -362,6 +363,7 @@ def process_file(file, links_ds):
 
     print(datetime.now(), "Adding step labels", flush=True)
     add_step_labels(ds)
+    link_cores_and_anvils(ds)
 
     print(datetime.now(), "Adding label coords for step labels", flush=True)
     ds = add_label_coords(ds)
