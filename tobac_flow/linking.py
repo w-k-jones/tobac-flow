@@ -361,9 +361,11 @@ def process_file(file, links_ds):
         ],
     )
 
+    print(datetime.now(), "Linking cores and anvils", flush=True)
+    link_cores_and_anvils(ds)
+
     print(datetime.now(), "Adding step labels", flush=True)
     add_step_labels(ds)
-    link_cores_and_anvils(ds)
 
     print(datetime.now(), "Adding label coords for step labels", flush=True)
     ds = add_label_coords(ds)
