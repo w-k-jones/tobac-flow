@@ -314,7 +314,7 @@ def link_cores_and_anvils(
     )
 
     core_anvil_index = labeled_comprehension(
-        dataset.anvil_label.values.flatten(),
+        dataset.thick_anvil_label.values.flatten(),
         dataset.core_label.values.flatten(),
         dataset.core.values,
         comp_func,
