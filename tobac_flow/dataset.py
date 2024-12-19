@@ -312,7 +312,9 @@ def link_cores_and_anvils(dataset: xr.Dataset, add_cores_to_anvils=True) -> None
 
     if add_cores_to_anvils:
         remapped_cores = remap_labels(
-            dataset.core_label.values, new_labels=core_anvil_index
+            dataset.core_label.values, 
+            locations=dataset.core.values, 
+            new_labels=core_anvil_index
         )
         wh_core_labels = remapped_cores != 0
         dataset.thick_anvil_label.data[wh_core_labels] = remapped_cores[wh_core_labels]
