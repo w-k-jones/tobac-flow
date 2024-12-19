@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     print("Saving to:", save_path)
 
-    dataset = xr.open_dataset(fname)
+    dataset = xr.load_dataset(fname)
 
     start_date = parse_date((str(fname)).split("_S")[-1].split("_E")[0], fuzzy=True)
     end_date = parse_date((str(fname)).split("_E")[-1].split("_X")[0], fuzzy=True)
