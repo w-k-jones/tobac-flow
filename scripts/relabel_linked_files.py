@@ -17,7 +17,7 @@ parser.add_argument(
     "-sd", help="Directory to save output files", default="../data/linked"
 )
 parser.add_argument(
-    "-df", help="Date formatting string for subdirectories", default=""
+    "-sdf", help="Date formatting string for subdirectories", default=""
 )
 
 if __name__ == "__main__":
@@ -29,8 +29,8 @@ if __name__ == "__main__":
     file_date = get_dates_from_filename(filename)[0]
     
     save_path = pathlib.Path(args.sd)
-    if parser.df:
-        save_path = save_path / file_date.strftime(args.df)
+    if args.sdf:
+        save_path = save_path / file_date.strftime(args.sdf)
     
     save_path.mkdir(parents=True, exist_ok=True)
     
