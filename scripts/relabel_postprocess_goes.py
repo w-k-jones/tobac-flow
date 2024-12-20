@@ -39,7 +39,7 @@ if __name__ == "__main__":
     
     save_path.mkdir(parents=True, exist_ok=True)
 
-    save_path = save_path / filename
+    save_path = save_path / filename.name
     
     with xr.open_dataset(args.links_file) as links_ds:
         dataset = process_file(args.file, links_ds)
