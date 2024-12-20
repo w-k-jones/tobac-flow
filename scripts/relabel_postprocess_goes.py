@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("file", help="File to validate", type=str)
 parser.add_argument("links_file", help="Link file containing new labels for each file", type=str)
 
-parser.add_argument("-sd", help="Directory to save preprocess files", default=None)
+parser.add_argument("-sd", help="Directory to save preprocess files", default="")
 parser.add_argument(
     "-sdf", help="Date formatting string for subdirectories", default=""
 )
