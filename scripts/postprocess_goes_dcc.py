@@ -6,6 +6,7 @@ from datetime import datetime
 from dateutil.parser import parse as parse_date
 from tobac_flow.analysis import get_label_stats, weighted_statistics_on_labels
 from tobac_flow.dataset import calculate_label_properties
+from tobac_flow.utils.datetime_utils import get_dates_from_filename
 from tobac_flow.utils.xarray_utils import add_compression_encoding, add_dataarray_to_ds
 
 parser = argparse.ArgumentParser(
@@ -18,18 +19,27 @@ parser.add_argument(
     help="Save statistics of label spatial properties to output file",
     action="store_true",
 )
+parser.add_argument(
+    "-sdf", help="Date formatting string for subdirectories", default=""
+)
 
 if __name__ == "__main__":
     args = parser.parse_args()
 
     fname = pathlib.Path(args.file)
-
+    assert fname.exists(), f'File {fname} not found'
+    
     if args.sd is None:
         save_dir = fname.parent
     else:
         save_dir = pathlib.Path(args.sd)
-    if not save_dir.exists():
-        save_dir.mkdir()
+
+    file_date = get_dates_from_filename(fname)[0]
+    
+    if parser.sdf:
+        save_dir = save_dir / file_date.strftime(args.sdf)
+    
+    save_dir.mkdir(parents=True, exist_ok=True)
 
     save_name = fname.stem + "_processed.nc"
 
