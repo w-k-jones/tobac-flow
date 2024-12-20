@@ -20,7 +20,7 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
-    "-sdf", help="Date formatting string for subdirectories", default=""
+    "-df", help="Date formatting string for subdirectories", default=""
 )
 
 if __name__ == "__main__":
@@ -36,8 +36,8 @@ if __name__ == "__main__":
 
     file_date = get_dates_from_filename(fname)[0]
     
-    if parser.sdf:
-        save_dir = save_dir / file_date.strftime(args.sdf)
+    if parser.df:
+        save_dir = save_dir / file_date.strftime(args.df)
     
     save_dir.mkdir(parents=True, exist_ok=True)
 
