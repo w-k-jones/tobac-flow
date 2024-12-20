@@ -14,16 +14,17 @@ parser = argparse.ArgumentParser(
     description="""Postprocess detected DCCs using GOES-16 data"""
 )
 parser.add_argument("file", help="File to validate", type=str)
+parser.add_argument("links_file", help="Link file containing new labels for each file", type=str)
+
 parser.add_argument("-sd", help="Directory to save preprocess files", default=None)
+parser.add_argument(
+    "-sdf", help="Date formatting string for subdirectories", default=""
+)
 parser.add_argument(
     "--save_spatial_props",
     help="Save statistics of label spatial properties to output file",
     action="store_true",
 )
-parser.add_argument(
-    "-sdf", help="Date formatting string for subdirectories", default=""
-)
-
 if __name__ == "__main__":
     args = parser.parse_args()
     
