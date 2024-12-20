@@ -31,31 +31,33 @@ if __name__ == "__main__":
     filename = pathlib.Path(args.file)
     assert filename.exists(), f'File {filename} not found'
 
-    file_date = get_dates_from_filename(filename)[0]
+    start_date, end_date = get_dates_from_filename(filename)
     
     save_path = pathlib.Path(args.sd)
     if args.sdf:
-        save_path = save_path / file_date.strftime(args.sdf)
+        save_path = save_path / start_date.strftime(args.sdf)
     
     save_path.mkdir(parents=True, exist_ok=True)
+
+    save_path = save_path / filename
     
     with xr.open_dataset(args.links_file) as links_ds:
         dataset = process_file(args.file, links_ds)
-        print(datetime.now(), "Adding compression encoding", flush=True)
-        
-        print("Saving to:", save_path)
 
     start_date, end_date = get_dates_from_filename(filename)
 
+    print(datetime.now(), "Calculating label properties", flush=True)
     calculate_label_properties(dataset)
 
     if args.save_spatial_props:
+        print(datetime.now(), "Calculating spatial properties", flush=True)
         get_label_stats(dataset.core_label, dataset)
         get_label_stats(dataset.thick_anvil_label, dataset)
         get_label_stats(dataset.thin_anvil_label, dataset)
 
     weights = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
 
+    print(datetime.now(), "Calculating statistics", flush=True)
     for field in (dataset.bt,):
         [
             add_dataarray_to_ds(da[dataset.core_step.data - 1], dataset)
