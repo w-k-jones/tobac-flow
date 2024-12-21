@@ -273,11 +273,12 @@ if __name__=="__main__":
     print(f"Final valid thick anvil count: {dataset.thick_anvil_is_valid.data.sum()}")
     print(f"Final valid thin anvil count: {dataset.thin_anvil_is_valid.data.sum()}")
 
-    print(datetime.now(), "Saving to %s" % (save_path), flush=True)
     # Add compression encoding
     print(datetime.now(), "Adding compression encoding", flush=True)
     dataset = add_compression_encoding(dataset, compression="zstd", complevel=5, shuffle=True)
 
-    print(datetime.now(), "Saving complete, closing datasets", flush=True)
+    print(datetime.now(), "Saving to %s" % (save_path), flush=True)
+    dataset.to_netcdf(save_path)
 
+    print(datetime.now(), "Saving complete, closing datasets", flush=True)
     dataset.close()
