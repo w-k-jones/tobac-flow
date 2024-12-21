@@ -1,5 +1,9 @@
 import argparse
 import pathlib
+import warnings
+
+# Ignore warnings from datetime conversion
+warnings.simplefilter("ignore", category=UserWarning)
 
 from datetime import datetime
 
