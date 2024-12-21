@@ -68,6 +68,9 @@ if __name__=="__main__":
         with xr.open_dataset(prior_file) as prior_ds:
             drop_cores = prior_ds.core.values
             drop_anvils = prior_ds.anvil.values
+    else:
+        drop_cores = np.array([], dtype=np.int32)
+        drop_anvils = np.array([], dtype=np.int32)
     
     # Load files
     with xr.open_dataset(dcc_files[0]) as dcc_ds:
