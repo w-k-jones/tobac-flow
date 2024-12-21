@@ -378,6 +378,22 @@ def process_file(file, links_ds):
     return ds
 
 
+def increment_step_coords(new_ds, past_ds):
+    new_ds.core_step.data[
+        new_ds.core_step.data != 0
+    ] += past_ds.core_step.max().item()
+    
+    new_ds.thick_anvil_step.data[
+        new_ds.thick_anvil_step.data != 0
+    ] += past_ds.thick_anvil_step.max().item()
+    
+    new_ds.thin_anvil_step.data[
+        new_ds.thin_anvil_step.data != 0
+    ] += past_ds.thin_anvil_step.max().item()
+
+    return new_ds
+
+
 # Old linking classes
 
 
