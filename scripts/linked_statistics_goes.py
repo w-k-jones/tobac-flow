@@ -52,7 +52,6 @@ if __name__=="__main__":
     file_dates = np.array([datetime.strptime(f.name.split("_S")[1][:15], "%Y%m%d_%H%M%S") for f in all_processed_files])
 
     dcc_files = all_processed_files[(file_dates >= start_date) & (file_dates < end_date)]
-    prior_file = all_processed_files[file_dates < start_date][-1]
     post_files = all_processed_files[file_dates >= end_date]
 
     start_str = dcc_files[0].stem.split("_S")[-1][:15]
@@ -64,9 +63,11 @@ if __name__=="__main__":
     save_path = pathlib.Path(args.sd) / new_filename
 
     # Find cores/anvils to drop from output as the exist in previous month
-    with xr.open_dataset(prior_file) as prior_ds:
-        drop_cores = prior_ds.core.values
-        drop_anvils = prior_ds.anvil.values
+    if np.any(file_dates < start_date):
+        prior_file = all_processed_files[file_dates < start_date][-1]
+        with xr.open_dataset(prior_file) as prior_ds:
+            drop_cores = prior_ds.core.values
+            drop_anvils = prior_ds.anvil.values
     
     # Load files
     with xr.open_dataset(dcc_files[0]) as dcc_ds:
