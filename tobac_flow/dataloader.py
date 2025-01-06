@@ -170,20 +170,21 @@ def goes_dataloader(
 
     print(f"Loaded {bt.t.size} time steps", flush=True)
 
-    # wvd.name = "WVD"
-    # wvd.attrs["standard_name"] = wvd.name
-    # wvd.attrs["long_name"] = "ABI Cloud and Moisture Imagery water vapour difference temperature at top of atmosphere"
-    # wvd.attrs["units"] = "K"
+     # Set additional attributes
+    wvd.name = "wvd"
+    wvd.attrs["long_name"] = (
+        "ABI Cloud and Moisture Imagery water vapour difference temperature at top of atmosphere"
+    )
+    wvd.attrs["units_metadata"] = "temperature: difference"
 
-    # bt.name = "BT"
-    # bt.attrs["standard_name"] = bt.name
-    # bt.attrs["long_name"] = "brightness temperature"
-    # bt.attrs["units"] = "K"
+    bt.name = "bt"
+    bt.attrs["units_metadata"] = "temperature: on_scale"
 
-    # swd.name = "SWD"
-    # swd.attrs["standard_name"] = swd.name
-    # swd.attrs["long_name"] = "split window difference"
-    # swd.attrs["units"] = "K"
+    swd.name = "swd"
+    swd.attrs["long_name"] = (
+        "ABI Cloud and Moisture Imagery split window difference temperature at top of atmosphere"
+    )
+    swd.attrs["units_metadata"] = "temperature: difference"
 
     if return_new_ds:
         return bt, wvd, swd, new_ds
