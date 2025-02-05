@@ -42,8 +42,8 @@ def filter_cores(
     def start_end_diff(x, *args, **kwargs):
         return x[0] - x[-1]
 
-    if "core_step_BT_mean" in dataset.data_vars:
-        core_bt_change = dataset.core_step_BT_mean.groupby(
+    if "core_step_bt_mean" in dataset.data_vars:
+        core_bt_change = dataset.core_step_bt_mean.groupby(
             dataset.core_step_core_index
         ).reduce(start_end_diff)
         core_invalid_bt = core_bt_change.data < 8
@@ -92,8 +92,8 @@ def filter_cores(
     def any_nan(x, *args, **kwargs):
         return np.any(np.isnan(x))
 
-    if "core_step_BT_mean" in dataset.data_vars:
-        core_any_nan_step = dataset.core_step_BT_mean.groupby(
+    if "core_step_bt_mean" in dataset.data_vars:
+        core_any_nan_step = dataset.core_step_bt_mean.groupby(
             dataset.core_step_core_index
         ).reduce(any_nan)
     elif "core_step_ctt_mean" in dataset.data_vars:
@@ -155,8 +155,8 @@ def filter_anvils(
     def any_nan(x, *args, **kwargs):
         return np.any(np.isnan(x))
 
-    if "thin_anvil_step_BT_mean" in dataset.data_vars:
-        thin_anvil_any_nan_step = dataset.thin_anvil_step_BT_mean.groupby(
+    if "thin_anvil_step_bt_mean" in dataset.data_vars:
+        thin_anvil_any_nan_step = dataset.thin_anvil_step_bt_mean.groupby(
             dataset.thin_anvil_step_anvil_index
         ).reduce(any_nan)
     elif "thin_anvil_step_ctt_mean" in dataset.data_vars:
