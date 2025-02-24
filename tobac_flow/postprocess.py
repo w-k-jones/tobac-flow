@@ -411,21 +411,21 @@ def process_core_properties(dataset, time_steps=3):
             dataset.core,
         )
 
-        dataset["core_cooling_rate"] = cooling_rate_groupby(
+        dataset["core_max_cooling_rate"] = cooling_rate_groupby(
             dataset.core_step_bt_mean,
             dataset.core_step_t,
             dataset.core_step_core_index,
             dataset.core,
-            t_steps=time_steps,
         )
 
-        dataset["core_cooling_rate_core_step_index"] = idxmax_cooling_rate_groupby(
+        dataset["core_max_cooling_rate_core_step_index"] = idxmax_cooling_rate_groupby(
             dataset.core_step_bt_mean,
             dataset.core_step_t,
             dataset.core_step_core_index,
             dataset.core,
-            t_steps=time_steps,
         )
+
+        # dataset["core_max_cooling_rate_t"] = dataset.core_step_t.loc[dataset["core_max_cooling_rate_core_step_index"]]
 
     if "core_step_ctt_mean" in dataset.data_vars:
         dataset["core_min_ctt_t"] = argmin_groupby(
@@ -446,7 +446,6 @@ def process_core_properties(dataset, time_steps=3):
             dataset.core_step_t,
             dataset.core_step_core_index,
             dataset.core,
-            t_steps=time_steps,
         )
 
         dataset["core_ctt_cooling_rate_core_step_index"] = idxmax_cooling_rate_groupby(
@@ -454,7 +453,6 @@ def process_core_properties(dataset, time_steps=3):
             dataset.core_step_t,
             dataset.core_step_core_index,
             dataset.core,
-            t_steps=time_steps,
         )
 
     if "core_step_ctt_corrected_mean" in dataset.data_vars:
@@ -476,7 +474,6 @@ def process_core_properties(dataset, time_steps=3):
             dataset.core_step_t,
             dataset.core_step_core_index,
             dataset.core,
-            t_steps=time_steps,
         )
 
         dataset["core_ctt_corrected_cooling_rate_core_step_index"] = (
@@ -485,7 +482,6 @@ def process_core_properties(dataset, time_steps=3):
                 dataset.core_step_t,
                 dataset.core_step_core_index,
                 dataset.core,
-                t_steps=time_steps,
             )
         )
 
@@ -508,7 +504,6 @@ def process_core_properties(dataset, time_steps=3):
             dataset.core_step_t,
             dataset.core_step_core_index,
             dataset.core,
-            t_steps=time_steps,
         )
 
         dataset["core_cth_growth_rate_core_step_index"] = idxmax_cooling_rate_groupby(
@@ -516,7 +511,6 @@ def process_core_properties(dataset, time_steps=3):
             dataset.core_step_t,
             dataset.core_step_core_index,
             dataset.core,
-            t_steps=time_steps,
         )
 
     if "core_step_cth_corrected_mean" in dataset.data_vars:
@@ -538,7 +532,6 @@ def process_core_properties(dataset, time_steps=3):
             dataset.core_step_t,
             dataset.core_step_core_index,
             dataset.core,
-            t_steps=time_steps,
         )
 
         dataset["core_cth_corrected_growth_rate_core_step_index"] = (
@@ -547,7 +540,6 @@ def process_core_properties(dataset, time_steps=3):
                 dataset.core_step_t,
                 dataset.core_step_core_index,
                 dataset.core,
-                t_steps=time_steps,
             )
         )
 

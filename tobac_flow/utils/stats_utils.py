@@ -293,7 +293,6 @@ def idxmax_groupby(field, groups, coord):
         {coord.name: coord},
     )
 
-
 def calc_max_cooling_rate(step_bt, step_t, t_steps=1):
     argsort = np.argsort(step_t)
     step_bt = step_bt[argsort]
@@ -315,11 +314,10 @@ def calc_max_cooling_rate(step_bt, step_t, t_steps=1):
     return step_bt_diff
 
 
-def cooling_rate_groupby(BT, times, groups, coord, t_steps=1):
-    return xr.DataArray(
+def cooling_rate_groupby(BT, times, groups, coord):
+    return -xr.DataArray(
         [
-            calc_max_cooling_rate(BT_group[1].data, time_group[1].data, t_steps=t_steps)
-            for BT_group, time_group in zip(BT.groupby(groups), times.groupby(groups))
+            BT.assign_coords(t=times).groupby(groups).apply(lambda da : da.differentiate("t").min())
         ],
         {coord.name: coord},
     )
@@ -346,11 +344,10 @@ def calc_idxmax_cooling_rate(step_bt, step_t, t_steps=1):
     return step_bt[list(step_bt.coords.keys())[0]].data[wh_max_cr]
 
 
-def idxmax_cooling_rate_groupby(BT, times, groups, coord, t_steps=1):
-    return xr.DataArray(
+def idxmax_cooling_rate_groupby(BT, times, groups, coord):
+    return -xr.DataArray(
         [
-            calc_idxmax_cooling_rate(BT_group[1], time_group[1], t_steps=t_steps)
-            for BT_group, time_group in zip(BT.groupby(groups), times.groupby(groups))
+            BT.assign_coords(t=times).groupby(groups).apply(lambda da : da.differentiate("t").idxmin())
         ],
         {coord.name: coord},
     )
