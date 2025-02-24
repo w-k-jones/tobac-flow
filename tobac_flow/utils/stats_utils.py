@@ -343,7 +343,7 @@ def calc_idxmax_cooling_rate(step_bt, step_t, t_steps=1):
 
 
 def idxmax_cooling_rate_groupby(BT, times, groups, coord):
-    return -xr.DataArray(
+    return xr.DataArray(
         BT.assign_coords(t=times).groupby(groups).apply(lambda da : da.differentiate("t").idxmin()).values,
         {coord.name: coord},
     )
