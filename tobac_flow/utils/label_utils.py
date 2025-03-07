@@ -180,11 +180,24 @@ def flat_label(
 
 
 def make_step_labels(labels):
+    """
+    Seperate a label mask into isolated labels at each time step
+    """
     if hasattr(labels, "values"):
         labels = labels.values
-    step_labels = flat_label(labels != 0)
-    step_labels += labels * step_labels.max()
-    return relabel_objects(step_labels, inplace=True)
+    labels = ma.array(labels, mask=labels==0)
+    
+    max_step_label = np.max(labels, axis=(1,2)).data.reshape([-1] + [1] * (len(labels.shape) - 1))
+    min_step_label = np.min(labels, axis=(1,2)).data.reshape([-1] + [1] * (len(labels.shape) - 1))
+    
+    step_label_offset = np.cumsum(max_step_label - min_step_label)
+    step_label_offset[1:] = step_label_offset[:-1]
+    step_label_offset[0] = 0
+    step_label_offset = step_label_offset.reshape([-1] + [1] * (len(labels.shape) - 1)) - min_step_label
+
+    return relabel_objects(
+        flat_label(labels) + labels.filled(-step_label_offset) + step_label_offset , inplace=True
+    )
 
 
 def get_step_labels_for_label(
