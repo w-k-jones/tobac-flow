@@ -118,3 +118,34 @@ def test_slice_labels():
         if i > 0:
             wh_label_i_dim = np.where(test_result == i)[0]
             assert np.all(wh_label_i_dim == wh_label_i_dim[0])
+
+def test_make_step_labels():
+    from tobac_flow.utils.label_utils import make_step_labels
+
+    test_labels = np.array([
+        [
+            [0, 0, 0, 1],
+            [0, 2, 1, 0],
+            [0, 2, 0, 3],
+        ],
+        [
+            [0, 0, 0, 0],
+            [0, 2, 2, 0],
+            [0, 2, 0, 4],
+        ],
+    ])
+
+    assert np.all(
+        make_step_labels(test_labels) == np.array([
+            [
+                [0, 0, 0, 1],
+                [0, 3, 2, 0],
+                [0, 3, 0, 4]
+            ],
+            [
+                [0, 0, 0, 0],
+                [0, 5, 5, 0],
+                [0, 5, 0, 6]
+            ]
+        ])
+    )
