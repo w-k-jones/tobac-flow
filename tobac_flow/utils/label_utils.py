@@ -186,20 +186,18 @@ def make_step_labels(labels):
     """
     if hasattr(labels, "values"):
         labels = labels.values
-    labels = ma.array(labels, mask=labels==0)
-    
-    max_step_label = np.max(labels, axis=(1,2)).data.reshape([-1] + [1] * (len(labels.shape) - 1))
-    min_step_label = np.min(labels, axis=(1,2)).data.reshape([-1] + [1] * (len(labels.shape) - 1))
-    
-    step_label_offset = np.cumsum(max_step_label - min_step_label)
-    step_label_offset[1:] = step_label_offset[:-1]
-    step_label_offset[0] = 0
-    step_label_offset = step_label_offset.reshape([-1] + [1] * (len(labels.shape) - 1)) - min_step_label
+    step_labels = flat_label(labels)
+    bins = np.cumsum(np.bincount(step_labels.ravel()))
+    args = np.argsort(step_labels.ravel())
 
-    return relabel_objects(
-        flat_label(labels) + labels.filled(-step_label_offset) + step_label_offset , inplace=True
-    )
+    counter = 1
+    for i in range(bins.size - 1):
+        if bins[i + 1] > bins[i]:
+            inverse_labels = np.unique(labels.ravel()[args[bins[i] : bins[i + 1]]], return_inverse=True)[1]
+            step_labels.ravel()[args[bins[i] : bins[i + 1]]] = inverse_labels + counter
+            counter += np.max(inverse_labels) + 1
 
+    return step_labels
 
 def get_step_labels_for_label(
     labels: np.ndarray[int], step_labels: np.ndarray[int]
