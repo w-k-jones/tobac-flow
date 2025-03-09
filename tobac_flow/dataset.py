@@ -1243,8 +1243,14 @@ def calculate_label_properties(dataset: xr.Dataset) -> None:
 
     # Location and lat/lon for cores
     area_stack = np.repeat(dataset.area.data[np.newaxis, ...], dataset.t.size, 0)
-    lat_stack = np.repeat(dataset.lat.data[np.newaxis, ...], dataset.t.size, 0)
-    lon_stack = np.repeat(dataset.lon.data[np.newaxis, ...], dataset.t.size, 0)
+    if (len(dataset.lat.shape)==2) and (len(dataset.lon.shape)==2):
+        lat_stack = np.repeat(dataset.lat.data[np.newaxis, ...], dataset.t.size, 0)
+        lon_stack = np.repeat(dataset.lon.data[np.newaxis, ...], dataset.t.size, 0)
+    elif (len(dataset.lat.shape)==1) and (len(dataset.lon.shape)==1):
+        lons, lats = np.meshgrid(dataset.lon, dataset.lat)
+        lat_stack = np.repeat(lats[np.newaxis, ...], dataset.t.size, 0)
+        lon_stack = np.repeat(lons[np.newaxis, ...], dataset.t.size, 0)
+    
 
     xx, yy = np.meshgrid(dataset.x, dataset.y)
     x_stack = np.repeat(xx[np.newaxis, ...], dataset.t.size, 0)

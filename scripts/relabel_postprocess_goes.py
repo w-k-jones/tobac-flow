@@ -1,9 +1,10 @@
-import numpy as np
-import xarray as xr
 import argparse
 import pathlib
 from datetime import datetime
-from dateutil.parser import parse as parse_date
+
+import numpy as np
+import xarray as xr
+
 from tobac_flow.analysis import get_label_stats, weighted_statistics_on_labels
 from tobac_flow.dataset import calculate_label_properties
 from tobac_flow.linking import process_file
@@ -43,8 +44,6 @@ if __name__ == "__main__":
     
     with xr.open_dataset(args.links_file) as links_ds:
         dataset = process_file(args.file, links_ds)
-
-    start_date, end_date = get_dates_from_filename(filename)
 
     print(datetime.now(), "Calculating label properties", flush=True)
     calculate_label_properties(dataset)
