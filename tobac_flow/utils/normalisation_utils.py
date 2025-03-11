@@ -22,7 +22,14 @@ def to_8bit(
     else:
         factor = 255 / (vmax - vmin)
     array_out = (array - vmin) * factor
-    array_out[np.logical_not(np.isfinite(array_out))] = fill_value
+
+    # Replace non-finite values before converting to uint8
+    wh_finite = np.isfinite(array_out)
+    array_out[np.logical_not(wh_finite)] = fill_value
+    # Large changes in the field values when one frame is NaN and the next is not cause problems for optical flow. In these cases, we just replace those values with those from the other frame
+    array_out[0][~wh_finite[0]] = array_out[1][~wh_finite[0]]
+    array_out[1][~wh_finite[1]] = array_out[0][~wh_finite[1]]
+
     return array_out.astype("uint8")
 
 
