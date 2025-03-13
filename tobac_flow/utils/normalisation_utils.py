@@ -8,7 +8,7 @@ import scipy.ndimage as ndi
 
 
 def to_8bit(
-    array: np.ndarray[float], vmin: float = None, vmax: float = None, fill_value=255
+    array: np.ndarray[float], vmin: float = None, vmax: float = None, fill_value=127
 ) -> np.ndarray[np.uint8]:
     """
     Converts an array to an 8-bit range between 0 and 255
