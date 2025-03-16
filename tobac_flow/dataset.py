@@ -289,9 +289,10 @@ def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
         new_coords["thin_anvil_step"] = thin_anvil_steps
 
     # Need to check if any coords already exist in the dataset, if so select those values:
-    for coord in new_coords:
-        if coord in dataset.coords:
-            dataset = dataset.sel(coord=new_coords[coord])
+    if any([coord in dataset.coords for coord in new_coords]):
+        dataset = dataset.sel(**{
+            coord:new_coords[coord] for coord in new_coords if coord in dataset.coords 
+        })
 
     return dataset.assign_coords(new_coords)
 
