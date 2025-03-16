@@ -327,7 +327,7 @@ def merge_next_file(ds, file, links_ds):
 
 
 def relabel_and_merge_file(file, links_ds):
-    with load_required_vars(file) as ds:
+    with load_required_vars(file, load=True) as ds:
         ds = relabel_cores_and_anvils(ds, file, links_ds)
         ds = merge_previous_file(ds, file, links_ds)
         ds = merge_next_file(ds, file, links_ds)
