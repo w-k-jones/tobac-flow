@@ -291,7 +291,7 @@ def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
     # Need to check if any coords already exist in the dataset, if so select those values:
     for coord in new_coords:
         if coord in dataset.coords:
-            dataset = dataset.sel(coord=new_coords["coord"])
+            dataset = dataset.sel(coord=new_coords[coord])
 
     return dataset.assign_coords(new_coords)
 

@@ -44,7 +44,7 @@ if __name__ == "__main__":
     
     with xr.open_dataset(args.links_file) as links_ds:
         dataset = process_file(args.file, links_ds)
-
+    
     print(datetime.now(), "Calculating label properties", flush=True)
     calculate_label_properties(dataset)
 
