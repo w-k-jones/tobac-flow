@@ -1280,6 +1280,7 @@ def add_validity_flags(dataset):
                     [
                         anvil_has_invalid_cores.data,
                         dataset.anvil_no_growth_flag,
+                        dataset.anvil_no_initial_core_flag.data,
                         dataset.thin_anvil_edge_label_flag.data,
                         dataset.thin_anvil_start_label_flag.data,
                         dataset.thin_anvil_end_label_flag.data,
@@ -1295,6 +1296,7 @@ def add_validity_flags(dataset):
                 np.logical_or.reduce(
                     [
                         anvil_has_invalid_cores.data,
+                        dataset.anvil_no_initial_core_flag.data,
                         dataset.anvil_no_growth_flag,
                         dataset.thin_anvil_edge_label_flag.data,
                         dataset.thin_anvil_start_label_flag.data,
