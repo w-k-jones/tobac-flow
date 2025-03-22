@@ -1235,8 +1235,12 @@ def add_validity_flags(dataset):
 
     anvil_has_invalid_cores = np.logical_not(
         dataset.core_is_valid.groupby(dataset.core_anvil_index)
-        .reduce(np.all)
+        .all()
         .loc[dataset.anvil.data]
+    )
+    dataset["anvil_invalid_core_flag" ] = xr.DataArray(
+        anvil_has_invalid_cores.values, 
+        {"anvil": dataset.anvil},
     )
 
     if "thick_anvil_nan_flag" in dataset.data_vars:

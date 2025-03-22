@@ -298,6 +298,7 @@ def add_label_coords(dataset: xr.Dataset) -> xr.Dataset:
 
 def find_max_overlap(x, atol, max_label):
     overlap_counts = np.bincount(x, minlength=max_label + 1)
+    overlap_counts[0] = 0 # Set 0 count to zero to ensure overlaps are not missed if core starts before anvil
 
     wh_overlap = np.argmax(overlap_counts)
 
