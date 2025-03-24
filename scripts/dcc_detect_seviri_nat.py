@@ -149,7 +149,7 @@ def main() -> None:
     bt, wvd, swd, dataset = seviri_nat_dataloader(
         start_date,
         end_date,
-        n_pad_files=t_offset * 2,
+        n_pad_files=8,
         satellite=satellite,
         file_path=data_path,
         x0=x0,
@@ -159,6 +159,9 @@ def main() -> None:
         return_new_ds=True,
         match_cld_files=True,
     )
+
+    # Remove negative swd values
+    swd = np.maximum(swd)
 
     print(datetime.now(), "Calculating flow field", flush=True)
 
@@ -193,7 +196,7 @@ def main() -> None:
     print(datetime.now(), "Detecting thick anvil region", flush=True)
     # Detect anvil regions
     upper_threshold = -5
-    lower_threshold = -12.5
+    lower_threshold = -10
     erode_distance = 2
 
     anvil_markers = get_anvil_markers(
@@ -249,8 +252,8 @@ def main() -> None:
         flow,
         wvd + swd,
         markers=thick_anvil_labels,
-        upper_threshold=upper_threshold,
-        lower_threshold=lower_threshold,
+        upper_threshold=upper_threshold + 5,
+        lower_threshold=lower_threshold + 5,
         erode_distance=erode_distance,
         min_length=min_length,
     )
