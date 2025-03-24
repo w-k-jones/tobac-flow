@@ -161,7 +161,7 @@ def main() -> None:
     )
 
     # Remove negative swd values
-    swd = np.maximum(swd)
+    swd = np.maximum(swd, 0)
 
     print(datetime.now(), "Calculating flow field", flush=True)
 
