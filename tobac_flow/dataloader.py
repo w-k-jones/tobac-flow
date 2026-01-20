@@ -1,13 +1,18 @@
-import pathlib
-from glob import glob
 import os
+import pathlib
+import tempfile
 import warnings
+import zipfile
+
 from datetime import datetime, timedelta
-from dateutil.parser import parse as parse_date
+from glob import glob
+
 import numpy as np
 import pandas as pd
 import xarray as xr
-import satpy
+
+from dateutil.parser import parse as parse_date
+from satpy import Scene
 
 from tobac_flow import io
 from tobac_flow.geo import get_pixel_area
@@ -688,7 +693,6 @@ def glob_seviri_nat_files(
     end_date: datetime,
     satellite: int | list | None = None,
     file_path: pathlib.Path = pathlib.Path("../data/seviri/"),
-    match_cld_files: bool = False,
 ) -> list[pathlib.Path]:
     if satellite is None:
         satellite = "[1234]"
@@ -706,49 +710,21 @@ def glob_seviri_nat_files(
 
     seviri_files = []
 
-    if match_cld_files:
-        seviri_file_path = pathlib.Path(
-            "/gws/nopw/j04/eo_shared_data_vol1/satellite/seviri-orac/Data"
+    for date in dates:
+        datestr = date.strftime("%Y%m%d%H")
+        glob_str = f"MSG{satellite}-SEVI-MSG*-NA-{datestr}*-NA.nat"
+        seviri_files.extend(
+            list((file_path / date.strftime("%Y/%m/%d")).glob(glob_str))
         )
-        cld_files = sorted(
-            sum(
-                [
-                    list(
-                        (
-                            seviri_file_path
-                            / date.strftime("%Y")
-                            / date.strftime("%m")
-                            / date.strftime("%d")
-                            / date.strftime("%H")
-                        ).glob(
-                            f"{date.strftime('%Y%m%d%H')}[0-9][0-9]00-ESACCI-L2_CLOUD-CLD_PRODUCTS-SEVIRI-MSG{satellite}-fv3.0.nc"
-                        )
-                    )
-                    for date in dates
-                ],
-                [],
-            )
+        # Search for zipped files as well
+        file_stems = [f.stem for f in seviri_files]
+        glob_str = f"MSG{satellite}-SEVI-MSG*-NA-{datestr}*-NA.zip"
+        zipped_files = list((file_path / date.strftime("%Y/%m/%d")).glob(glob_str))
+        seviri_files.extend(
+            [f for f in zipped_files if f.stem not in file_stems]
         )
 
-        for file in cld_files:
-            date = datetime.strptime(file.name[:14], "%Y%m%d%H%M%S") + timedelta(
-                minutes=12
-            )
-            satcode = file.name[-13:-9]
-            glob_str = f"{satcode}-SEVI-MSG15*-NA-{date.strftime('%Y%m%d%H%M')}*-NA.nat"
-            seviri_files.extend(
-                list((file_path / date.strftime("%Y/%m/%d")).glob(glob_str))
-            )
-
-    else:
-        for date in dates:
-            datestr = date.strftime("%Y%m%d%H")
-            glob_str = f"MSG{satellite}-SEVI-MSG*-NA-{datestr}*-NA.nat"
-            seviri_files.extend(
-                list((file_path / date.strftime("%Y/%m/%d")).glob(glob_str))
-            )
-
-    return sorted(seviri_files)
+    return sorted(seviri_files, key=lambda f : datetime.strptime(f.stem.split("-")[-2], "%Y%m%d%H%M%S.%f000Z"))
 
 
 def find_seviri_nat_files(
@@ -757,10 +733,9 @@ def find_seviri_nat_files(
     n_pad_files=1,
     satellite=None,
     file_path=pathlib.Path("../data/seviri/"),
-    match_cld_files=False,
 ):
     seviri_files = glob_seviri_nat_files(
-        start_date, end_date, satellite, file_path, match_cld_files=match_cld_files
+        start_date, end_date, satellite, file_path,
     )
 
     if n_pad_files > 0:
@@ -771,7 +746,6 @@ def find_seviri_nat_files(
             start_date,
             satellite,
             file_path,
-            match_cld_files=match_cld_files,
         )
         if len(seviri_pre_file):
             seviri_pre_file = seviri_pre_file[-n_pad_files:]
@@ -781,7 +755,6 @@ def find_seviri_nat_files(
             end_date + timedelta(hours=pad_hours),
             satellite,
             file_path,
-            match_cld_files=match_cld_files,
         )
         if len(seviri_post_file):
             seviri_post_file = seviri_post_file[:n_pad_files]
@@ -800,6 +773,59 @@ def get_seviri_nat_date_from_filename(filename):
     date = datetime.strptime(filename[24:38], "%Y%m%d%H%M%S")
     return date
 
+def read_msg(filename, channels=None):
+    if filename.suffix == ".nat":
+        return read_msg_native(filename, channels=channels)
+    elif filename.suffix == ".zip":
+        return read_zipped_msg(filename, channels=channels)
+    raise ValueError("Filename must be a SEVIRI native file (.nat) or zip archive (.zip)")
+
+def read_msg_native(filename, channels=None):
+    if channels is None:
+        channels = [
+            'IR_016',
+            'IR_039',
+            'IR_087',
+            'IR_097',
+            'IR_108',
+            'IR_120',
+            'IR_134',
+            'VIS006',
+            'VIS008',
+            'WV_062',
+            'WV_073'
+        ]
+    scn = Scene([filename], reader="seviri_l1b_native")
+    scn.load(channels)
+    msg_ds = scn.to_xarray().load()
+    return msg_ds
+
+def read_zipped_msg(filename, channels=None):
+    if channels is None:
+        channels = [
+            'IR_016',
+            'IR_039',
+            'IR_087',
+            'IR_097',
+            'IR_108',
+            'IR_120',
+            'IR_134',
+            'VIS006',
+            'VIS008',
+            'WV_062',
+            'WV_073'
+        ]
+    
+    zf = zipfile.ZipFile(filename)
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        zf.extractall(tempdir)
+        seviri_file = list(pathlib.Path(tempdir).glob("MSG*-NA.nat"))[0]
+        scn = Scene([seviri_file], reader="seviri_l1b_native")
+        scn.load(channels)
+        msg_ds = scn.to_xarray().load()
+
+    return msg_ds
 
 def seviri_nat_dataloader(
     start_date,
@@ -813,7 +839,6 @@ def seviri_nat_dataloader(
     y1=None,
     time_gap=timedelta(minutes=30),
     return_new_ds=False,
-    match_cld_files=False,
 ):
     files = find_seviri_nat_files(
         start_date,
@@ -821,25 +846,15 @@ def seviri_nat_dataloader(
         n_pad_files=n_pad_files,
         satellite=satellite,
         file_path=file_path,
-        match_cld_files=match_cld_files,
     )
 
-    scn = satpy.Scene(reader="seviri_l1b_native", filenames=files)
-
-    warnings.filterwarnings(
-        "ignore", category=UserWarning, message="Converting non-nanosecond.*"
+    ds = xr.concat(
+        [
+            read_msg(f, channels=["WV_062", "WV_073", "IR_087", "IR_108", "IR_120"], x0=x0, x1=x1, y0=y0, y1=y1) 
+            for f in files[:12]
+        ], 
+        "t"
     )
-    scn.load(["WV_062", "WV_073", "IR_087", "IR_108", "IR_120"], generate=False)
-
-    warnings.filterwarnings(
-        "ignore", category=UserWarning, message="Cannot pretty-format *"
-    )
-    ds = scn.to_xarray()
-
-    # Coarsen to separate time dimension
-    ds = ds.coarsen(y=ds.x.size).construct(y=("t", "y"))
-    dates = [get_seviri_nat_date_from_filename(f) for f in files]
-    ds.coords["t"] = ("t", dates)
 
     # Add x and y to coords so that when they are sliced we can retain their position
     if "x" not in ds.coords:
@@ -847,11 +862,9 @@ def seviri_nat_dataloader(
     if "y" not in ds.coords:
         ds.coords["y"] = np.arange(ds.y.size, dtype=int)
 
-    ds = ds.isel(y=slice(y0, y1), x=slice(x0, x1))
-
     if return_new_ds:
-        lat = ds.latitude.isel(t=0)
-        lon = ds.longitude.isel(t=0)
+        lat = ds.latitude
+        lon = ds.longitude
 
     # Now drop coords that aren't related to dims
     ds = ds.drop_vars([coord for coord in ds.coords if coord not in ["t", "y", "x"]])
