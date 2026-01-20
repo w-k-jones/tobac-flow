@@ -795,6 +795,9 @@ def read_msg_native(filename, channels=None, x0=None, x1=None, y0=None, y1=None)
             'WV_062',
             'WV_073'
         ]
+    warnings.filterwarnings(
+        "ignore", category=UserWarning, message="Cannot pretty-format *"
+    )
     scn = Scene([filename], reader="seviri_l1b_native")
     scn.load(channels)
     msg_ds = scn.to_xarray().isel(x=slice(x0, x1), y=slice(y0, y1))
@@ -851,7 +854,7 @@ def seviri_nat_dataloader(
     ds = xr.concat(
         [
             read_msg(f, channels=["WV_062", "WV_073", "IR_087", "IR_108", "IR_120"], x0=x0, x1=x1, y0=y0, y1=y1) 
-            for f in files[:12]
+            for f in files
         ], 
         "t"
     )
