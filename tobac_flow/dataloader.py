@@ -773,14 +773,14 @@ def get_seviri_nat_date_from_filename(filename):
     date = datetime.strptime(filename[24:38], "%Y%m%d%H%M%S")
     return date
 
-def read_msg(filename, channels=None):
+def read_msg(filename, channels=None, x0=None, x1=None, y0=None, y1=None):
     if filename.suffix == ".nat":
-        return read_msg_native(filename, channels=channels)
+        return read_msg_native(filename, channels=channels, x0=x0, x1=x1, y0=y0, y1=y1)
     elif filename.suffix == ".zip":
-        return read_zipped_msg(filename, channels=channels)
+        return read_zipped_msg(filename, channels=channels, x0=x0, x1=x1, y0=y0, y1=y1)
     raise ValueError("Filename must be a SEVIRI native file (.nat) or zip archive (.zip)")
 
-def read_msg_native(filename, channels=None):
+def read_msg_native(filename, channels=None, x0=None, x1=None, y0=None, y1=None):
     if channels is None:
         channels = [
             'IR_016',
@@ -797,10 +797,12 @@ def read_msg_native(filename, channels=None):
         ]
     scn = Scene([filename], reader="seviri_l1b_native")
     scn.load(channels)
-    msg_ds = scn.to_xarray().load()
+    msg_ds = scn.to_xarray().isel(x=slice(x0, x1), y=slice(y0, y1))
+    msg_ds = msg_ds.assign_coords(t=[datetime.strptime(filename.stem.split("-")[-2], "%Y%m%d%H%M%S.%f000Z")])
+    msg_ds.load()
     return msg_ds
 
-def read_zipped_msg(filename, channels=None):
+def read_zipped_msg(filename, channels=None, x0=None, x1=None, y0=None, y1=None):
     if channels is None:
         channels = [
             'IR_016',
@@ -821,9 +823,7 @@ def read_zipped_msg(filename, channels=None):
     with tempfile.TemporaryDirectory() as tempdir:
         zf.extractall(tempdir)
         seviri_file = list(pathlib.Path(tempdir).glob("MSG*-NA.nat"))[0]
-        scn = Scene([seviri_file], reader="seviri_l1b_native")
-        scn.load(channels)
-        msg_ds = scn.to_xarray().load()
+        msg_ds = read_msg_native(seviri_file, channels=channels, x0=x0, x1=x1, y0=y0, y1=y1)
 
     return msg_ds
 
