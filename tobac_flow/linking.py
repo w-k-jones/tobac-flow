@@ -344,6 +344,8 @@ def process_file(file, links_ds):
 
     print(datetime.now(), "Flagging edge labels", flush=True)
     flag_edge_labels(ds, *get_dates_from_filename(file))
+    if "BT" in ds.data_vars:
+        dataset = dataset.rename_vars(BT="bt")
     if "bt" in ds.data_vars:
         print(datetime.now(), "Flagging NaN adjacent labels", flush=True)
         flag_nan_adjacent_labels(ds, ds.bt)
