@@ -936,17 +936,17 @@ def seviri_nat_dataloader(
 
     print(f"Loaded {bt.t.size} time steps", flush=True)
 
-    wvd.name = "WVD"
+    wvd.name = "wvd"
     wvd.attrs["standard_name"] = wvd.name
     wvd.attrs["long_name"] = "water vapour difference"
     wvd.attrs["units"] = "K"
 
-    bt.name = "BT"
+    bt.name = "bt"
     bt.attrs["standard_name"] = bt.name
     bt.attrs["long_name"] = "brightness temperature"
     bt.attrs["units"] = "K"
 
-    twd.name = "TWD"
+    twd.name = "twd"
     twd.attrs["standard_name"] = twd.name
     twd.attrs["long_name"] = "two window difference"
     twd.attrs["units"] = "K"
