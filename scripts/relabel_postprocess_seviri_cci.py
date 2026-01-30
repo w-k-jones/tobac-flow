@@ -39,6 +39,8 @@ if __name__ == "__main__":
     assert filename.exists(), f'File {filename} not found'
 
     start_date, end_date = get_dates_from_filename(filename)
+    x0, x1 = [int(s) for s in filename.name.split("_X")[-1][:9].split("_")]
+    y0, y1 = [int(s) for s in filename.name.split("_Y")[-1][:9].split("_")]
     
     save_path = pathlib.Path(args.sd)
     if args.sdf:
@@ -182,8 +184,8 @@ if __name__ == "__main__":
         )
         .squeeze()
         .isel(
-            along_track=slice(dataset.y[0].item(), dataset.y[-1].item() + 1),
-            across_track=slice(dataset.x[0].item(), dataset.x[-1].item() + 1),
+            along_track=slice(y0, y1 + 1),
+            across_track=slice(x0, x1 + 1),
         )
     )
 
@@ -273,8 +275,8 @@ if __name__ == "__main__":
         )
         .squeeze()
         .isel(
-            along_track=slice(dataset.y[0].item(), dataset.y[-1].item() + 1),
-            across_track=slice(dataset.x[0].item(), dataset.x[-1].item() + 1),
+            along_track=slice(y0, y1 + 1),
+            across_track=slice(x0, x1 + 1),
         )
     )
 
