@@ -184,8 +184,8 @@ if __name__ == "__main__":
         )
         .squeeze()
         .isel(
-            along_track=slice(y0, y1 + 1),
-            across_track=slice(x0, x1 + 1),
+            along_track=slice(y0, y1),
+            across_track=slice(x0, x1),
         )
     )
 
@@ -275,8 +275,8 @@ if __name__ == "__main__":
         )
         .squeeze()
         .isel(
-            along_track=slice(y0, y1 + 1),
-            across_track=slice(x0, x1 + 1),
+            along_track=slice(y0, y1),
+            across_track=slice(x0, x1),
         )
     )
 
